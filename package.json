@@ -1,0 +1,21 @@
+{
+  "name": "nintendo-switch-games-monitor",
+  "version": "0.1.0",
+  "description": "Monitors Nintendo Switch game deals, analyzes them, and notifies via HTML email. Built with Node.js + TypeScript.",
+  "private": true,
+  "main": "dist/main.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "ts-node src/main.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "dotenv": "^16.4.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
