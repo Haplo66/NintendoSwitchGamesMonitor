@@ -12,7 +12,8 @@
     "start": "node dist/main.js",
     "dev": "ts-node src/main.ts",
     "test-email": "npm run build && node dist/notifications/test-email.js",
-    "validate-email": "npm run build && node dist/notifications/email-validation.js"
+    "validate-email": "npm run build && node dist/notifications/email-validation.js",
+    "collect-games": "npm run build && node dist/collectors/collect-games.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

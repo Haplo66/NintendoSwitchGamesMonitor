@@ -16,6 +16,8 @@
 ## v0.3 Game Data Collection
 - Collect Nintendo Switch game information
 
+> **Status: 🔄 In progress**
+
 ## v0.4 Family Profiles
 - Age filtering
 - Preferences

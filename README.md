@@ -80,6 +80,30 @@ This builds the project, generates a sample `NotificationReport`, renders it to 
 
 Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
 
+## Game Collection
+
+Data collection is built behind a small abstraction so the pipeline can be developed before any real Nintendo source is wired up, and sources can be swapped later without touching the rest of the app.
+
+1. **Models** (`src/models/game.ts`) — a generic `Game` type (id, title, prices, currency, age rating, genres, store/image URLs, source). It carries no logic, so any future source can map its data into it.
+2. **Collector abstraction** (`src/collectors/game-collector.ts`) — a `GameCollector` interface (`collectGames(options)` → `Promise<Game[]>`). It is deliberately not Nintendo-specific.
+3. **Mock collector** (`src/collectors/mock-game-collector.ts`) — a `MockGameCollector` that returns sample data covering a discounted game, a free game, and a kid-friendly game, letting the rest of the pipeline (analysis → notification) be built before real sources exist.
+
+```
+GameCollector
+    |
+    +-- MockGameCollector   (sample data, active now)
+    |
+    +-- NintendoCollector   (planned v0.3+ real source)
+```
+
+### Collecting games locally
+
+```bash
+npm run collect-games
+```
+
+This builds the project, runs the mock collector, and prints the collected games so you can confirm the collector layer works.
+
 ## Getting Started
 
 ```bash
@@ -96,13 +120,17 @@ cp .env.example .env   # then fill in values
 | `npm run dev`        | Run the service in watch/dev mode                |
 | `npm run test-email` | Build and send a sample HTML test notification   |
 | `npm run validate-email` | Build and run the email rendering validation suite |
+| `npm run collect-games`  | Build and collect sample games via the mock collector |
 
 ## Project Structure
 
 ```
 ├── docs/              # Roadmap and planning docs
 ├── src/
-│   ├── collectors/    # Nintendo Switch data collection (planned)
+│   ├── collectors/    # Game data collection
+│   │   ├── game-collector.ts
+│   │   ├── mock-game-collector.ts
+│   │   └── collect-games.ts
 │   ├── analyzer/      # Deal scoring and recommendations (planned)
 │   ├── notifications/ # Email system: templates, renderer, providers
 │   │   ├── email-template.ts
@@ -113,7 +141,7 @@ cp .env.example .env   # then fill in values
 │   │   ├── mock-email-provider.ts
 │   │   ├── email-validation.ts
 │   │   └── test-email.ts
-│   ├── models/        # Shared domain types (GameDeal, NotificationReport, ...)
+│   ├── models/        # Shared domain types (Game, GameDeal, NotificationReport, ...)
 │   └── main.ts        # Service entry point
 ├── data/              # Runtime data / cache
 └── .github/workflows  # Scheduled execution (planned)
