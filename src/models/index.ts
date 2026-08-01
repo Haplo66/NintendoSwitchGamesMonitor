@@ -5,5 +5,6 @@ export * from './game';
 export * from './game-analysis';
 export * from './game-deal';
 export * from './match-result';
+export * from './monitor-result';
 export * from './notification-report';
 export * from './wishlist';

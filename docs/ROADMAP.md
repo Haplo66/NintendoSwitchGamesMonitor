@@ -44,3 +44,12 @@ Features:
 - Error handling and validation
 
 > **Status: 🔄 In progress**
+
+## v0.7 End-to-End Monitoring Pipeline
+
+Features:
+- Full collection flow
+- Analysis integration
+- HTML report generation
+
+> **Status: 🔄 In progress**

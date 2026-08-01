@@ -80,6 +80,8 @@ This builds the project, generates a sample `NotificationReport`, renders it to 
 | `GAME_COLLECTOR`      | Active collector: `mock` or `deku` (default: `mock`)                            |
 | `DEALS_SOURCE_URL`    | Deals JSON feed used by the `deku` collector (default: Nintendo eShop sales feed) |
 | `DEALS_CURRENCY`      | Currency reported by the deals source (default: `EUR`)                          |
+| `DEALS_LIMIT`         | Deals fetched per run for the `deku` collector (default: `100`)                 |
+| `MIN_DEAL_SCORE`      | Minimum score for a game to be included in the report (default: `80`)          |
 
 Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
 
@@ -129,6 +131,50 @@ npm run validate-collector
 ```
 
 Runs checks that fetch real data and confirm the collector returns games, every `Game` has the required fields, malformed source records are rejected, and valid records are normalized correctly.
+
+## End-to-End Monitoring Pipeline
+
+The pipeline (`src/pipeline/monitor-run.ts`) wires every layer into one local monitoring run:
+
+```
+Game Collector
+    |
+    v
+Family Matching
+    |
+    v
+Wishlist Matching
+    |
+    v
+Deal Scoring
+    |
+    v
+Filter worth reporting
+    |
+    v
+Notification Report (HTML)
+    |
+    v
+HTML Email (provider)
+```
+
+1. **Collect** — runs the selected `GameCollector` (`mock` or `deku`).
+2. **Analyze** — family matcher, wishlist matcher, and deal scorer produce a `GameAnalysis` per game.
+3. **Filter** — only games worth reporting are kept. A game is included when it is free, matches a wishlist item, or its deal score reaches `MIN_DEAL_SCORE` (default `80`).
+4. **Render** — filtered games are converted into a `NotificationReport` and rendered to an HTML email.
+5. **Deliver** — the email is sent via the configured `EmailProvider` (use `EMAIL_PROVIDER=mock` for local testing without SMTP).
+
+### Running a local monitor
+
+```bash
+$env:EMAIL_PROVIDER = "mock"; npm run monitor
+```
+
+This collects games, analyzes them against the family profiles and wishlist, generates the HTML report, and captures it in the mock email provider (saved to `data/emails/` by default). Set `GAME_COLLECTOR=deku` to monitor real deals:
+
+```bash
+$env:GAME_COLLECTOR = "deku"; $env:EMAIL_PROVIDER = "mock"; npm run monitor
+```
 
 ## Family Profiles & Wishlist
 
@@ -212,6 +258,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-config` | Build and validate family profiles + wishlist config |
 | `npm run analyze-games`   | Build and analyze mock games vs profiles + wishlist |
 | `npm run validate-collector` | Build and validate the game collector against real data |
+| `npm run monitor`       | Build and run the full monitor pipeline (collect → analyze → email) |
 
 ## Project Structure
 
@@ -240,6 +287,7 @@ cp .env.example .env   # then fill in values
 │   │   ├── email-validation.ts
 │   │   └── test-email.ts
 │   ├── config/        # Configuration loaders + validation
+│   ├── pipeline/      # End-to-end monitor run (collect → analyze → email)
 │   ├── models/        # Shared domain types (Game, GameDeal, FamilyProfile, ...)
 │   └── main.ts        # Service entry point
 ├── data/              # Runtime data / cache + family/wishlist config

@@ -4,9 +4,7 @@ import { MockGameCollector } from '../collectors/mock-game-collector';
 import { loadFamilyProfiles } from '../config/family-profiles-loader';
 import { loadWishlist } from '../config/wishlist-loader';
 import { GameAnalysis } from '../models';
-import { scoreDeal } from './deal-score';
-import { matchGameToProfiles } from './family-matcher';
-import { matchGameToWishlist } from './wishlist-matcher';
+import { analyzeGamesWith } from './analyze';
 
 function formatPrice(price: number, currency: string): string {
   return `${currency} ${price.toFixed(2)}`;
@@ -75,22 +73,7 @@ export async function analyzeGames(): Promise<GameAnalysis[]> {
     `Analyzing ${games.length} games against ${profiles.length} family profile(s) and ${wishlist.items.length} wishlist item(s).`,
   );
 
-  const results: GameAnalysis[] = games.map((game) => {
-    const familyMatches = matchGameToProfiles(game, profiles);
-    const wishlistMatch = matchGameToWishlist(game, wishlist);
-    const dealScore = scoreDeal({
-      game,
-      familyMatchCount: familyMatches.filter((match) => match.matched).length,
-      wishlistMatched: wishlistMatch?.matched ?? false,
-      priceTargetReached: wishlistMatch?.priceTargetReached ?? false,
-    });
-    return {
-      game,
-      familyMatches,
-      wishlistMatch: wishlistMatch ?? undefined,
-      dealScore,
-    };
-  });
+  const results: GameAnalysis[] = analyzeGamesWith(games, profiles, wishlist);
 
   printAnalysisReport(results);
   return results;
