@@ -11,7 +11,7 @@
 - HTML email templates
 - Gmail SMTP integration
 
-> **Status: 🔄 In progress**
+> **Status: ✅ Complete**
 
 ## v0.3 Game Data Collection
 - Collect Nintendo Switch game information

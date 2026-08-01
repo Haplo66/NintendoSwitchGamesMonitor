@@ -1,8 +1,8 @@
 import 'dotenv/config';
 
 import { NotificationReport } from '../models';
+import { createEmailProvider } from './email-factory';
 import { renderNotificationEmail } from './email-renderer';
-import { GmailProvider } from './gmail-provider';
 
 function buildSampleReport(): NotificationReport {
   return {
@@ -41,14 +41,15 @@ function buildSampleReport(): NotificationReport {
 export async function sendTestEmail(): Promise<void> {
   const report = buildSampleReport();
   const html = renderNotificationEmail(report);
-  const provider = GmailProvider.fromEnv();
+  const provider = createEmailProvider();
 
   await provider.sendEmail({
     subject: '🎮 Nintendo Switch Games Monitor — Test Notification',
     html,
   });
 
-  console.log(`Test email sent to ${process.env.EMAIL_TO}.`);
+  const target = process.env.EMAIL_PROVIDER === 'mock' ? 'mock provider' : process.env.EMAIL_TO;
+  console.log(`Test email sent via ${process.env.EMAIL_PROVIDER ?? 'gmail'} to ${target}.`);
 }
 
 if (require.main === module) {

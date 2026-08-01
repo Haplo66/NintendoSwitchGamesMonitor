@@ -11,7 +11,8 @@
     "build": "tsc",
     "start": "node dist/main.js",
     "dev": "ts-node src/main.ts",
-    "test-email": "npm run build && node dist/notifications/test-email.js"
+    "test-email": "npm run build && node dist/notifications/test-email.js",
+    "validate-email": "npm run build && node dist/notifications/email-validation.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
