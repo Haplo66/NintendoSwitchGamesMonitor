@@ -53,3 +53,12 @@ Features:
 - HTML report generation
 
 > **Status: 🔄 In progress**
+
+## v0.8 Scheduled Cloud Execution
+
+Features:
+- Daily GitHub Actions run
+- Secret configuration
+- Automated monitoring
+
+> **Status: 🔄 In progress**

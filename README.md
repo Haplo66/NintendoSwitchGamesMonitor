@@ -176,6 +176,33 @@ This collects games, analyzes them against the family profiles and wishlist, gen
 $env:GAME_COLLECTOR = "deku"; $env:EMAIL_PROVIDER = "mock"; npm run monitor
 ```
 
+## Scheduled Execution (GitHub Actions)
+
+The monitor runs automatically in the cloud via GitHub Actions (`.github/workflows/monitor.yml`), so there is no server to keep running:
+
+- **Schedule** — runs once per day at 06:30 UTC via cron.
+- **Manual dispatch** — trigger a run anytime from the **Actions** tab. Manual runs default to `EMAIL_PROVIDER=mock`, so you can validate the whole workflow end-to-end without any email credentials.
+- **Steps** — checks out the repo, sets up Node.js, installs dependencies with `npm ci`, then runs `npm run monitor`.
+- **Logging** — the pipeline output shows the collector used, the number of games collected, how many were reported, and the completion status. In mock mode the rendered HTML email is also uploaded as a `monitor-emails` workflow artifact for inspection.
+
+### Required secrets
+
+Configure these under **Settings → Secrets and variables → Actions**. Secrets are never committed; leave unset the ones only needed for the gmail path when validating with mock mode.
+
+| Secret             | Purpose                                        | Needed for                  |
+| ------------------ | ---------------------------------------------- | --------------------------- |
+| `EMAIL_PROVIDER`   | `gmail` or `mock`                              | scheduled gmail runs        |
+| `SMTP_HOST`        | Gmail SMTP host                                | gmail mode                  |
+| `SMTP_PORT`        | Gmail SMTP port                                | gmail mode                  |
+| `SMTP_USER`        | Gmail address used for SMTP auth               | gmail mode                  |
+| `SMTP_PASSWORD`    | Gmail App Password                             | gmail mode                  |
+| `EMAIL_TO`         | Recipient address for notification emails      | gmail mode                  |
+| `GAME_COLLECTOR`   | `deku` or `mock`                               | scheduled runs              |
+| `DEALS_SOURCE_URL` | Deals JSON feed (optional, defaults to eShop)  | scheduled deku runs         |
+| `MIN_DEAL_SCORE`   | Report threshold (optional, default `80`)      | scheduled runs              |
+
+Manual dispatch always lets you override `EMAIL_PROVIDER` and `GAME_COLLECTOR` per run, independent of the stored secrets.
+
 ## Family Profiles & Wishlist
 
 The service is family-aware: games are matched against who lives in the household and what they want.
@@ -293,7 +320,7 @@ cp .env.example .env   # then fill in values
 ├── data/              # Runtime data / cache + family/wishlist config
 │   ├── family-profile.json
 │   └── wishlist.json
-└── .github/workflows  # Scheduled execution (planned)
+└── .github/workflows  # Scheduled execution (GitHub Actions monitor workflow)
 ```
 
 ## Roadmap
