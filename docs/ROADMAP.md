@@ -30,5 +30,10 @@ Features:
 > **Status: 🔄 In progress**
 
 ## v0.5 Deal Intelligence
-- Discount scoring
-- Recommendations
+
+Features:
+- Family matching
+- Wishlist matching
+- Deal scoring foundation
+
+> **Status: 🔄 In progress**

@@ -137,6 +137,35 @@ npm run validate-config
 
 This loads both files, prints a summary, and runs checks that confirm the JSON files exist, required fields are present, and malformed configuration fails with a clear error — with no SMTP credentials or external services required.
 
+## Analysis & Deal Intelligence
+
+The analysis layer evaluates collected games against the family profiles and the wishlist, producing match information and a deal score — no notifications yet.
+
+1. **Family matcher** (`src/analyzer/family-matcher.ts`) — checks a game against a family profile: age compatibility (ESRB rating vs `maxAge`), excluded genres (block), and preferred genres (positive reason). Returns `FamilyMatchResult[]` (`profileName`, `matched`, `reasons`).
+2. **Wishlist matcher** (`src/analyzer/wishlist-matcher.ts`) — compares collected games to wishlist items by title and evaluates the price target. Returns `WishlistMatchResult | null` (`matched`, `wishlistItem`, `priceTargetReached`).
+3. **Deal scorer** (`src/analyzer/deal-score.ts`) — scores a deal on: discount percentage (higher = better), free games (strong bonus), wishlist match (strong bonus), and family profile matches (bonus). Returns `DealScoreResult` (`score`, `reasons`).
+
+```
+MockGameCollector
+        |
+        v
+Family matcher  -->  Wishlist matcher
+        |                 |
+        v                 v
+        +------ Deal scorer ------+
+                     |
+                     v
+             Analysis report
+```
+
+### Running the analysis
+
+```bash
+npm run analyze-games
+```
+
+This builds the project, collects sample games with the mock collector, matches them against the family profiles and wishlist, scores each deal, and prints the report (matching profiles, wishlist hits, and calculated scores).
+
 ## Getting Started
 
 ```bash
@@ -155,6 +184,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-email` | Build and run the email rendering validation suite |
 | `npm run collect-games`  | Build and collect sample games via the mock collector |
 | `npm run validate-config` | Build and validate family profiles + wishlist config |
+| `npm run analyze-games`   | Build and analyze mock games vs profiles + wishlist |
 
 ## Project Structure
 
@@ -165,7 +195,11 @@ cp .env.example .env   # then fill in values
 │   │   ├── game-collector.ts
 │   │   ├── mock-game-collector.ts
 │   │   └── collect-games.ts
-│   ├── analyzer/      # Deal scoring and recommendations (planned)
+│   ├── analyzer/      # Analysis: family/wishlist matching + deal scoring
+│   │   ├── family-matcher.ts
+│   │   ├── wishlist-matcher.ts
+│   │   ├── deal-score.ts
+│   │   └── analyze-games.ts
 │   ├── notifications/ # Email system: templates, renderer, providers
 │   │   ├── email-template.ts
 │   │   ├── email-renderer.ts

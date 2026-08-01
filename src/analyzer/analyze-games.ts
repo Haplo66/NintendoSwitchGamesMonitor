@@ -1,0 +1,104 @@
+import 'dotenv/config';
+
+import { MockGameCollector } from '../collectors/mock-game-collector';
+import { loadFamilyProfiles } from '../config/family-profiles-loader';
+import { loadWishlist } from '../config/wishlist-loader';
+import { GameAnalysis } from '../models';
+import { scoreDeal } from './deal-score';
+import { matchGameToProfiles } from './family-matcher';
+import { matchGameToWishlist } from './wishlist-matcher';
+
+function formatPrice(price: number, currency: string): string {
+  return `${currency} ${price.toFixed(2)}`;
+}
+
+function printAnalysisReport(results: GameAnalysis[]): void {
+  for (const analysis of results) {
+    const game = analysis.game;
+    console.log('');
+    console.log(`[${game.title}]`);
+    const priceInfo =
+      game.originalPrice !== undefined && game.originalPrice > game.currentPrice
+        ? `${formatPrice(game.currentPrice, game.currency)} (was ${formatPrice(game.originalPrice, game.currency)})`
+        : formatPrice(game.currentPrice, game.currency);
+    console.log(`    Price: ${priceInfo} · Rating: ${game.ageRating ?? 'N/A'} · Genres: ${game.genres.join(', ')}`);
+
+    const matchedProfiles = analysis.familyMatches.filter((match) => match.matched);
+    if (matchedProfiles.length > 0) {
+      console.log(`    Family matches: ${matchedProfiles.map((match) => match.profileName).join(', ')}`);
+    } else {
+      console.log('    Family matches: none');
+    }
+    for (const match of analysis.familyMatches) {
+      if (match.reasons.length > 0) {
+        console.log(`      - ${match.profileName}: ${match.reasons.join('; ')}`);
+      }
+    }
+
+    if (analysis.wishlistMatch) {
+      const wishlist = analysis.wishlistMatch;
+      const target = wishlist.wishlistItem.targetPrice
+        ? ` target ${formatPrice(wishlist.wishlistItem.targetPrice, game.currency)}`
+        : ' no target price';
+      console.log(
+        `    Wishlist: matched "${wishlist.wishlistItem.gameTitle}" (${target}, reached: ${wishlist.priceTargetReached})`,
+      );
+    } else {
+      console.log('    Wishlist: no match');
+    }
+
+    console.log(
+      `    Deal score: ${analysis.dealScore.score} — reasons: ${analysis.dealScore.reasons.join(', ') || 'none'}`,
+    );
+  }
+
+  const withFamilyMatch = results.filter((result) =>
+    result.familyMatches.some((match) => match.matched),
+  ).length;
+  const withWishlistMatch = results.filter((result) => result.wishlistMatch !== undefined).length;
+  const top = [...results].sort((a, b) => b.dealScore.score - a.dealScore.score)[0];
+
+  console.log('');
+  console.log(
+    `Summary: analyzed ${results.length} games; ${withFamilyMatch} family-friendly, ` +
+      `${withWishlistMatch} on wishlist, top score ${top.dealScore.score} (${top.game.title}).`,
+  );
+}
+
+export async function analyzeGames(): Promise<GameAnalysis[]> {
+  const collector = new MockGameCollector();
+  const games = await collector.collectGames();
+  const profiles = loadFamilyProfiles();
+  const wishlist = loadWishlist();
+
+  console.log(
+    `Analyzing ${games.length} games against ${profiles.length} family profile(s) and ${wishlist.items.length} wishlist item(s).`,
+  );
+
+  const results: GameAnalysis[] = games.map((game) => {
+    const familyMatches = matchGameToProfiles(game, profiles);
+    const wishlistMatch = matchGameToWishlist(game, wishlist);
+    const dealScore = scoreDeal({
+      game,
+      familyMatchCount: familyMatches.filter((match) => match.matched).length,
+      wishlistMatched: wishlistMatch?.matched ?? false,
+      priceTargetReached: wishlistMatch?.priceTargetReached ?? false,
+    });
+    return {
+      game,
+      familyMatches,
+      wishlistMatch: wishlistMatch ?? undefined,
+      dealScore,
+    };
+  });
+
+  printAnalysisReport(results);
+  return results;
+}
+
+if (require.main === module) {
+  analyzeGames().catch((error: unknown) => {
+    console.error('Failed to analyze games:', error);
+    process.exitCode = 1;
+  });
+}
