@@ -5,9 +5,13 @@
 - TypeScript configuration
 - Environment configuration
 
+> **Status: ✅ Complete**
+
 ## v0.2 Email Notification System
 - HTML email templates
 - Gmail SMTP integration
+
+> **Status: 🔄 In progress**
 
 ## v0.3 Game Data Collection
 - Collect Nintendo Switch game information
