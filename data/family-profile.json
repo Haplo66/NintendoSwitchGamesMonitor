@@ -1,0 +1,18 @@
+[
+  {
+    "id": "kid-alex",
+    "name": "Alex (Kid)",
+    "maxAge": 10,
+    "preferredGenres": ["Platformer", "Party", "Racing", "Adventure"],
+    "excludedGenres": ["Shooter", "Horror"],
+    "notes": "Loves Mario games; keep everything E or E10+."
+  },
+  {
+    "id": "teen-maya",
+    "name": "Maya (Teen)",
+    "maxAge": 14,
+    "preferredGenres": ["Action", "Adventure", "RPG"],
+    "excludedGenres": ["Horror"],
+    "notes": "Enjoys story-driven adventures."
+  }
+]

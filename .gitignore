@@ -12,6 +12,8 @@ dist/
 # Data (runtime artifacts)
 data/*
 !data/.gitkeep
+!data/family-profile.json
+!data/wishlist.json
 
 # Logs
 *.log

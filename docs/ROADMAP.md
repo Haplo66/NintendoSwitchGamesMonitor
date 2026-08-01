@@ -18,9 +18,16 @@
 
 > **Status: 🔄 In progress**
 
-## v0.4 Family Profiles
-- Age filtering
-- Preferences
+## v0.4 Family Profiles & Wishlist
+
+Features:
+- Child/family profiles
+- Age filtering foundation
+- Preferred genres
+- Desired games list
+- Target price alerts foundation
+
+> **Status: 🔄 In progress**
 
 ## v0.5 Deal Intelligence
 - Discount scoring

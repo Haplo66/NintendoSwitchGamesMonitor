@@ -104,6 +104,39 @@ npm run collect-games
 
 This builds the project, runs the mock collector, and prints the collected games so you can confirm the collector layer works.
 
+## Family Profiles & Wishlist
+
+The service is family-aware: games are matched against who lives in the household and what they want.
+
+### Family profiles
+
+`data/family-profile.json` holds one entry per family member. Each profile captures:
+
+- `name` — who the profile belongs to (e.g., a kid or teen)
+- `maxAge` — optional age limit used as the foundation for age filtering
+- `preferredGenres` — genres to prioritize
+- `excludedGenres` — genres to keep away from this member
+- `notes` — optional free-form notes
+
+### Wishlist
+
+`data/wishlist.json` lists the games the family wants to watch. Each item captures:
+
+- `gameTitle` — the game to monitor
+- `targetPrice` — optional price at which it is worth buying
+- `notifyOnAnyDiscount` — flag to alert on any discount, even if the target price is not reached
+- `notes` — optional free-form notes
+
+The wishlist is designed to be matched against collected games later: once a collected game's title matches a wishlist item and its price is at or below the target price (or any discount applies), it becomes a notification candidate.
+
+### Validating configuration
+
+```bash
+npm run validate-config
+```
+
+This loads both files, prints a summary, and runs checks that confirm the JSON files exist, required fields are present, and malformed configuration fails with a clear error — with no SMTP credentials or external services required.
+
 ## Getting Started
 
 ```bash
@@ -121,6 +154,7 @@ cp .env.example .env   # then fill in values
 | `npm run test-email` | Build and send a sample HTML test notification   |
 | `npm run validate-email` | Build and run the email rendering validation suite |
 | `npm run collect-games`  | Build and collect sample games via the mock collector |
+| `npm run validate-config` | Build and validate family profiles + wishlist config |
 
 ## Project Structure
 
@@ -141,9 +175,12 @@ cp .env.example .env   # then fill in values
 │   │   ├── mock-email-provider.ts
 │   │   ├── email-validation.ts
 │   │   └── test-email.ts
-│   ├── models/        # Shared domain types (Game, GameDeal, NotificationReport, ...)
+│   ├── config/        # Configuration loaders + validation
+│   ├── models/        # Shared domain types (Game, GameDeal, FamilyProfile, ...)
 │   └── main.ts        # Service entry point
-├── data/              # Runtime data / cache
+├── data/              # Runtime data / cache + family/wishlist config
+│   ├── family-profile.json
+│   └── wishlist.json
 └── .github/workflows  # Scheduled execution (planned)
 ```
 
