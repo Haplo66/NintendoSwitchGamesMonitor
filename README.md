@@ -77,6 +77,9 @@ This builds the project, generates a sample `NotificationReport`, renders it to 
 | `EMAIL_TO`            | Recipient address the notification emails are sent to                           |
 | `EMAIL_PROVIDER`      | Active provider: `gmail` or `mock` (default: `gmail`)                           |
 | `MOCK_EMAIL_OUT_DIR`  | Where the mock provider saves rendered HTML (default: `data/emails`)            |
+| `GAME_COLLECTOR`      | Active collector: `mock` or `deku` (default: `mock`)                            |
+| `DEALS_SOURCE_URL`    | Deals JSON feed used by the `deku` collector (default: Nintendo eShop sales feed) |
+| `DEALS_CURRENCY`      | Currency reported by the deals source (default: `EUR`)                          |
 
 Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
 
@@ -87,13 +90,28 @@ Data collection is built behind a small abstraction so the pipeline can be devel
 1. **Models** (`src/models/game.ts`) — a generic `Game` type (id, title, prices, currency, age rating, genres, store/image URLs, source). It carries no logic, so any future source can map its data into it.
 2. **Collector abstraction** (`src/collectors/game-collector.ts`) — a `GameCollector` interface (`collectGames(options)` → `Promise<Game[]>`). It is deliberately not Nintendo-specific.
 3. **Mock collector** (`src/collectors/mock-game-collector.ts`) — a `MockGameCollector` that returns sample data covering a discounted game, a free game, and a kid-friendly game, letting the rest of the pipeline (analysis → notification) be built before real sources exist.
+4. **Real collector** (`src/collectors/deku-deals-collector.ts`) — a `DekuDealsCollector` that fetches live Switch game deals. DekuDeals itself offers no public API and blocks automated access, so the collector reads a JSON deals feed that is fully configurable via `DEALS_SOURCE_URL`. The default is the public Nintendo eShop sales feed (Apache Solr JSON), which provides title, current/original price, discount %, age rating, genres, image, and store URL.
 
 ```
 GameCollector
     |
-    +-- MockGameCollector   (sample data, active now)
+    +-- MockGameCollector   (sample data)
     |
-    +-- NintendoCollector   (planned v0.3+ real source)
+    +-- DekuDealsCollector  (real deals feed)
+```
+
+### Switching collectors
+
+The active collector is selected with the `GAME_COLLECTOR` environment variable (default `mock`):
+
+| Value  | Collector                                |
+| ------ | ---------------------------------------- |
+| `mock` | `MockGameCollector` — sample data, offline, default |
+| `deku` | `DekuDealsCollector` — real Switch deals from the configured source |
+
+```bash
+npm run collect-games                         # mock (default)
+$env:GAME_COLLECTOR = "deku"; npm run collect-games   # real data
 ```
 
 ### Collecting games locally
@@ -102,7 +120,15 @@ GameCollector
 npm run collect-games
 ```
 
-This builds the project, runs the mock collector, and prints the collected games so you can confirm the collector layer works.
+This builds the project, runs the selected collector, and prints the collected games so you can confirm the collector layer works.
+
+### Validating the collector
+
+```bash
+npm run validate-collector
+```
+
+Runs checks that fetch real data and confirm the collector returns games, every `Game` has the required fields, malformed source records are rejected, and valid records are normalized correctly.
 
 ## Family Profiles & Wishlist
 
@@ -185,6 +211,7 @@ cp .env.example .env   # then fill in values
 | `npm run collect-games`  | Build and collect sample games via the mock collector |
 | `npm run validate-config` | Build and validate family profiles + wishlist config |
 | `npm run analyze-games`   | Build and analyze mock games vs profiles + wishlist |
+| `npm run validate-collector` | Build and validate the game collector against real data |
 
 ## Project Structure
 
@@ -194,6 +221,9 @@ cp .env.example .env   # then fill in values
 │   ├── collectors/    # Game data collection
 │   │   ├── game-collector.ts
 │   │   ├── mock-game-collector.ts
+│   │   ├── deku-deals-collector.ts
+│   │   ├── collector-factory.ts
+│   │   ├── validate-collector.ts
 │   │   └── collect-games.ts
 │   ├── analyzer/      # Analysis: family/wishlist matching + deal scoring
 │   │   ├── family-matcher.ts

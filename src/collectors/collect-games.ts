@@ -1,6 +1,6 @@
 import { Game } from '../models';
+import { createGameCollector } from './collector-factory';
 import { GameCollector } from './game-collector';
-import { MockGameCollector } from './mock-game-collector';
 
 function formatPrice(game: Game): string {
   const price = `${game.currency} ${game.currentPrice.toFixed(2)}`;
@@ -33,11 +33,12 @@ function displayGames(games: Game[]): void {
 }
 
 export async function collectGames(): Promise<Game[]> {
-  const collector: GameCollector = new MockGameCollector();
+  const kind = process.env.GAME_COLLECTOR ?? 'mock';
+  const collector: GameCollector = createGameCollector();
   const games = await collector.collectGames();
 
   const source = games[0]?.source ?? 'unknown';
-  console.log(`Collected ${games.length} games from "${source}" source.`);
+  console.log(`Collected ${games.length} games using "${kind}" collector (source: "${source}").`);
   displayGames(games);
   return games;
 }

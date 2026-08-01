@@ -37,3 +37,10 @@ Features:
 - Deal scoring foundation
 
 > **Status: 🔄 In progress**
+
+## v0.6 Real Game Data Collector
+- Connect a real Switch game deals source
+- Collector selection (mock / real)
+- Error handling and validation
+
+> **Status: 🔄 In progress**
