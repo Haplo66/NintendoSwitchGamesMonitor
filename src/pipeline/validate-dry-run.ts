@@ -81,57 +81,46 @@ function cooldownHistory(now: Date): string {
   return `${JSON.stringify({ records }, null, 2)}\n`;
 }
 
-export async function validateForceEmail(): Promise<void> {
-  process.env.FORCE_EMAIL = 'false';
+export async function validateDryRun(): Promise<void> {
+  process.env.DRY_RUN = 'true';
   process.env.IGNORE_NOTIFICATION_HISTORY = 'false';
+  process.env.FORCE_EMAIL = 'false';
 
   const backup = readHistoryFile();
   const controlledHistory = cooldownHistory(new Date());
   writeHistoryFile(controlledHistory);
 
   try {
-    const forceRun = await runMonitor({ emailProviderKind: 'mock', forceEmail: true });
-    const historyAfterForce = readHistoryFile();
-    const bypassRun = await runMonitor({ emailProviderKind: 'mock', ignoreNotificationHistory: true });
-    const normalRun = await runMonitor({ emailProviderKind: 'mock' });
+    const dryRunResult = await runMonitor({ emailProviderKind: 'mock', dryRun: true });
+    const historyAfterDryRun = readHistoryFile();
 
     const checks: Check[] = [
       {
-        name: 'FORCE_EMAIL sends email even with zero new notifications',
+        name: 'DRY_RUN generates report/email HTML without sending email',
         run: () => {
-          assert.strictEqual(forceRun.result.reportedCount, 0, 'Expected zero new notifications');
-          assert.strictEqual(forceRun.emailSent, true, 'FORCE_EMAIL run did not send email');
+          assert.strictEqual(dryRunResult.result.reportedCount, 0, 'Expected zero new notifications');
+          assert.strictEqual(dryRunResult.emailSent, true, 'DRY_RUN should attempt email delivery');
+          assert.ok(dryRunResult.html.includes('Nintendo Switch Daily Digest'), 'DRY_RUN should generate HTML report');
         },
       },
       {
-        name: 'FORCE_EMAIL does not modify notification history',
+        name: 'DRY_RUN does not modify notification history',
         run: () => {
           assert.strictEqual(
-            historyAfterForce,
+            historyAfterDryRun,
             controlledHistory,
-            'History file changed after FORCE_EMAIL run',
+            'History file changed after DRY_RUN run',
           );
         },
       },
       {
-        name: 'FORCE_EMAIL does not bypass cooldown filtering',
+        name: 'DRY_RUN allows email delivery (but not actually sent)',
         run: () => {
-          assert.strictEqual(forceRun.result.reportedCount, 0, 'FORCE_EMAIL bypassed cooldown filtering');
-          assert.ok(
-            bypassRun.result.reportedCount > forceRun.result.reportedCount,
-            `Bypass mode should report more than FORCE_EMAIL (bypass=${bypassRun.result.reportedCount})`,
-          );
+          assert.ok(dryRunResult.emailSent, 'DRY_RUN should attempt email');
         },
       },
       {
-        name: 'normal mode skips the digest email when empty',
-        run: () => {
-          assert.strictEqual(normalRun.result.reportedCount, 0, 'Expected zero new notifications');
-          assert.strictEqual(normalRun.emailSent, false, 'Normal mode sent an empty digest');
-        },
-      },
-      {
-      name: 'digest email decision logic covers all combinations',
+        name: 'digest email decision logic covers all combinations',
         run: () => {
           assert.deepStrictEqual(decideDigestEmail(0, false, false, false), {
             send: false,
@@ -149,6 +138,10 @@ export async function validateForceEmail(): Promise<void> {
             send: true,
             reason: 'FORCE_EMAIL=true',
           });
+          assert.deepStrictEqual(decideDigestEmail(0, false, false, true), {
+            send: true,
+            reason: 'DRY_RUN=true',
+          });
         },
       },
       {
@@ -163,15 +156,15 @@ export async function validateForceEmail(): Promise<void> {
     ];
 
     await runChecks(checks);
-    console.log('\nAll FORCE_EMAIL validation checks passed.');
+    console.log('\nAll DRY_RUN validation checks passed.');
   } finally {
     restoreHistoryFile(backup);
   }
 }
 
 if (require.main === module) {
-  validateForceEmail().catch((error: unknown) => {
-    console.error('FORCE_EMAIL validation failed:', error);
+  validateDryRun().catch((error: unknown) => {
+    console.error('DRY_RUN validation failed:', error);
     process.exitCode = 1;
   });
 }

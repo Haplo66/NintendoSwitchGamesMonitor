@@ -30,6 +30,7 @@ export interface MonitorOptions {
   maxGamesPerEmail?: number;
   ignoreNotificationHistory?: boolean;
   forceEmail?: boolean;
+  dryRun?: boolean;
 }
 
 export interface MonitorRunResult {
@@ -47,7 +48,11 @@ export function decideDigestEmail(
   newNotificationCount: number,
   sendEmptyDigest: boolean,
   forceEmail: boolean,
+  dryRun: boolean,
 ): DigestEmailDecision {
+  if (dryRun) {
+    return { send: false, reason: 'DRY_RUN=true' };
+  }
   if (newNotificationCount > 0) {
     return { send: true, reason: `${newNotificationCount} new notification(s)` };
   }
@@ -115,13 +120,29 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const dealLimit = options.dealLimit ?? config.collector.dealLimit;
   const maxGamesPerEmail = options.maxGamesPerEmail ?? config.notification.maxGamesPerEmail;
   const cooldownDays = config.notification.notificationCooldownDays;
+  const ignoreNotificationHistory =
+    options.ignoreNotificationHistory ??
+    process.env.IGNORE_NOTIFICATION_HISTORY === 'true';
+  const forceEmail = options.forceEmail ?? process.env.FORCE_EMAIL === 'true';
+  const dryRun = options.dryRun ?? process.env.DRY_RUN === 'true';
+
+  console.log('');
+  console.log('Monitor configuration:');
+  console.log(`  Collector: ${collectorKind}`);
+  console.log(`  Email: ${options.emailProviderKind ?? process.env.EMAIL_PROVIDER ?? 'gmail'}`);
+  console.log(`  Minimum score: ${minDealScore}`);
+  console.log(`  Cooldown: ${cooldownDays} days`);
+  console.log(`  Test mode: ${ignoreNotificationHistory || forceEmail || dryRun ? 'enabled' : 'disabled'}`);
+  if (ignoreNotificationHistory) console.log('    IGNORE_NOTIFICATION_HISTORY is active');
+  if (forceEmail) console.log('    FORCE_EMAIL is active');
+  if (dryRun) console.log('    DRY_RUN is active');
 
   const collector: GameCollector = createGameCollector(collectorKind, {
     sourceUrl: config.collector.dealsSourceUrl,
     currency: config.collector.dealsCurrency,
   });
   const games = await collector.collectGames({ limit: dealLimit });
-  console.log(`Collected ${games.length} game(s) using "${collectorKind}" collector.`);
+  console.log(`Collected ${games.length} game(s) using \"${collectorKind}\" collector.`);
 
   const profiles = config.familyProfiles;
   const wishlist = config.wishlist;
@@ -148,11 +169,6 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   for (const analysis of reported) {
     console.log(`  - ${analysis.game.title} (score ${analysis.dealScore.score})`);
   }
-
-  const ignoreNotificationHistory =
-    options.ignoreNotificationHistory ??
-    process.env.IGNORE_NOTIFICATION_HISTORY === 'true';
-  const forceEmail = options.forceEmail ?? process.env.FORCE_EMAIL === 'true';
 
   let history: NotificationHistory = { records: [] };
   let notifiable: GameAnalysis[] = reported;
@@ -211,18 +227,19 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     toEmail.length,
     config.notification.sendEmptyDigest,
     forceEmail,
+    dryRun,
   );
-  if (decision.send) {
+  if (decision.send && !dryRun) {
     const provider: EmailProvider = createEmailProvider(options.emailProviderKind);
     await provider.sendEmail({
       subject: `🎮 Nintendo Switch Daily Digest — ${toEmail.length} game(s) worth checking`,
       html,
     });
-  } else {
-    console.log(`Digest skipped: ${decision.reason} (sendEmptyDigest=false).`);
+  } else if (!decision.send) {
+    console.log(`Digest skipped: ${decision.reason} (sendEmptyDigest=false, IGNORE_NOTIFICATION_HISTORY=true, FORCE_EMAIL=true, or DRY_RUN=true).`);
   }
 
-  if (!ignoreNotificationHistory && !forceEmail) {
+  if (!ignoreNotificationHistory && !forceEmail && !dryRun) {
     const records = toNotificationRecords(toEmail);
     if (records.length > 0) {
       saveNotificationHistory(addNotificationRecords(history, records));
