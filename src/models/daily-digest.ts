@@ -1,0 +1,76 @@
+export interface DigestSummary {
+  gamesChecked: number;
+  dealsFound: number;
+  wishlistHits: number;
+  freeGames: number;
+  skippedByCooldown: number;
+}
+
+export interface DigestWishlistAlert {
+  title: string;
+  currentPrice: number;
+  originalPrice?: number;
+  discountPercent: number;
+  targetPrice: number;
+  targetPriceOrigin: 'configured' | 'auto';
+  targetReached: boolean;
+  ageRating: string;
+  storeUrl: string;
+}
+
+export interface DigestBestDeal {
+  title: string;
+  currentPrice: number;
+  originalPrice?: number;
+  discountPercent: number;
+  score: number;
+  reasons: string[];
+  ageRating: string;
+  storeUrl: string;
+}
+
+export interface DigestFreeGame {
+  title: string;
+  ageRating: string;
+  storeUrl: string;
+}
+
+export interface DigestRecommendationGame {
+  title: string;
+  reasons: string[];
+}
+
+export interface DigestFamilyRecommendation {
+  profileName: string;
+  games: DigestRecommendationGame[];
+}
+
+export interface DigestPriceWatchItem {
+  title: string;
+  targetPrice: number;
+  currentPrice: number;
+  difference: number;
+}
+
+export interface DigestStatistics {
+  gamesChecked: number;
+  reported: number;
+  skipped: number;
+  collector: string;
+  executionTime: string;
+}
+
+export interface DailyDigest {
+  generatedAt: string;
+  dateLabel: string;
+  collector: string;
+  currency: string;
+  defaultWishlistDiscountPercent: number;
+  summary: DigestSummary;
+  wishlistAlerts: DigestWishlistAlert[];
+  bestDeals: DigestBestDeal[];
+  freeGames: DigestFreeGame[];
+  recommendations: DigestFamilyRecommendation[];
+  priceWatch: DigestPriceWatchItem[];
+  statistics?: DigestStatistics;
+}

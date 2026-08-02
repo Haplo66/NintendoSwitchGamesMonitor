@@ -1,6 +1,6 @@
 # Nintendo Switch Games Monitor
 
-A free-only service that watches Nintendo Switch game deals, analyzes discount opportunities, and notifies the family via HTML email when something worth buying shows up.
+A free-only service that watches Nintendo Switch game deals, analyzes discount opportunities, and delivers a curated, family-friendly **daily digest email** whenever something worth buying shows up.
 
 ## Project Purpose
 
@@ -23,13 +23,14 @@ Track Nintendo Switch game prices and sales, score the "quality" of each deal fo
 
 Notifications follow a clean pipeline so each concern can evolve independently:
 
-1. **Models** (`src/models/`) — generic domain types such as `GameDeal`, `FreeGame`, and `NotificationReport`. They hold no presentation logic, so collectors and analyzers can feed them later without touching the email code.
-2. **Template** (`src/notifications/email-template.ts`) — pure builder functions that turn model data into HTML blocks (header, deal cards, free-game cards, summary). All styling is inline CSS because email clients strip `<style>` blocks and external stylesheets.
-3. **Renderer** (`src/notifications/email-renderer.ts`) — composes the blocks into a complete HTML email document (`renderNotificationEmail(report)`).
-4. **Provider abstraction** (`src/notifications/email-provider.ts`) — a single `EmailProvider` interface (`sendEmail({ subject, html })`) so Gmail can be swapped for another provider later without changing callers.
-5. **Gmail provider** (`src/notifications/gmail-provider.ts`) — a concrete SMTP implementation built on nodemailer, configured entirely from environment variables.
-6. **Mock provider** (`src/notifications/mock-email-provider.ts`) — a test double that implements the same interface but never sends a real email. It captures the message in memory (and optionally writes the rendered HTML to disk) for verification.
-7. **Provider factory** (`src/notifications/email-factory.ts`) — `createEmailProvider()` selects the active provider from the `EMAIL_PROVIDER` environment variable (`gmail` or `mock`). No caller knows which concrete provider it gets, and the renderer never does.
+1. **Models** (`src/models/`) — generic domain types such as `Game`, `DailyDigest`, and `NotificationSettings`. They hold no presentation logic, so collectors and analyzers can feed them later without touching the email code.
+2. **Digest builder** (`src/notifications/daily-digest-builder.ts`) — `buildDailyDigest(result)` turns a `MonitorResult` into a `DailyDigest`, applying the digest settings (caps on best deals and wishlist alerts, and whether price watch and statistics are shown).
+3. **Template** (`src/notifications/email-template.ts`) — pure builder functions that turn digest data into HTML blocks (header, summary, wishlist alerts, best deals, free games, family recommendations, price watch, statistics, footer). All styling is inline CSS because email clients strip `<style>` blocks and external stylesheets.
+4. **Renderer** (`src/notifications/email-renderer.ts`) — composes the blocks into a complete HTML email document (`renderDigestEmail(digest)`).
+5. **Provider abstraction** (`src/notifications/email-provider.ts`) — a single `EmailProvider` interface (`sendEmail({ subject, html })`) so Gmail can be swapped for another provider later without changing callers.
+6. **Gmail provider** (`src/notifications/gmail-provider.ts`) — a concrete SMTP implementation built on nodemailer, configured entirely from environment variables.
+7. **Mock provider** (`src/notifications/mock-email-provider.ts`) — a test double that implements the same interface but never sends a real email. It captures the message in memory (and optionally writes the rendered HTML to disk) for verification.
+8. **Provider factory** (`src/notifications/email-factory.ts`) — `createEmailProvider()` selects the active provider from the `EMAIL_PROVIDER` environment variable (`gmail` or `mock`). No caller knows which concrete provider it gets, and the renderer never does.
 
 ```
 EmailProvider
@@ -38,6 +39,22 @@ EmailProvider
     |
     +-- MockEmailProvider (local testing / CI validation)
 ```
+
+### Daily Digest layout
+
+The notification email is a **daily digest** written for a busy parent. It opens with a one-glance summary, then walks through the deals worth their attention:
+
+1. **Header** — Nintendo red banner with the app name, formatted date, and the collector used.
+2. **Today's Summary** — a quick stats bar: games checked, deals found, wishlist hits, free games, and games skipped by cooldown.
+3. **Wishlist Alerts** — games on the family wishlist whose price target was reached (or any discount, when enabled). Each alert shows current/original price, discount %, the target and where it came from (`Configured target` vs `Auto target (N% discount)`), and a store link.
+4. **Best Deals** — the highest-scoring non-wishlist deals, each with price, discount badge, deal score, and why it's recommended.
+5. **Free Games** — free-to-download games, nothing to buy.
+6. **Recommended For Your Family** — one short list per family profile showing which featured games fit each child.
+7. **Price Watch** (optional) — wishlist items currently above their target but within ~10% of it, so you can see which deals are about to happen.
+8. **Monitoring Statistics** (optional) — games checked/reported/skipped, the collector, and execution time.
+9. **Footer** — a muted "generated automatically" note.
+
+Sections that have no content are hidden entirely, so an empty day arrives as a short, honest email. The subject line summarizes the whole digest: `🎮 Nintendo Switch Daily Digest — N game(s) worth checking`. The HTML and Markdown reports use the exact same section order.
 
 ### Testing without SMTP credentials
 
@@ -51,9 +68,8 @@ This runs a self-contained validation suite with no external services:
 
 - verifies HTML output is generated (doctype, full document)
 - verifies HTML escaping protects against injected markup
-- verifies the discounted games section (prices, discount, age rating, reasons)
-- verifies the free games section
-- verifies buttons and links are present
+- verifies every digest section renders (header, summary, wishlist alerts, best deals, free games, family recommendations, price watch, statistics, footer)
+- verifies empty sections disappear gracefully
 - verifies an email can be captured by `MockEmailProvider`
 
 It always succeeds without any SMTP credentials, making it safe for local runs and future GitHub Actions validation. The mock provider also writes the rendered email to `data/emails/` (default) so you can open it in a browser.
@@ -64,7 +80,7 @@ It always succeeds without any SMTP credentials, making it safe for local runs a
 npm run test-email
 ```
 
-This builds the project, generates a sample `NotificationReport`, renders it to HTML, and sends it. With `EMAIL_PROVIDER=gmail` (default) it sends a real email via Gmail SMTP; with `EMAIL_PROVIDER=mock` it captures the message locally instead — handy for previewing without touching a real inbox.
+This builds the project, generates a sample `DailyDigest`, renders it to HTML, and sends it. With `EMAIL_PROVIDER=gmail` (default) it sends a real email via Gmail SMTP; with `EMAIL_PROVIDER=mock` it captures the message locally instead — handy for previewing without touching a real inbox.
 
 ### Required environment variables
 
@@ -158,7 +174,7 @@ Deal Scoring
 Filter worth reporting
     |
     v
-Notification Report (HTML)
+Daily Digest (build + render)
     |
     v
 HTML Email (provider)
@@ -168,7 +184,7 @@ HTML Email (provider)
 2. **Analyze** — family matcher, wishlist matcher, and deal scorer produce a `GameAnalysis` per game.
 3. **Filter** — only games worth reporting are kept. A game is included when it is free (if `notifyFreeGames`), matches a wishlist item (if `notifyWishlistMatches`), or its deal score reaches `minimumDealScore`.
 4. **Cooldown** — games already notified for the same price within `notificationCooldownDays` are skipped, and the report is capped at `maxGamesPerEmail` games (best-scoring first).
-5. **Render** — filtered games are converted into a `NotificationReport` (with run statistics) and rendered to an HTML email.
+5. **Render** — filtered games are converted into a `DailyDigest` (with run statistics) by `buildDailyDigest`, then rendered to an HTML email by `renderDigestEmail`.
 6. **Deliver & record** — the email is sent via the configured `EmailProvider` (use `EMAIL_PROVIDER=mock` for local testing without SMTP), then the reported games are recorded to notification history.
 
 ### Running a local monitor
@@ -221,8 +237,8 @@ To avoid spamming the family with the same deal, the pipeline tracks every game 
 
 1. **History model** (`src/models/notification-history.ts`) — a `NotificationRecord` captures `gameId`, `title`, `notificationType` (`deal` / `free` / `wishlist`), `score`, `price`, and `notifiedAt`. A `NotificationHistory` is just `records[]`. Models carry no logic.
 2. **Storage** (`src/config/notification-history-store.ts`) — `loadNotificationHistory()` / `saveNotificationHistory()` read and write `data/notification-history.json`. A missing file initializes an empty history, a malformed file fails with a clear error, and writes always produce valid JSON.
-3. **Duplicate prevention** — before building the notification report, the pipeline filters out games that were already notified for the **same price** within the cooldown window (`notificationCooldownDays` in `data/settings.json`, default `14`). If the price drops further, that counts as a new deal and is reported again.
-4. **Recording** — after the email is delivered successfully, every game included in the notification is appended to the history file.
+3. **Duplicate prevention** — before building the daily digest, the pipeline filters out games that were already notified for the **same price** within the cooldown window (`notificationCooldownDays` in `data/settings.json`, default `14`). If the price drops further, that counts as a new deal and is reported again.
+4. **Recording** — after the email is delivered successfully, every game included in the digest is appended to the history file.
 
 ```
 Reported games (threshold met)
@@ -231,7 +247,7 @@ Reported games (threshold met)
 Load history + apply cooldown filter (NOTIFICATION_COOLDOWN_DAYS)
     |
     v
-Build NotificationReport  -->  render HTML  -->  send email
+Build DailyDigest  -->  render HTML  -->  send email
     |
     v
 Record notified games back to history
@@ -260,10 +276,10 @@ reports/monitor-YYYY-MM-DD-HHmm.md
 reports/html/monitor-YYYY-MM-DD-HHmm.html
 ```
 
-- **Markdown report** — header (app name, timestamp, collector), summary table (games collected / analyzed / reported / skipped by cooldown), **Top Opportunities** (price, discount, score, reasons, wishlist and family matches per game), and a **Skipped** section split into low-score and cooldown groups.
+- **Markdown report** — mirrors the daily digest section order (header, summary, wishlist alerts, best deals, free games, family recommendations, price watch, statistics), then appends a **Skipped Games** section split into cooldown and below-threshold groups.
 
 For wishlist matches, the report shows where the target price came from: **Configured target** when the item specifies `targetPrice`, or **Auto target (40% discount)** when it was computed from the game's original price and `defaultWishlistDiscountPercent`.
-- **HTML report** — reuses the email rendering (header, deal/free cards, summary) so it is readable in a browser, plus a skipped-games section.
+- **HTML report** — reuses the same digest rendering (`renderDigestEmail`) so it is readable in a browser, plus the skipped-games section.
 
 Files are never overwritten: if a name collision occurs, a numeric suffix (`-2`, `-3`, …) is added. Reports are git-ignored runtime artifacts.
 
@@ -385,7 +401,13 @@ User-editable notification preferences live in `data/settings.json`:
   "notifyFreeGames": true,
   "notifyWishlistMatches": true,
   "defaultWishlistDiscountPercent": 40,
-  "defaultNotifyOnAnyDiscount": false
+  "defaultNotifyOnAnyDiscount": false,
+  "dailyDigest": {
+    "maxBestDeals": 5,
+    "maxWishlistAlerts": 10,
+    "showStatistics": true,
+    "showPriceWatch": true
+  }
 }
 ```
 
@@ -396,6 +418,11 @@ User-editable notification preferences live in `data/settings.json`:
 - `notifyWishlistMatches` — whether a wishlist match alone is enough to report a game.
 - `defaultWishlistDiscountPercent` — discount percent used to compute automatic wishlist target prices (must be a whole number between `1` and `99`).
 - `defaultNotifyOnAnyDiscount` — default `notifyOnAnyDiscount` for wishlist items that omit it.
+- `dailyDigest` — layout preferences for the digest email:
+  - `maxBestDeals` — how many non-wishlist deals to show in the **Best Deals** section (whole number, default `5`).
+  - `maxWishlistAlerts` — how many wishlist alerts (and price-watch items) to show (whole number, default `10`).
+  - `showStatistics` — whether to render the **Monitoring Statistics** section (boolean, default `true`).
+  - `showPriceWatch` — whether to render the **Price Watch** section (boolean, default `true`).
 
 A missing settings file falls back to the defaults; a malformed file or invalid values fail with a clear error.
 
@@ -427,13 +454,15 @@ defaults
 | Deals source URL        | `DEALS_SOURCE_URL`          | —                             | eShop feed    |
 | Deals currency          | `DEALS_CURRENCY`            | —                             | `EUR`         |
 
+`dailyDigest` is configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above.
+
 ### Validating settings
 
 ```bash
 npm run validate-settings
 ```
 
-Runs checks that confirm defaults apply when the file is missing, full and partial files load correctly, malformed files and invalid values are rejected, and environment variables correctly override `settings.json`.
+Runs checks that confirm defaults apply when the file is missing, full and partial files load correctly (including partial `dailyDigest` blocks), malformed files and invalid values are rejected, and environment variables correctly override `settings.json`.
 
 ## Getting Started
 
@@ -478,7 +507,8 @@ cp .env.example .env   # then fill in values
 │   │   ├── wishlist-matcher.ts
 │   │   ├── deal-score.ts
 │   │   └── analyze-games.ts
-│   ├── notifications/ # Email system: templates, renderer, providers
+│   ├── notifications/ # Email system: digest builder, templates, renderer, providers
+│   │   ├── daily-digest-builder.ts
 │   │   ├── email-template.ts
 │   │   ├── email-renderer.ts
 │   │   ├── email-provider.ts

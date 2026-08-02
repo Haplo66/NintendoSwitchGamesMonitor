@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import { loadAppConfig } from '../config/app-config';
 import { runMonitor } from '../pipeline/monitor-run';
 import {
   buildMonitorReportData,
@@ -9,8 +10,14 @@ import {
 import { MonitorReportFiles, writeMonitorReports } from './report-writer';
 
 export async function generateReport(): Promise<MonitorReportFiles> {
+  const config = loadAppConfig();
   const { result } = await runMonitor({ emailProviderKind: 'mock' });
-  const data = buildMonitorReportData(result);
+  const data = buildMonitorReportData(result, {
+    maxBestDeals: config.notification.dailyDigest.maxBestDeals,
+    maxWishlistAlerts: config.notification.dailyDigest.maxWishlistAlerts,
+    showStatistics: config.notification.dailyDigest.showStatistics,
+    showPriceWatch: config.notification.dailyDigest.showPriceWatch,
+  });
   const markdown = generateMonitorReportMarkdown(data);
   const html = generateMonitorReportHtml(data);
   return writeMonitorReports(markdown, html);

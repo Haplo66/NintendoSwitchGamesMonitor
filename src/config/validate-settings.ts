@@ -63,6 +63,12 @@ const checks: Check[] = [
         notifyWishlistMatches: false,
         defaultWishlistDiscountPercent: 30,
         defaultNotifyOnAnyDiscount: true,
+        dailyDigest: {
+          maxBestDeals: 3,
+          maxWishlistAlerts: 5,
+          showStatistics: false,
+          showPriceWatch: true,
+        },
       };
       try {
         writeSettings(settings, file);
@@ -93,6 +99,22 @@ const checks: Check[] = [
         assert.strictEqual(
           loaded.defaultNotifyOnAnyDiscount,
           DEFAULT_NOTIFICATION_SETTINGS.defaultNotifyOnAnyDiscount,
+        );
+        assert.strictEqual(
+          loaded.dailyDigest.maxBestDeals,
+          DEFAULT_NOTIFICATION_SETTINGS.dailyDigest.maxBestDeals,
+        );
+        assert.strictEqual(
+          loaded.dailyDigest.maxWishlistAlerts,
+          DEFAULT_NOTIFICATION_SETTINGS.dailyDigest.maxWishlistAlerts,
+        );
+        assert.strictEqual(
+          loaded.dailyDigest.showStatistics,
+          DEFAULT_NOTIFICATION_SETTINGS.dailyDigest.showStatistics,
+        );
+        assert.strictEqual(
+          loaded.dailyDigest.showPriceWatch,
+          DEFAULT_NOTIFICATION_SETTINGS.dailyDigest.showPriceWatch,
         );
       } finally {
         fs.rmSync(file, { force: true });
@@ -138,6 +160,11 @@ const checks: Check[] = [
         { defaultWishlistDiscountPercent: 100 },
         { defaultWishlistDiscountPercent: 2.5 },
         { defaultNotifyOnAnyDiscount: 'yes' },
+        { dailyDigest: 'nope' },
+        { dailyDigest: { maxBestDeals: 0 } },
+        { dailyDigest: { maxWishlistAlerts: 2.5 } },
+        { dailyDigest: { showStatistics: 'yes' } },
+        { dailyDigest: { showPriceWatch: 1 } },
       ];
       for (const bad of cases) {
         const file = tempSettingsFile();

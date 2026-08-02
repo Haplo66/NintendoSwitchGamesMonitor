@@ -1,3 +1,10 @@
+export interface DailyDigestSettings {
+  maxBestDeals: number;
+  maxWishlistAlerts: number;
+  showStatistics: boolean;
+  showPriceWatch: boolean;
+}
+
 export interface NotificationSettings {
   minimumDealScore: number;
   notificationCooldownDays: number;
@@ -6,6 +13,7 @@ export interface NotificationSettings {
   notifyWishlistMatches: boolean;
   defaultWishlistDiscountPercent: number;
   defaultNotifyOnAnyDiscount: boolean;
+  dailyDigest: DailyDigestSettings;
 }
 
 export interface CollectorSettings {

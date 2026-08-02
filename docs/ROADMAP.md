@@ -101,3 +101,16 @@ Features:
 - Extended config/settings validation and updated docs
 
 > **Status: ✅ Complete**
+
+## v0.12 Daily Digest Experience
+
+Features:
+- Notification email redesigned as a parent-friendly **Nintendo Switch Daily Digest**
+- Digest sections: header, Today's Summary, Wishlist Alerts, Best Deals, Free Games, Recommended For Your Family, Price Watch, Monitoring Statistics, footer
+- Empty sections disappear; subject line summarizes the day (`N game(s) worth checking`)
+- `dailyDigest` settings (`maxBestDeals`, `maxWishlistAlerts`, `showStatistics`, `showPriceWatch`) in `data/settings.json`
+- Markdown and HTML reports aligned to the digest section order
+- Extended email/report validation covering every digest section
+- Updated README (digest layout, settings)
+
+> **Status: 🔄 In progress**

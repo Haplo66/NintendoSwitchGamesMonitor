@@ -1,37 +1,74 @@
 import 'dotenv/config';
 
-import { NotificationReport } from '../models';
+import { DailyDigest } from '../models';
 import { createEmailProvider } from './email-factory';
-import { renderNotificationEmail } from './email-renderer';
+import { renderDigestEmail } from './email-renderer';
 
-function buildSampleReport(): NotificationReport {
+function buildSampleDigest(): DailyDigest {
   return {
     generatedAt: new Date().toISOString(),
+    dateLabel: new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }),
+    collector: 'mock',
+    currency: 'USD',
+    defaultWishlistDiscountPercent: 40,
     summary: {
-      gamesChecked: 3,
-      gamesMatched: 3,
-      gamesSkippedByCooldown: 0,
-      gamesReported: 3,
+      gamesChecked: 5,
+      dealsFound: 3,
+      wishlistHits: 2,
+      freeGames: 1,
+      skippedByCooldown: 1,
     },
-    deals: [
+    wishlistAlerts: [
+      {
+        title: 'Mario Kart 8 Deluxe',
+        currentPrice: 34.99,
+        originalPrice: 59.99,
+        discountPercent: 42,
+        targetPrice: 39.99,
+        targetPriceOrigin: 'configured',
+        targetReached: true,
+        ageRating: 'E',
+        storeUrl: 'https://www.nintendo.com/store/products/mario-kart-8-deluxe/',
+      },
+      {
+        title: 'Luigi\u2019s Mansion 3',
+        currentPrice: 44.99,
+        originalPrice: 59.99,
+        discountPercent: 25,
+        targetPrice: 35.99,
+        targetPriceOrigin: 'auto',
+        targetReached: true,
+        ageRating: 'E10+',
+        storeUrl: 'https://www.nintendo.com/store/products/luigis-mansion-3/',
+      },
+    ],
+    bestDeals: [
       {
         title: 'The Legend of Zelda: Breath of the Wild',
         currentPrice: 39.99,
-        previousPrice: 59.99,
+        originalPrice: 59.99,
         discountPercent: 33,
+        score: 92,
+        reasons: ['Age appropriate for the family', 'Best-selling title', 'Price below $40'],
         ageRating: 'E10+',
         storeUrl:
           'https://www.nintendo.com/store/products/the-legend-of-zelda-breath-of-the-wild/',
-        reasons: ['Age appropriate for the family', 'Best-selling title', 'Price below $40'],
       },
       {
-        title: 'Mario Kart 8 Deluxe',
+        title: 'Super Mario Odyssey',
         currentPrice: 41.99,
-        previousPrice: 59.99,
+        originalPrice: 59.99,
         discountPercent: 30,
-        ageRating: 'E',
-        storeUrl: 'https://www.nintendo.com/store/products/mario-kart-8-deluxe/',
+        score: 88,
         reasons: ['Great for multiplayer nights', 'On sale now'],
+        ageRating: 'E10+',
+        storeUrl: 'https://www.nintendo.com/store/products/super-mario-odyssey/',
       },
     ],
     freeGames: [
@@ -41,16 +78,49 @@ function buildSampleReport(): NotificationReport {
         storeUrl: 'https://www.nintendo.com/store/products/fortnite/',
       },
     ],
+    recommendations: [
+      {
+        profileName: 'Alex (Kid)',
+        games: [
+          { title: 'Mario Kart 8 Deluxe', reasons: ['Racing', 'Platformer', 'Age appropriate'] },
+          { title: 'Super Mario Odyssey', reasons: ['Adventure', 'Platformer', 'Age appropriate'] },
+        ],
+      },
+      {
+        profileName: 'Maya (Teen)',
+        games: [
+          {
+            title: 'The Legend of Zelda: Breath of the Wild',
+            reasons: ['Action', 'Adventure', 'Age appropriate'],
+          },
+        ],
+      },
+    ],
+    priceWatch: [
+      {
+        title: 'Stardew Valley',
+        targetPrice: 35,
+        currentPrice: 37,
+        difference: 2,
+      },
+    ],
+    statistics: {
+      gamesChecked: 5,
+      reported: 2,
+      skipped: 2,
+      collector: 'mock',
+      executionTime: '1.2 s',
+    },
   };
 }
 
 export async function sendTestEmail(): Promise<void> {
-  const report = buildSampleReport();
-  const html = renderNotificationEmail(report);
+  const digest = buildSampleDigest();
+  const html = renderDigestEmail(digest);
   const provider = createEmailProvider();
 
   await provider.sendEmail({
-    subject: '🎮 Nintendo Switch Games Monitor — Test Notification',
+    subject: '🎮 Nintendo Switch Daily Digest — Test Notification',
     html,
   });
 

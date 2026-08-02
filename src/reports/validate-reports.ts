@@ -41,7 +41,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     id: 'game-1',
     title: 'Mario Kart 8 Deluxe',
     platform: 'Nintendo Switch',
-    currentPrice: 39.99,
+    currentPrice: 34.99,
     originalPrice: 59.99,
     currency: 'EUR',
     genres: ['Racing'],
@@ -65,96 +65,156 @@ function makeAnalysis(game: Game, wishlistMatch?: GameAnalysis['wishlistMatch'])
     ];
     analysis.wishlistMatch = {
       matched: true,
-      wishlistItem: { gameTitle: 'Mario Kart 8 Deluxe', notifyOnAnyDiscount: false },
+      wishlistItem: { gameTitle: 'Mario Kart 8 Deluxe', targetPrice: 39.99, notifyOnAnyDiscount: false },
       priceTargetReached: true,
+      effectiveTargetPrice: 39.99,
+      targetPriceOrigin: 'configured',
     };
   }
   return analysis;
 }
 
-function sampleData(): MonitorReportData {
+function sampleResult(): MonitorResult {
+  const marioKart = makeGame({ id: 'game-1', currentPrice: 34.99 });
+  const fortnite = makeGame({ id: 'game-2', title: 'Fortnite', currentPrice: 0, originalPrice: 0 });
+  const odyssey = makeGame({ id: 'game-5', title: 'Super Mario Odyssey', currentPrice: 41.99 });
+  const fallGuys = makeGame({ id: 'game-3', title: 'Fall Guys', currentPrice: 29.99 });
+  const chess = makeGame({ id: 'game-4', title: 'Chess', currentPrice: 9.99 });
+  const stardew = makeGame({ id: 'game-6', title: 'Stardew Valley', currentPrice: 37 });
+  const stardewAnalysis = makeAnalysis(stardew, {
+    matched: true,
+    wishlistItem: { gameTitle: 'Stardew Valley', notifyOnAnyDiscount: false },
+    priceTargetReached: false,
+    effectiveTargetPrice: 35.99,
+    targetPriceOrigin: 'auto',
+  });
+
+  const analyses = [
+    makeAnalysis(marioKart),
+    makeAnalysis(fortnite),
+    makeAnalysis(odyssey),
+    makeAnalysis(fallGuys),
+    makeAnalysis(chess),
+    stardewAnalysis,
+  ];
+  const reportedAnalyses = [makeAnalysis(marioKart), makeAnalysis(fortnite), makeAnalysis(odyssey)];
+
   return {
     generatedAt: '2026-08-01T12:00:00.000Z',
     collector: 'mock',
+    currency: 'EUR',
     minDealScore: 80,
     defaultWishlistDiscountPercent: 40,
-    gamesCollected: 5,
-    gamesAnalyzed: 5,
-    reported: [
-      makeAnalysis(makeGame()),
-      makeAnalysis(makeGame({ id: 'game-2', title: 'Fortnite', currentPrice: 0 })),
-    ],
-    skippedByCooldown: [makeAnalysis(makeGame({ id: 'game-3', title: 'Fall Guys', currentPrice: 29.99 }))],
-    skippedByScore: [makeAnalysis(makeGame({ id: 'game-4', title: 'Chess', currentPrice: 9.99 }))],
+    executionTimeMs: 1234,
+    analyzedCount: analyses.length,
+    reportedCount: reportedAnalyses.length,
+    skippedByCooldownCount: 1,
+    analyses,
+    reportedAnalyses,
+    skippedByCooldownAnalyses: [makeAnalysis(fallGuys)],
+    skippedByScoreAnalyses: [makeAnalysis(chess)],
   };
 }
 
-function emptyData(): MonitorReportData {
+function emptyResult(): MonitorResult {
   return {
     generatedAt: '2026-08-01T12:00:00.000Z',
     collector: 'mock',
+    currency: 'EUR',
     minDealScore: 80,
     defaultWishlistDiscountPercent: 40,
-    gamesCollected: 3,
-    gamesAnalyzed: 3,
-    reported: [],
-    skippedByCooldown: [],
-    skippedByScore: [makeAnalysis(makeGame({ id: 'game-4', title: 'Chess', currentPrice: 9.99 }))],
-  };
-}
-
-function buildResult(data: MonitorReportData): MonitorResult {
-  return {
-    generatedAt: data.generatedAt,
-    collector: data.collector,
-    minDealScore: data.minDealScore,
-    defaultWishlistDiscountPercent: data.defaultWishlistDiscountPercent,
-    analyzedCount: data.gamesAnalyzed,
-    reportedCount: data.reported.length,
-    skippedByCooldownCount: data.skippedByCooldown.length,
+    executionTimeMs: 500,
+    analyzedCount: 0,
+    reportedCount: 0,
+    skippedByCooldownCount: 0,
     analyses: [],
-    reportedAnalyses: data.reported,
-    skippedByCooldownAnalyses: data.skippedByCooldown,
-    skippedByScoreAnalyses: data.skippedByScore,
+    reportedAnalyses: [],
+    skippedByCooldownAnalyses: [],
+    skippedByScoreAnalyses: [],
   };
 }
 
-const sample = sampleData();
-const markdown = generateMonitorReportMarkdown(sample);
-const html = generateMonitorReportHtml(sample);
+const sampleData: MonitorReportData = buildMonitorReportData(sampleResult());
+const markdown = generateMonitorReportMarkdown(sampleData);
+const html = generateMonitorReportHtml(sampleData);
+const emptyData: MonitorReportData = buildMonitorReportData(emptyResult());
 
 const checks: Check[] = [
   {
-    name: 'markdown report is generated',
+    name: 'markdown report is generated with digest header',
     run: () => {
       assert.ok(typeof markdown === 'string' && markdown.length > 0, 'Markdown is empty');
-      assert.ok(markdown.includes('# NintendoSwitchGamesMonitor'), 'Header missing');
-      assert.ok(markdown.includes('2026-08-01T12:00:00.000Z'), 'Timestamp missing');
-      assert.ok(markdown.includes('**Collector:** mock'), 'Collector missing');
-      assert.ok(markdown.includes('## Summary'), 'Summary section missing');
-      assert.ok(markdown.includes('## Top Opportunities'), 'Top opportunities missing');
-      assert.ok(markdown.includes('## Skipped'), 'Skipped section missing');
+      assert.ok(markdown.includes('# 🎮 Nintendo Switch Daily Digest'), 'Header missing');
+      assert.ok(markdown.includes('- **Date:**'), 'Date missing');
+      assert.ok(markdown.includes('- **Collector:** mock'), 'Collector missing');
+      assert.ok(markdown.includes("## 📊 Today's Summary"), 'Summary section missing');
     },
   },
   {
-    name: 'markdown includes reported games with details',
+    name: 'markdown summary table has correct values',
     run: () => {
-      assert.ok(markdown.includes('Mario Kart 8 Deluxe'), 'Reported title missing');
-      assert.ok(markdown.includes('EUR 39.99'), 'Current price missing');
-      assert.ok(markdown.includes('EUR 59.99'), 'Original price missing');
-      assert.ok(markdown.includes('**Score:** 100'), 'Score missing');
-      assert.ok(markdown.includes('Matched "Mario Kart 8 Deluxe"'), 'Wishlist match missing');
-      assert.ok(markdown.includes('Alex (Kid)'), 'Family match missing');
-      assert.ok(markdown.includes('Age appropriate for the family'), 'Reason missing');
+      assert.ok(markdown.includes('| Games checked | 6 |'), 'Games checked wrong');
+      assert.ok(markdown.includes('| Deals found | 2 |'), 'Deals found wrong');
+      assert.ok(markdown.includes('| Wishlist hits | 2 |'), 'Wishlist hits wrong');
+      assert.ok(markdown.includes('| Free games | 1 |'), 'Free games wrong');
+      assert.ok(markdown.includes('| Skipped by cooldown | 1 |'), 'Skipped cooldown wrong');
     },
   },
   {
-    name: 'markdown includes skipped games',
+    name: 'markdown wishlist alerts render',
     run: () => {
-      assert.ok(markdown.includes('Low score (below 80)'), 'Low score group missing');
-      assert.ok(markdown.includes('Chess'), 'Skipped low-score game missing');
-      assert.ok(markdown.includes('Already notified (cooldown)'), 'Cooldown group missing');
+      assert.ok(markdown.includes('## 🎯 Wishlist Alerts'), 'Wishlist Alerts section missing');
+      assert.ok(markdown.includes('Mario Kart 8 Deluxe'), 'Alert title missing');
+      assert.ok(markdown.includes('**Configured target:** EUR 39.99'), 'Configured target missing');
+      assert.ok(markdown.includes('**Target reached:** YES'), 'Target reached missing');
+      assert.ok(markdown.includes('[View Deal]('), 'Store link missing');
+    },
+  },
+  {
+    name: 'markdown best deals render',
+    run: () => {
+      assert.ok(markdown.includes('## 🔥 Best Deals'), 'Best Deals section missing');
+      assert.ok(markdown.includes('Super Mario Odyssey'), 'Best deal title missing');
+      assert.ok(markdown.includes('**Deal score:** 100'), 'Deal score missing');
+      assert.ok(markdown.includes('**Why recommended:**'), 'Why recommended missing');
+    },
+  },
+  {
+    name: 'markdown free games render',
+    run: () => {
+      assert.ok(markdown.includes('## 🆓 Free Games'), 'Free Games section missing');
+      assert.ok(markdown.includes('Fortnite'), 'Free game missing');
+      assert.ok(markdown.includes('Free to download'), 'Free label missing');
+    },
+  },
+  {
+    name: 'markdown family recommendations render',
+    run: () => {
+      assert.ok(markdown.includes('## ⭐ Recommended For Your Family'), 'Recommendations missing');
+      assert.ok(markdown.includes('### Alex (Kid)'), 'Profile name missing');
+      assert.ok(markdown.includes('- ✓ Mario Kart 8 Deluxe'), 'Recommendation game missing');
+    },
+  },
+  {
+    name: 'markdown price watch renders',
+    run: () => {
+      assert.ok(markdown.includes('## 📉 Price Watch'), 'Price Watch section missing');
+      assert.ok(markdown.includes('Stardew Valley'), 'Price watch game missing');
+      assert.ok(markdown.includes('**Target:** EUR 35.99'), 'Price watch target missing');
+      assert.ok(markdown.includes('**Current:** EUR 37.00'), 'Price watch current missing');
+      assert.ok(markdown.includes('Only EUR 1.01 away'), 'Price watch difference missing');
+    },
+  },
+  {
+    name: 'markdown statistics and footer render',
+    run: () => {
+      assert.ok(markdown.includes('## 📈 Monitoring Statistics'), 'Statistics section missing');
+      assert.ok(markdown.includes('| Collector | mock |'), 'Collector stat missing');
+      assert.ok(markdown.includes('| Execution time | 1.2 s |'), 'Execution time missing');
+      assert.ok(markdown.includes('## Skipped Games'), 'Skipped section missing');
       assert.ok(markdown.includes('Fall Guys'), 'Skipped cooldown game missing');
+      assert.ok(markdown.includes('Chess'), 'Skipped score game missing');
+      assert.ok(markdown.includes('Generated automatically by **NintendoSwitchGamesMonitor**'), 'Footer missing');
     },
   },
   {
@@ -162,66 +222,45 @@ const checks: Check[] = [
     run: () => {
       assert.ok(typeof html === 'string' && html.length > 0, 'HTML is empty');
       assert.ok(html.trim().startsWith('<!DOCTYPE html>'), 'Missing doctype');
-      assert.ok(html.includes('NintendoSwitchGamesMonitor'), 'Report title missing');
-      assert.ok(html.includes('Discounted Games'), 'Deal section missing');
+      assert.ok(html.includes('Nintendo Switch Daily Digest'), 'Report title missing');
+      assert.ok(html.includes('Wishlist Alerts'), 'Wishlist Alerts missing in HTML');
+      assert.ok(html.includes('Best Deals'), 'Best Deals missing in HTML');
+      assert.ok(html.includes('Free Games'), 'Free Games missing in HTML');
+      assert.ok(html.includes('Recommended For Your Family'), 'Recommendations missing in HTML');
+      assert.ok(html.includes('Price Watch'), 'Price Watch missing in HTML');
+      assert.ok(html.includes('Monitoring Statistics'), 'Statistics missing in HTML');
+      assert.ok(html.includes('Skipped Games'), 'Skipped section missing in HTML');
       assert.ok(html.includes('Mario Kart 8 Deluxe'), 'Reported game missing in HTML');
-      assert.ok(html.includes('Skipped'), 'Skipped section missing in HTML');
     },
   },
   {
-    name: 'report shows configured vs auto wishlist targets',
+    name: 'buildMonitorReportData builds a digest from a monitor result',
     run: () => {
-      const data: MonitorReportData = {
-        ...sample,
-        reported: [
-          makeAnalysis(
-            makeGame(),
-            {
-              matched: true,
-              wishlistItem: { gameTitle: 'Mario Kart 8 Deluxe', targetPrice: 39.99, notifyOnAnyDiscount: false },
-              priceTargetReached: true,
-              effectiveTargetPrice: 39.99,
-              targetPriceOrigin: 'configured',
-            },
-          ),
-          makeAnalysis(
-            makeGame({ id: 'game-5', title: 'Stardew Valley', originalPrice: 59.99, currentPrice: 35.99 }),
-            {
-              matched: true,
-              wishlistItem: { gameTitle: 'Stardew Valley', notifyOnAnyDiscount: false },
-              priceTargetReached: true,
-              effectiveTargetPrice: 35.99,
-              targetPriceOrigin: 'auto',
-            },
-          ),
-        ],
-      };
-      const md = generateMonitorReportMarkdown(data);
-      assert.ok(md.includes('Configured target: EUR 39.99'), 'Configured target label missing');
-      assert.ok(md.includes('Auto target (40% discount): EUR 35.99'), 'Auto target label missing');
-    },
-  },
-  {
-    name: 'buildMonitorReportData maps a monitor result',
-    run: () => {
-      const data = buildMonitorReportData(buildResult(sample));
-      assert.strictEqual(data.reported.length, sample.reported.length);
-      assert.strictEqual(data.reported[0].game.title, 'Mario Kart 8 Deluxe');
+      const data = buildMonitorReportData(sampleResult());
+      assert.strictEqual(data.digest.summary.gamesChecked, 6);
+      assert.strictEqual(data.digest.summary.dealsFound, 2);
+      assert.strictEqual(data.digest.wishlistAlerts.length, 1);
+      assert.strictEqual(data.digest.bestDeals.length, 1);
+      assert.strictEqual(data.digest.freeGames.length, 1);
+      assert.strictEqual(data.digest.recommendations.length, 1);
+      assert.strictEqual(data.digest.priceWatch.length, 1);
       assert.strictEqual(data.skippedByCooldown.length, 1);
       assert.strictEqual(data.skippedByScore.length, 1);
-      assert.strictEqual(data.gamesCollected, 5);
     },
   },
   {
     name: 'empty results handled correctly',
     run: () => {
-      const data = emptyData();
-      const md = generateMonitorReportMarkdown(data);
-      const h = generateMonitorReportHtml(data);
-      assert.ok(md.includes('No games worth reporting this run.'), 'Markdown empty-state missing');
-      assert.ok(md.includes('None.'), 'Markdown none-state missing');
+      const md = generateMonitorReportMarkdown(emptyData);
+      const h = generateMonitorReportHtml(emptyData);
+      assert.ok(md.includes('Generated automatically by **NintendoSwitchGamesMonitor**'), 'Markdown footer missing');
+      assert.ok(!md.includes('## 🎯 Wishlist Alerts'), 'Empty wishlist alerts shown');
+      assert.ok(!md.includes('## 🔥 Best Deals'), 'Empty best deals shown');
+      assert.ok(!md.includes('## 🆓 Free Games'), 'Empty free games shown');
+      assert.ok(!md.includes('## ⭐ Recommended For Your Family'), 'Empty recommendations shown');
+      assert.ok(!md.includes('## 📉 Price Watch'), 'Empty price watch shown');
       assert.ok(h.trim().startsWith('<!DOCTYPE html>'), 'Empty HTML missing doctype');
-      assert.ok(h.includes('No games worth reporting this run.'), 'HTML empty-state missing');
+      assert.ok(h.includes('Today\u2019s Summary'), 'Empty HTML summary missing');
     },
   },
   {

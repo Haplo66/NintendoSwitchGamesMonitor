@@ -12,18 +12,11 @@ import {
   saveNotificationHistory,
   toNotificationRecords,
 } from '../config/notification-history-store';
-import {
-  FreeGame,
-  Game,
-  GameAnalysis,
-  GameDeal,
-  MonitorResult,
-  NotificationReport,
-  NotificationReportSummary,
-} from '../models';
+import { Game, GameAnalysis, MonitorResult } from '../models';
+import { buildDailyDigest } from '../notifications/daily-digest-builder';
 import { createEmailProvider } from '../notifications/email-factory';
 import { EmailProvider } from '../notifications/email-provider';
-import { renderNotificationEmail } from '../notifications/email-renderer';
+import { renderDigestEmail } from '../notifications/email-renderer';
 
 export const DEFAULT_MIN_DEAL_SCORE = 80;
 export const DEFAULT_DEAL_LIMIT = 100;
@@ -70,14 +63,7 @@ export function limitGamesPerEmail(analyses: GameAnalysis[], maxGamesPerEmail: n
   return [...analyses].sort((a, b) => b.dealScore.score - a.dealScore.score).slice(0, maxGamesPerEmail);
 }
 
-function resolveStoreUrl(game: Game): string {
-  if (game.storeUrl) {
-    return game.storeUrl;
-  }
-  return `https://www.nintendo-europe.com/en-gb/search/?term=${encodeURIComponent(game.title)}`;
-}
-
-function buildReasons(analysis: GameAnalysis): string[] {
+export function buildReasons(analysis: GameAnalysis): string[] {
   const reasons = [...analysis.dealScore.reasons];
   const matchedProfiles = analysis.familyMatches
     .filter((match) => match.matched)
@@ -91,43 +77,12 @@ function buildReasons(analysis: GameAnalysis): string[] {
   return reasons;
 }
 
-export function buildNotificationReport(
-  analyses: GameAnalysis[],
-  summary: NotificationReportSummary,
-): NotificationReport {
-  const deals: GameDeal[] = [];
-  const freeGames: FreeGame[] = [];
-
-  for (const analysis of analyses) {
-    const game = analysis.game;
-    if (game.currentPrice === 0) {
-      freeGames.push({
-        title: game.title,
-        ageRating: game.ageRating ?? 'NR',
-        storeUrl: resolveStoreUrl(game),
-      });
-    } else {
-      deals.push({
-        title: game.title,
-        currentPrice: game.currentPrice,
-        previousPrice: game.originalPrice ?? game.currentPrice,
-        discountPercent: calculateDiscountPercent(game),
-        ageRating: game.ageRating ?? 'NR',
-        storeUrl: resolveStoreUrl(game),
-        reasons: buildReasons(analysis),
-      });
-    }
-  }
-
-  return {
-    generatedAt: new Date().toISOString(),
-    summary,
-    deals,
-    freeGames,
-  };
+export function dealDiscountPercent(game: Game): number {
+  return calculateDiscountPercent(game);
 }
 
 export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorRunResult> {
+  const startedAt = Date.now();
   const config = loadAppConfig();
 
   const collectorKind = options.collectorKind ?? config.collector.collectorKind;
@@ -189,33 +144,13 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
 
   const skippedByScoreAnalyses = analyses.filter((analysis) => !reported.includes(analysis));
 
-  const summary: NotificationReportSummary = {
-    gamesChecked: analyses.length,
-    gamesMatched: reported.length,
-    gamesSkippedByCooldown: skippedByCooldown,
-    gamesReported: toEmail.length,
-  };
-
-  const report = buildNotificationReport(toEmail, summary);
-  const html = renderNotificationEmail(report);
-
-  const provider: EmailProvider = createEmailProvider(options.emailProviderKind);
-  await provider.sendEmail({
-    subject: `🎮 Nintendo Switch Games Monitor — ${toEmail.length} game(s) worth checking`,
-    html,
-  });
-
-  const records = toNotificationRecords(toEmail);
-  if (records.length > 0) {
-    saveNotificationHistory(addNotificationRecords(history, records));
-    console.log(`Recorded ${records.length} notification(s) to history.`);
-  }
-
   const result: MonitorResult = {
-    generatedAt: report.generatedAt,
+    generatedAt: new Date().toISOString(),
     collector: collectorKind,
+    currency: config.collector.dealsCurrency,
     minDealScore,
     defaultWishlistDiscountPercent: config.notification.defaultWishlistDiscountPercent,
+    executionTimeMs: Date.now() - startedAt,
     analyzedCount: analyses.length,
     reportedCount: toEmail.length,
     skippedByCooldownCount: skippedByCooldown,
@@ -224,6 +159,26 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     skippedByCooldownAnalyses,
     skippedByScoreAnalyses,
   };
+
+  const digest = buildDailyDigest(result, {
+    maxBestDeals: config.notification.dailyDigest.maxBestDeals,
+    maxWishlistAlerts: config.notification.dailyDigest.maxWishlistAlerts,
+    showStatistics: config.notification.dailyDigest.showStatistics,
+    showPriceWatch: config.notification.dailyDigest.showPriceWatch,
+  });
+  const html = renderDigestEmail(digest);
+
+  const provider: EmailProvider = createEmailProvider(options.emailProviderKind);
+  await provider.sendEmail({
+    subject: `🎮 Nintendo Switch Daily Digest — ${toEmail.length} game(s) worth checking`,
+    html,
+  });
+
+  const records = toNotificationRecords(toEmail);
+  if (records.length > 0) {
+    saveNotificationHistory(addNotificationRecords(history, records));
+    console.log(`Recorded ${records.length} notification(s) to history.`);
+  }
 
   return { result, html };
 }

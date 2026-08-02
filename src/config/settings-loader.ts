@@ -1,8 +1,15 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { NotificationSettings } from '../models/settings';
+import { NotificationSettings, DailyDigestSettings } from '../models/settings';
 import { ConfigError } from './json-loader';
+
+export const DEFAULT_DAILY_DIGEST_SETTINGS: DailyDigestSettings = {
+  maxBestDeals: 5,
+  maxWishlistAlerts: 10,
+  showStatistics: true,
+  showPriceWatch: true,
+};
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   minimumDealScore: 80,
@@ -12,6 +19,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   notifyWishlistMatches: true,
   defaultWishlistDiscountPercent: 40,
   defaultNotifyOnAnyDiscount: false,
+  dailyDigest: { ...DEFAULT_DAILY_DIGEST_SETTINGS },
 };
 
 export function defaultSettingsFile(): string {
@@ -61,6 +69,35 @@ export function validateNotificationSettings(settings: unknown): string[] {
   checkBoolean('notifyWishlistMatches');
   checkRange('defaultWishlistDiscountPercent', 1, 99, true);
   checkBoolean('defaultNotifyOnAnyDiscount');
+
+  const digest = value.dailyDigest;
+  if (digest !== undefined) {
+    if (digest === null || typeof digest !== 'object' || Array.isArray(digest)) {
+      errors.push('dailyDigest must be a JSON object');
+    } else {
+      const checkDigestNumber = (key: string, minimum: number, integer: boolean): void => {
+        const v = (digest as Record<string, unknown>)[key];
+        if (
+          typeof v !== 'number' ||
+          !Number.isFinite(v) ||
+          v < minimum ||
+          (integer && !Number.isInteger(v))
+        ) {
+          errors.push(`dailyDigest.${key} must be a ${integer ? 'whole ' : ''}number >= ${minimum}`);
+        }
+      };
+      const checkDigestBoolean = (key: string): void => {
+        if (typeof (digest as Record<string, unknown>)[key] !== 'boolean') {
+          errors.push(`dailyDigest.${key} must be a boolean`);
+        }
+      };
+      checkDigestNumber('maxBestDeals', 1, true);
+      checkDigestNumber('maxWishlistAlerts', 1, true);
+      checkDigestBoolean('showStatistics');
+      checkDigestBoolean('showPriceWatch');
+    }
+  }
+
   return errors;
 }
 
@@ -83,9 +120,24 @@ export function loadNotificationSettings(filePath?: string): NotificationSetting
     throw new ConfigError(`Settings file must contain a JSON object: "${resolved}"`);
   }
 
+  const raw = data as Record<string, unknown>;
+  const rawDigest = raw.dailyDigest;
+  let mergedDailyDigest: DailyDigestSettings;
+  if (rawDigest === undefined || rawDigest === null) {
+    mergedDailyDigest = { ...DEFAULT_DAILY_DIGEST_SETTINGS };
+  } else if (typeof rawDigest === 'object' && !Array.isArray(rawDigest)) {
+    mergedDailyDigest = {
+      ...DEFAULT_DAILY_DIGEST_SETTINGS,
+      ...(rawDigest as Partial<DailyDigestSettings>),
+    };
+  } else {
+    mergedDailyDigest = rawDigest as unknown as DailyDigestSettings;
+  }
+
   const merged: NotificationSettings = {
     ...DEFAULT_NOTIFICATION_SETTINGS,
-    ...(data as Partial<NotificationSettings>),
+    ...(raw as Partial<NotificationSettings>),
+    dailyDigest: mergedDailyDigest,
   };
 
   const errors = validateNotificationSettings(merged);
@@ -141,6 +193,7 @@ export function resolveNotificationSettings(
     defaultNotifyOnAnyDiscount:
       parseEnvBoolean('DEFAULT_NOTIFY_ON_ANY_DISCOUNT', env.DEFAULT_NOTIFY_ON_ANY_DISCOUNT) ??
       base.defaultNotifyOnAnyDiscount,
+    dailyDigest: { ...base.dailyDigest },
   };
 
   const errors = validateNotificationSettings(settings);

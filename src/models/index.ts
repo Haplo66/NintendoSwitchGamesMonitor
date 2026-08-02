@@ -1,3 +1,4 @@
+export * from './daily-digest';
 export * from './deal-score-result';
 export * from './family-profile';
 export * from './free-game';
