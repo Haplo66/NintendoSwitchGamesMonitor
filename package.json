@@ -15,6 +15,7 @@
     "validate-email": "npm run build && node dist/notifications/email-validation.js",
     "collect-games": "npm run build && node dist/collectors/collect-games.js",
     "validate-config": "npm run build && node dist/config/validate-config.js",
+    "validate-settings": "npm run build && node dist/config/validate-settings.js",
     "validate-history": "npm run build && node dist/config/validate-history.js",
     "analyze-games": "npm run build && node dist/analyzer/analyze-games.js",
     "validate-collector": "npm run build && node dist/collectors/validate-collector.js",

@@ -149,6 +149,7 @@ export function renderFreeGamesSection(freeGames: FreeGame[]): string {
 }
 
 export function renderSummary(report: NotificationReport): string {
+  const { summary } = report;
   const dealCount = report.deals.length;
   const freeCount = report.freeGames.length;
   const dealNoun = dealCount === 1 ? 'game' : 'games';
@@ -158,7 +159,12 @@ export function renderSummary(report: NotificationReport): string {
   return (
     `<div style="border-top:1px solid ${COLORS.border}; margin-top:24px; padding-top:16px;">` +
     `<p style="margin:0 0 4px 0; font-family:${FONT_FAMILY}; font-size:13px; color:${COLORS.text};">` +
-    `<strong>Summary:</strong> ${dealCount} discounted ${dealNoun} and ${freeCount} free ${freeNoun} found.` +
+    `<strong>Summary:</strong> ${summary.gamesChecked} games checked · ` +
+    `${summary.gamesMatched} matched · ${summary.gamesSkippedByCooldown} skipped by cooldown · ` +
+    `${summary.gamesReported} reported.` +
+    `</p>` +
+    `<p style="margin:0 0 4px 0; font-family:${FONT_FAMILY}; font-size:13px; color:${COLORS.text};">` +
+    `${dealCount} discounted ${dealNoun} and ${freeCount} free ${freeNoun} in this report.` +
     `</p>` +
     `<p style="margin:0; font-family:${FONT_FAMILY}; font-size:12px; color:${COLORS.muted};">` +
     `Generated on ${generatedAt} · Nintendo Switch Games Monitor` +

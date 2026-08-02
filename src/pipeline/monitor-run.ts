@@ -1,19 +1,17 @@
 import 'dotenv/config';
 
 import { analyzeGamesWith } from '../analyzer/analyze';
+import { calculateDiscountPercent } from '../analyzer/deal-score';
 import { createGameCollector } from '../collectors/collector-factory';
 import { GameCollector } from '../collectors/game-collector';
-import { loadFamilyProfiles } from '../config/family-profiles-loader';
+import { loadAppConfig } from '../config/app-config';
 import {
   addNotificationRecords,
   filterNotifiableGames,
   loadNotificationHistory,
-  notificationCooldownDays,
   saveNotificationHistory,
   toNotificationRecords,
 } from '../config/notification-history-store';
-import { loadWishlist } from '../config/wishlist-loader';
-import { calculateDiscountPercent } from '../analyzer/deal-score';
 import {
   FreeGame,
   Game,
@@ -21,6 +19,7 @@ import {
   GameDeal,
   MonitorResult,
   NotificationReport,
+  NotificationReportSummary,
 } from '../models';
 import { createEmailProvider } from '../notifications/email-factory';
 import { EmailProvider } from '../notifications/email-provider';
@@ -28,11 +27,13 @@ import { renderNotificationEmail } from '../notifications/email-renderer';
 
 export const DEFAULT_MIN_DEAL_SCORE = 80;
 export const DEFAULT_DEAL_LIMIT = 100;
+export const DEFAULT_MAX_GAMES_PER_EMAIL = 10;
 
 export interface MonitorOptions {
   collectorKind?: string;
   minDealScore?: number;
   dealLimit?: number;
+  maxGamesPerEmail?: number;
 }
 
 export interface MonitorRunResult {
@@ -40,12 +41,32 @@ export interface MonitorRunResult {
   html: string;
 }
 
-export function isWorthReporting(analysis: GameAnalysis, minDealScore: number): boolean {
-  return (
-    analysis.game.currentPrice === 0 ||
-    (analysis.wishlistMatch?.matched ?? false) ||
-    analysis.dealScore.score >= minDealScore
-  );
+export interface ReportingOptions {
+  notifyFreeGames: boolean;
+  notifyWishlistMatches: boolean;
+}
+
+export function isWorthReporting(
+  analysis: GameAnalysis,
+  minDealScore: number,
+  options: ReportingOptions = { notifyFreeGames: true, notifyWishlistMatches: true },
+): boolean {
+  const isFree = analysis.game.currentPrice === 0;
+  const onWishlist = (analysis.wishlistMatch?.matched ?? false) && options.notifyWishlistMatches;
+  if (isFree && options.notifyFreeGames) {
+    return true;
+  }
+  if (onWishlist) {
+    return true;
+  }
+  return analysis.dealScore.score >= minDealScore;
+}
+
+export function limitGamesPerEmail(analyses: GameAnalysis[], maxGamesPerEmail: number): GameAnalysis[] {
+  if (analyses.length <= maxGamesPerEmail) {
+    return analyses;
+  }
+  return [...analyses].sort((a, b) => b.dealScore.score - a.dealScore.score).slice(0, maxGamesPerEmail);
 }
 
 function resolveStoreUrl(game: Game): string {
@@ -69,7 +90,10 @@ function buildReasons(analysis: GameAnalysis): string[] {
   return reasons;
 }
 
-export function buildNotificationReport(analyses: GameAnalysis[]): NotificationReport {
+export function buildNotificationReport(
+  analyses: GameAnalysis[],
+  summary: NotificationReportSummary,
+): NotificationReport {
   const deals: GameDeal[] = [];
   const freeGames: FreeGame[] = [];
 
@@ -96,57 +120,83 @@ export function buildNotificationReport(analyses: GameAnalysis[]): NotificationR
 
   return {
     generatedAt: new Date().toISOString(),
+    summary,
     deals,
     freeGames,
   };
 }
 
 export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorRunResult> {
-  const collectorKind = options.collectorKind ?? process.env.GAME_COLLECTOR ?? 'mock';
-  const minDealScore =
-    options.minDealScore ?? Number(process.env.MIN_DEAL_SCORE ?? DEFAULT_MIN_DEAL_SCORE);
-  const dealLimit = options.dealLimit ?? Number(process.env.DEALS_LIMIT ?? DEFAULT_DEAL_LIMIT);
+  const config = loadAppConfig();
 
-  const collector: GameCollector = createGameCollector(collectorKind);
+  const collectorKind = options.collectorKind ?? config.collector.collectorKind;
+  const minDealScore = options.minDealScore ?? config.notification.minimumDealScore;
+  const dealLimit = options.dealLimit ?? config.collector.dealLimit;
+  const maxGamesPerEmail = options.maxGamesPerEmail ?? config.notification.maxGamesPerEmail;
+  const cooldownDays = config.notification.notificationCooldownDays;
+
+  const collector: GameCollector = createGameCollector(collectorKind, {
+    sourceUrl: config.collector.dealsSourceUrl,
+    currency: config.collector.dealsCurrency,
+  });
   const games = await collector.collectGames({ limit: dealLimit });
   console.log(`Collected ${games.length} game(s) using "${collectorKind}" collector.`);
 
-  const profiles = loadFamilyProfiles();
-  const wishlist = loadWishlist();
+  const profiles = config.familyProfiles;
+  const wishlist = config.wishlist;
   console.log(
     `Analyzing against ${profiles.length} family profile(s) and ${wishlist.items.length} wishlist item(s)...`,
   );
 
   const analyses = analyzeGamesWith(games, profiles, wishlist);
-  const reported = analyses.filter((analysis) => isWorthReporting(analysis, minDealScore));
+  const reported = analyses.filter((analysis) =>
+    isWorthReporting(analysis, minDealScore, {
+      notifyFreeGames: config.notification.notifyFreeGames,
+      notifyWishlistMatches: config.notification.notifyWishlistMatches,
+    }),
+  );
 
-  const cooldownDays = notificationCooldownDays();
+  console.log(
+    `${reported.length} of ${analyses.length} game(s) meet the reporting threshold (score >= ${minDealScore}, free, or on wishlist):`,
+  );
+  for (const analysis of reported) {
+    console.log(`  - ${analysis.game.title} (score ${analysis.dealScore.score})`);
+  }
+
   const history = loadNotificationHistory();
   const notifiable = filterNotifiableGames(reported, history, cooldownDays);
   const skippedByCooldown = reported.length - notifiable.length;
   if (skippedByCooldown > 0) {
     console.log(
-      `${skippedByCooldown} game(s) already notified within the last ${cooldownDays} day(s) (NOTIFICATION_COOLDOWN_DAYS), skipping.`,
+      `${skippedByCooldown} game(s) already notified within the last ${cooldownDays} day(s) (notificationCooldownDays), skipping.`,
     );
   }
 
-  console.log(
-    `${notifiable.length} of ${analyses.length} game(s) meet the reporting threshold (score >= ${minDealScore}, free, or on wishlist):`,
-  );
-  for (const analysis of notifiable) {
-    console.log(`  - ${analysis.game.title} (score ${analysis.dealScore.score})`);
+  const toEmail = limitGamesPerEmail(notifiable, maxGamesPerEmail);
+  const capped = notifiable.length - toEmail.length;
+  if (capped > 0) {
+    console.log(
+      `Report capped to top ${toEmail.length} game(s) by score (maxGamesPerEmail=${maxGamesPerEmail}), dropping ${capped}.`,
+    );
   }
 
-  const report = buildNotificationReport(notifiable);
+  const summary: NotificationReportSummary = {
+    gamesChecked: analyses.length,
+    gamesMatched: reported.length,
+    gamesSkippedByCooldown: skippedByCooldown,
+    gamesReported: toEmail.length,
+  };
+
+  const report = buildNotificationReport(toEmail, summary);
   const html = renderNotificationEmail(report);
 
   const provider: EmailProvider = createEmailProvider();
   await provider.sendEmail({
-    subject: `🎮 Nintendo Switch Games Monitor — ${notifiable.length} game(s) worth checking`,
+    subject: `🎮 Nintendo Switch Games Monitor — ${toEmail.length} game(s) worth checking`,
     html,
   });
 
-  const records = toNotificationRecords(notifiable);
+  const records = toNotificationRecords(toEmail);
   if (records.length > 0) {
     saveNotificationHistory(addNotificationRecords(history, records));
     console.log(`Recorded ${records.length} notification(s) to history.`);
@@ -157,7 +207,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     collector: collectorKind,
     minDealScore,
     analyzedCount: analyses.length,
-    reportedCount: notifiable.length,
+    reportedCount: toEmail.length,
     skippedByCooldownCount: skippedByCooldown,
     analyses,
   };

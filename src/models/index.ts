@@ -8,4 +8,5 @@ export * from './match-result';
 export * from './monitor-result';
 export * from './notification-history';
 export * from './notification-report';
+export * from './settings';
 export * from './wishlist';

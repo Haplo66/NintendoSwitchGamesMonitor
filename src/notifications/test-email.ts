@@ -7,6 +7,12 @@ import { renderNotificationEmail } from './email-renderer';
 function buildSampleReport(): NotificationReport {
   return {
     generatedAt: new Date().toISOString(),
+    summary: {
+      gamesChecked: 3,
+      gamesMatched: 3,
+      gamesSkippedByCooldown: 0,
+      gamesReported: 3,
+    },
     deals: [
       {
         title: 'The Legend of Zelda: Breath of the Wild',

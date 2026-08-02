@@ -2,7 +2,7 @@ import { Game } from '../models';
 import { CollectGamesOptions, GameCollector } from './game-collector';
 import { CollectorError } from './collector-error';
 
-const DEFAULT_SOURCE_URL =
+export const DEFAULT_SOURCE_URL =
   'https://searching.nintendo-europe.com/en/select' +
   '?fq=type:GAME' +
   '&fq=playable_on_txt:HAC' +

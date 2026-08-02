@@ -9,6 +9,12 @@ import { MockEmailProvider } from './mock-email-provider';
 function buildSampleReport(): NotificationReport {
   return {
     generatedAt: new Date().toISOString(),
+    summary: {
+      gamesChecked: 5,
+      gamesMatched: 3,
+      gamesSkippedByCooldown: 1,
+      gamesReported: 2,
+    },
     deals: [
       {
         title: 'Mario Kart 8 <script>alert("xss")</script> Deluxe',
@@ -127,6 +133,16 @@ export async function validateEmailRendering(): Promise<void> {
         assert.ok(html.includes('Summary:'), 'Summary section missing');
         assert.ok(html.includes('1 discounted game'), 'Deal count incorrect');
         assert.ok(html.includes('1 free game'), 'Free game count incorrect');
+      },
+    },
+    {
+      name: 'Summary includes run statistics',
+      run: () => {
+        assert.ok(html.includes('5 games checked'), 'Games checked missing');
+        assert.ok(html.includes('3 matched'), 'Games matched missing');
+        assert.ok(html.includes('1 skipped by cooldown'), 'Games skipped missing');
+        assert.ok(html.includes('2 reported'), 'Games reported missing');
+        assert.ok(html.includes('Generated on'), 'Timestamp missing');
       },
     },
     {

@@ -83,6 +83,9 @@ This builds the project, generates a sample `NotificationReport`, renders it to 
 | `DEALS_LIMIT`         | Deals fetched per run for the `deku` collector (default: `100`)                 |
 | `MIN_DEAL_SCORE`      | Minimum score for a game to be included in the report (default: `80`)          |
 | `NOTIFICATION_COOLDOWN_DAYS` | Days before the same game at the same price is notified again (default: `14`) |
+| `MAX_GAMES_PER_EMAIL` | Cap on games included in a single email, best-scoring first (default: `10`)   |
+| `NOTIFY_FREE_GAMES`   | Report games just because they are free (`true`/`false`, default: `true`)      |
+| `NOTIFY_WISHLIST_MATCHES` | Report games just because they match the wishlist (`true`/`false`, default: `true`) |
 
 Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
 
@@ -161,9 +164,10 @@ HTML Email (provider)
 
 1. **Collect** — runs the selected `GameCollector` (`mock` or `deku`).
 2. **Analyze** — family matcher, wishlist matcher, and deal scorer produce a `GameAnalysis` per game.
-3. **Filter** — only games worth reporting are kept. A game is included when it is free, matches a wishlist item, or its deal score reaches `MIN_DEAL_SCORE` (default `80`).
-4. **Render** — filtered games are converted into a `NotificationReport` and rendered to an HTML email.
-5. **Deliver** — the email is sent via the configured `EmailProvider` (use `EMAIL_PROVIDER=mock` for local testing without SMTP).
+3. **Filter** — only games worth reporting are kept. A game is included when it is free (if `notifyFreeGames`), matches a wishlist item (if `notifyWishlistMatches`), or its deal score reaches `minimumDealScore`.
+4. **Cooldown** — games already notified for the same price within `notificationCooldownDays` are skipped, and the report is capped at `maxGamesPerEmail` games (best-scoring first).
+5. **Render** — filtered games are converted into a `NotificationReport` (with run statistics) and rendered to an HTML email.
+6. **Deliver & record** — the email is sent via the configured `EmailProvider` (use `EMAIL_PROVIDER=mock` for local testing without SMTP), then the reported games are recorded to notification history.
 
 ### Running a local monitor
 
@@ -201,6 +205,9 @@ Configure these under **Settings → Secrets and variables → Actions**. Secret
 | `GAME_COLLECTOR`   | `deku` or `mock`                               | scheduled runs              |
 | `DEALS_SOURCE_URL` | Deals JSON feed (optional, defaults to eShop)  | scheduled deku runs         |
 | `MIN_DEAL_SCORE`   | Report threshold (optional, default `80`)      | scheduled runs              |
+| `MAX_GAMES_PER_EMAIL` | Cap on games per email (optional)           | scheduled runs              |
+| `NOTIFY_FREE_GAMES` | Report free games (optional)                 | scheduled runs              |
+| `NOTIFY_WISHLIST_MATCHES` | Report wishlist matches (optional)      | scheduled runs              |
 
 Manual dispatch always lets you override `EMAIL_PROVIDER` and `GAME_COLLECTOR` per run, independent of the stored secrets.
 
@@ -210,7 +217,7 @@ To avoid spamming the family with the same deal, the pipeline tracks every game 
 
 1. **History model** (`src/models/notification-history.ts`) — a `NotificationRecord` captures `gameId`, `title`, `notificationType` (`deal` / `free` / `wishlist`), `score`, `price`, and `notifiedAt`. A `NotificationHistory` is just `records[]`. Models carry no logic.
 2. **Storage** (`src/config/notification-history-store.ts`) — `loadNotificationHistory()` / `saveNotificationHistory()` read and write `data/notification-history.json`. A missing file initializes an empty history, a malformed file fails with a clear error, and writes always produce valid JSON.
-3. **Duplicate prevention** — before building the notification report, the pipeline filters out games that were already notified for the **same price** within the cooldown window (`NOTIFICATION_COOLDOWN_DAYS`, default `14`). If the price drops further, that counts as a new deal and is reported again.
+3. **Duplicate prevention** — before building the notification report, the pipeline filters out games that were already notified for the **same price** within the cooldown window (`notificationCooldownDays` in `data/settings.json`, default `14`). If the price drops further, that counts as a new deal and is reported again.
 4. **Recording** — after the email is delivered successfully, every game included in the notification is appended to the history file.
 
 ```
@@ -296,6 +303,66 @@ npm run analyze-games
 
 This builds the project, collects sample games with the mock collector, matches them against the family profiles and wishlist, scores each deal, and prints the report (matching profiles, wishlist hits, and calculated scores).
 
+## Configuration
+
+Configuration is centralized in `src/config/app-config.ts` (`loadAppConfig()`), which combines family profiles, wishlist, notification preferences, and collector settings into a single `AppConfig` object so individual modules do not read environment variables directly.
+
+### Notification preferences — `data/settings.json`
+
+User-editable notification preferences live in `data/settings.json`:
+
+```json
+{
+  "minimumDealScore": 80,
+  "notificationCooldownDays": 14,
+  "maxGamesPerEmail": 10,
+  "notifyFreeGames": true,
+  "notifyWishlistMatches": true
+}
+```
+
+- `minimumDealScore` — minimum deal score for a game to be included in the report.
+- `notificationCooldownDays` — days before the same game at the same price is notified again.
+- `maxGamesPerEmail` — cap on games per email (best-scoring first when over the cap).
+- `notifyFreeGames` — whether "free" alone is enough to report a game.
+- `notifyWishlistMatches` — whether a wishlist match alone is enough to report a game.
+
+A missing settings file falls back to the defaults; a malformed file or invalid values fail with a clear error.
+
+### Resolution priority
+
+Environment variables override `settings.json`, which overrides built-in defaults:
+
+```
+Environment variables
+        |
+        v
+settings.json
+        |
+        v
+defaults
+```
+
+| Setting                 | Env var                     | settings.json key             | Default       |
+| ----------------------- | --------------------------- | ----------------------------- | ------------- |
+| Deal score threshold    | `MIN_DEAL_SCORE`            | `minimumDealScore`            | `80`          |
+| Notification cooldown   | `NOTIFICATION_COOLDOWN_DAYS`| `notificationCooldownDays`    | `14`          |
+| Max games per email     | `MAX_GAMES_PER_EMAIL`       | `maxGamesPerEmail`            | `10`          |
+| Notify free games       | `NOTIFY_FREE_GAMES`         | `notifyFreeGames`             | `true`        |
+| Notify wishlist matches | `NOTIFY_WISHLIST_MATCHES`   | `notifyWishlistMatches`       | `true`        |
+| Collector               | `GAME_COLLECTOR`            | —                             | `mock`        |
+| Deals per run           | `DEALS_LIMIT`               | —                             | `100`         |
+| Deals source URL        | `DEALS_SOURCE_URL`          | —                             | eShop feed    |
+| Deals currency          | `DEALS_CURRENCY`            | —                             | `EUR`         |
+
+### Validating settings
+
+```bash
+npm run validate-settings
+```
+
+Runs checks that confirm defaults apply when the file is missing, full and partial files load correctly, malformed files and invalid values are rejected, and environment variables correctly override `settings.json`.
+
 ## Getting Started
 
 ```bash
@@ -314,6 +381,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-email` | Build and run the email rendering validation suite |
 | `npm run collect-games`  | Build and collect sample games via the mock collector |
 | `npm run validate-config` | Build and validate family profiles + wishlist config |
+| `npm run validate-settings` | Build and validate notification preferences + env overrides |
 | `npm run analyze-games`   | Build and analyze mock games vs profiles + wishlist |
 | `npm run validate-collector` | Build and validate the game collector against real data |
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |
@@ -345,14 +413,15 @@ cp .env.example .env   # then fill in values
 │   │   ├── mock-email-provider.ts
 │   │   ├── email-validation.ts
 │   │   └── test-email.ts
-│   ├── config/        # Configuration loaders + validation + notification history storage
+│   ├── config/        # Central config (app-config) + loaders + validators + history/settings
 │   ├── pipeline/      # End-to-end monitor run (collect → analyze → email)
-│   ├── models/        # Shared domain types (Game, GameDeal, NotificationRecord, ...)
+│   ├── models/        # Shared domain types (Game, GameDeal, NotificationSettings, ...)
 │   └── main.ts        # Service entry point
-├── data/              # Runtime data / cache + family/wishlist config + notification history
+├── data/              # Runtime data / cache + family/wishlist config + history + settings
 │   ├── family-profile.json
 │   ├── wishlist.json
-│   └── notification-history.json
+│   ├── notification-history.json
+│   └── settings.json
 └── .github/workflows  # Scheduled execution (GitHub Actions monitor workflow)
 ```
 

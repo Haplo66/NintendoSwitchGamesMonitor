@@ -15,6 +15,7 @@ data/*
 !data/family-profile.json
 !data/wishlist.json
 !data/notification-history.json
+!data/settings.json
 
 # Logs
 *.log

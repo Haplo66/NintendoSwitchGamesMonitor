@@ -71,3 +71,12 @@ Features:
 - Cooldown handling
 
 > **Status: 🔄 In progress**
+
+## v0.10 Configuration & User Preferences
+
+Features:
+- Central settings
+- Better customization
+- Improved summaries
+
+> **Status: 🔄 In progress**
