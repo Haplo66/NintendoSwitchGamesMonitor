@@ -19,7 +19,9 @@
     "validate-history": "npm run build && node dist/config/validate-history.js",
     "analyze-games": "npm run build && node dist/analyzer/analyze-games.js",
     "validate-collector": "npm run build && node dist/collectors/validate-collector.js",
-    "monitor": "npm run build && node dist/pipeline/monitor-run.js"
+    "monitor": "npm run build && node dist/pipeline/monitor-run.js",
+    "report": "npm run build && node dist/reports/generate-report.js",
+    "validate-reports": "npm run build && node dist/reports/validate-reports.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

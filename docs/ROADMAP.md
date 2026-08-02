@@ -80,3 +80,12 @@ Features:
 - Improved summaries
 
 > **Status: 🔄 In progress**
+
+## v0.11 Monitoring Reports
+
+Features:
+- Markdown reports
+- HTML reports
+- Historical run visibility
+
+> **Status: 🔄 In progress**

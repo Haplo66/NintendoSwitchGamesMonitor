@@ -31,6 +31,7 @@ export const DEFAULT_MAX_GAMES_PER_EMAIL = 10;
 
 export interface MonitorOptions {
   collectorKind?: string;
+  emailProviderKind?: string;
   minDealScore?: number;
   dealLimit?: number;
   maxGamesPerEmail?: number;
@@ -166,6 +167,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const history = loadNotificationHistory();
   const notifiable = filterNotifiableGames(reported, history, cooldownDays);
   const skippedByCooldown = reported.length - notifiable.length;
+  const skippedByCooldownAnalyses = reported.filter((analysis) => !notifiable.includes(analysis));
   if (skippedByCooldown > 0) {
     console.log(
       `${skippedByCooldown} game(s) already notified within the last ${cooldownDays} day(s) (notificationCooldownDays), skipping.`,
@@ -180,6 +182,8 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     );
   }
 
+  const skippedByScoreAnalyses = analyses.filter((analysis) => !reported.includes(analysis));
+
   const summary: NotificationReportSummary = {
     gamesChecked: analyses.length,
     gamesMatched: reported.length,
@@ -190,7 +194,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const report = buildNotificationReport(toEmail, summary);
   const html = renderNotificationEmail(report);
 
-  const provider: EmailProvider = createEmailProvider();
+  const provider: EmailProvider = createEmailProvider(options.emailProviderKind);
   await provider.sendEmail({
     subject: `🎮 Nintendo Switch Games Monitor — ${toEmail.length} game(s) worth checking`,
     html,
@@ -210,6 +214,9 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     reportedCount: toEmail.length,
     skippedByCooldownCount: skippedByCooldown,
     analyses,
+    reportedAnalyses: toEmail,
+    skippedByCooldownAnalyses,
+    skippedByScoreAnalyses,
   };
 
   return { result, html };

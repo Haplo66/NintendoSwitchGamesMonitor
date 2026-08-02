@@ -13,6 +13,13 @@
       "targetPrice": 44.99,
       "notifyOnAnyDiscount": false,
       "notes": "Ideally below $45."
+    },
+    {
+      "id": "stardew-valley",
+      "gameTitle": "Stardew Valley",
+      "targetPrice": 14.99,
+      "notifyOnAnyDiscount": true,
+      "notes": "Ideally below $10."
     }
   ]
 }

@@ -8,4 +8,7 @@ export interface MonitorResult {
   reportedCount: number;
   skippedByCooldownCount: number;
   analyses: GameAnalysis[];
+  reportedAnalyses: GameAnalysis[];
+  skippedByCooldownAnalyses: GameAnalysis[];
+  skippedByScoreAnalyses: GameAnalysis[];
 }

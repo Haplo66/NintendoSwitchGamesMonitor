@@ -17,6 +17,10 @@ data/*
 !data/notification-history.json
 !data/settings.json
 
+# Generated monitoring reports
+reports/*
+!reports/.gitkeep
+
 # Logs
 *.log
 npm-debug.log*

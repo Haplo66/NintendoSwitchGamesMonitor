@@ -241,6 +241,34 @@ npm run validate-history
 
 Runs checks (no external services) that confirm: empty/missing history initializes correctly, save/load round-trips valid JSON, malformed files fail clearly, duplicate detection matches same game + price within cooldown, price changes reset the cooldown, expired records become notifiable again, and records carry the expected notification type.
 
+## Monitoring Reports
+
+Each monitoring run can be captured as a human-readable report alongside the email (`src/reports/`):
+
+```bash
+npm run report
+```
+
+This runs the full monitoring pipeline using the **mock** email provider — no SMTP credentials required — and writes two files:
+
+```
+reports/monitor-YYYY-MM-DD-HHmm.md
+reports/html/monitor-YYYY-MM-DD-HHmm.html
+```
+
+- **Markdown report** — header (app name, timestamp, collector), summary table (games collected / analyzed / reported / skipped by cooldown), **Top Opportunities** (price, discount, score, reasons, wishlist and family matches per game), and a **Skipped** section split into low-score and cooldown groups.
+- **HTML report** — reuses the email rendering (header, deal/free cards, summary) so it is readable in a browser, plus a skipped-games section.
+
+Files are never overwritten: if a name collision occurs, a numeric suffix (`-2`, `-3`, …) is added. Reports are git-ignored runtime artifacts.
+
+### Validating report generation
+
+```bash
+npm run validate-reports
+```
+
+Runs checks (no external services) that confirm the markdown and HTML reports are generated, reported games and their details are included, skipped games are listed, empty results are handled gracefully, and report files are written without overwriting.
+
 ## Family Profiles & Wishlist
 
 The service is family-aware: games are matched against who lives in the household and what they want.
@@ -386,6 +414,8 @@ cp .env.example .env   # then fill in values
 | `npm run validate-collector` | Build and validate the game collector against real data |
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |
 | `npm run monitor`       | Build and run the full monitor pipeline (collect → analyze → email) |
+| `npm run report`        | Build, run the pipeline with mock email, and write a markdown + HTML report |
+| `npm run validate-reports` | Build and validate report generation (markdown + HTML) |
 
 ## Project Structure
 
@@ -415,6 +445,7 @@ cp .env.example .env   # then fill in values
 │   │   └── test-email.ts
 │   ├── config/        # Central config (app-config) + loaders + validators + history/settings
 │   ├── pipeline/      # End-to-end monitor run (collect → analyze → email)
+│   ├── reports/       # Monitoring report generation (markdown + HTML)
 │   ├── models/        # Shared domain types (Game, GameDeal, NotificationSettings, ...)
 │   └── main.ts        # Service entry point
 ├── data/              # Runtime data / cache + family/wishlist config + history + settings
@@ -422,6 +453,7 @@ cp .env.example .env   # then fill in values
 │   ├── wishlist.json
 │   ├── notification-history.json
 │   └── settings.json
+├── reports/           # Generated monitoring reports (markdown + html/, git-ignored)
 └── .github/workflows  # Scheduled execution (GitHub Actions monitor workflow)
 ```
 
