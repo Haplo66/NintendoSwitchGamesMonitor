@@ -4,6 +4,14 @@ import { analyzeGamesWith } from '../analyzer/analyze';
 import { createGameCollector } from '../collectors/collector-factory';
 import { GameCollector } from '../collectors/game-collector';
 import { loadFamilyProfiles } from '../config/family-profiles-loader';
+import {
+  addNotificationRecords,
+  filterNotifiableGames,
+  loadNotificationHistory,
+  notificationCooldownDays,
+  saveNotificationHistory,
+  toNotificationRecords,
+} from '../config/notification-history-store';
 import { loadWishlist } from '../config/wishlist-loader';
 import { calculateDiscountPercent } from '../analyzer/deal-score';
 import {
@@ -112,28 +120,45 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const analyses = analyzeGamesWith(games, profiles, wishlist);
   const reported = analyses.filter((analysis) => isWorthReporting(analysis, minDealScore));
 
+  const cooldownDays = notificationCooldownDays();
+  const history = loadNotificationHistory();
+  const notifiable = filterNotifiableGames(reported, history, cooldownDays);
+  const skippedByCooldown = reported.length - notifiable.length;
+  if (skippedByCooldown > 0) {
+    console.log(
+      `${skippedByCooldown} game(s) already notified within the last ${cooldownDays} day(s) (NOTIFICATION_COOLDOWN_DAYS), skipping.`,
+    );
+  }
+
   console.log(
-    `${reported.length} of ${analyses.length} game(s) meet the reporting threshold (score >= ${minDealScore}, free, or on wishlist):`,
+    `${notifiable.length} of ${analyses.length} game(s) meet the reporting threshold (score >= ${minDealScore}, free, or on wishlist):`,
   );
-  for (const analysis of reported) {
+  for (const analysis of notifiable) {
     console.log(`  - ${analysis.game.title} (score ${analysis.dealScore.score})`);
   }
 
-  const report = buildNotificationReport(reported);
+  const report = buildNotificationReport(notifiable);
   const html = renderNotificationEmail(report);
 
   const provider: EmailProvider = createEmailProvider();
   await provider.sendEmail({
-    subject: `🎮 Nintendo Switch Games Monitor — ${reported.length} game(s) worth checking`,
+    subject: `🎮 Nintendo Switch Games Monitor — ${notifiable.length} game(s) worth checking`,
     html,
   });
+
+  const records = toNotificationRecords(notifiable);
+  if (records.length > 0) {
+    saveNotificationHistory(addNotificationRecords(history, records));
+    console.log(`Recorded ${records.length} notification(s) to history.`);
+  }
 
   const result: MonitorResult = {
     generatedAt: report.generatedAt,
     collector: collectorKind,
     minDealScore,
     analyzedCount: analyses.length,
-    reportedCount: reported.length,
+    reportedCount: notifiable.length,
+    skippedByCooldownCount: skippedByCooldown,
     analyses,
   };
 

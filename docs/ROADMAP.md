@@ -62,3 +62,12 @@ Features:
 - Automated monitoring
 
 > **Status: 🔄 In progress**
+
+## v0.9 Notification Intelligence
+
+Features:
+- Duplicate prevention
+- Notification history
+- Cooldown handling
+
+> **Status: 🔄 In progress**

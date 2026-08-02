@@ -6,5 +6,6 @@ export interface MonitorResult {
   minDealScore: number;
   analyzedCount: number;
   reportedCount: number;
+  skippedByCooldownCount: number;
   analyses: GameAnalysis[];
 }

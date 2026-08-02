@@ -82,6 +82,7 @@ This builds the project, generates a sample `NotificationReport`, renders it to 
 | `DEALS_CURRENCY`      | Currency reported by the deals source (default: `EUR`)                          |
 | `DEALS_LIMIT`         | Deals fetched per run for the `deku` collector (default: `100`)                 |
 | `MIN_DEAL_SCORE`      | Minimum score for a game to be included in the report (default: `80`)          |
+| `NOTIFICATION_COOLDOWN_DAYS` | Days before the same game at the same price is notified again (default: `14`) |
 
 Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
 
@@ -203,6 +204,36 @@ Configure these under **Settings → Secrets and variables → Actions**. Secret
 
 Manual dispatch always lets you override `EMAIL_PROVIDER` and `GAME_COLLECTOR` per run, independent of the stored secrets.
 
+## Notification History & Intelligence
+
+To avoid spamming the family with the same deal, the pipeline tracks every game it has notified about and skips duplicates.
+
+1. **History model** (`src/models/notification-history.ts`) — a `NotificationRecord` captures `gameId`, `title`, `notificationType` (`deal` / `free` / `wishlist`), `score`, `price`, and `notifiedAt`. A `NotificationHistory` is just `records[]`. Models carry no logic.
+2. **Storage** (`src/config/notification-history-store.ts`) — `loadNotificationHistory()` / `saveNotificationHistory()` read and write `data/notification-history.json`. A missing file initializes an empty history, a malformed file fails with a clear error, and writes always produce valid JSON.
+3. **Duplicate prevention** — before building the notification report, the pipeline filters out games that were already notified for the **same price** within the cooldown window (`NOTIFICATION_COOLDOWN_DAYS`, default `14`). If the price drops further, that counts as a new deal and is reported again.
+4. **Recording** — after the email is delivered successfully, every game included in the notification is appended to the history file.
+
+```
+Reported games (threshold met)
+    |
+    v
+Load history + apply cooldown filter (NOTIFICATION_COOLDOWN_DAYS)
+    |
+    v
+Build NotificationReport  -->  render HTML  -->  send email
+    |
+    v
+Record notified games back to history
+```
+
+### Validating history logic
+
+```bash
+npm run validate-history
+```
+
+Runs checks (no external services) that confirm: empty/missing history initializes correctly, save/load round-trips valid JSON, malformed files fail clearly, duplicate detection matches same game + price within cooldown, price changes reset the cooldown, expired records become notifiable again, and records carry the expected notification type.
+
 ## Family Profiles & Wishlist
 
 The service is family-aware: games are matched against who lives in the household and what they want.
@@ -285,6 +316,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-config` | Build and validate family profiles + wishlist config |
 | `npm run analyze-games`   | Build and analyze mock games vs profiles + wishlist |
 | `npm run validate-collector` | Build and validate the game collector against real data |
+| `npm run validate-history`   | Build and validate notification history + cooldown logic |
 | `npm run monitor`       | Build and run the full monitor pipeline (collect → analyze → email) |
 
 ## Project Structure
@@ -313,13 +345,14 @@ cp .env.example .env   # then fill in values
 │   │   ├── mock-email-provider.ts
 │   │   ├── email-validation.ts
 │   │   └── test-email.ts
-│   ├── config/        # Configuration loaders + validation
+│   ├── config/        # Configuration loaders + validation + notification history storage
 │   ├── pipeline/      # End-to-end monitor run (collect → analyze → email)
-│   ├── models/        # Shared domain types (Game, GameDeal, FamilyProfile, ...)
+│   ├── models/        # Shared domain types (Game, GameDeal, NotificationRecord, ...)
 │   └── main.ts        # Service entry point
-├── data/              # Runtime data / cache + family/wishlist config
+├── data/              # Runtime data / cache + family/wishlist config + notification history
 │   ├── family-profile.json
-│   └── wishlist.json
+│   ├── wishlist.json
+│   └── notification-history.json
 └── .github/workflows  # Scheduled execution (GitHub Actions monitor workflow)
 ```
 

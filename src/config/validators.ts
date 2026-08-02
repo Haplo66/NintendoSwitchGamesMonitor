@@ -1,4 +1,4 @@
-import { FamilyProfile, WishlistItem } from '../models';
+import { FamilyProfile, NotificationHistory, NotificationRecord, WishlistItem } from '../models';
 
 export function validateFamilyProfile(profile: FamilyProfile): string[] {
   const errors: string[] = [];
@@ -38,4 +38,36 @@ export function validateWishlistItem(item: WishlistItem): string[] {
     errors.push('notifyOnAnyDiscount must be a boolean');
   }
   return errors;
+}
+
+export function validateNotificationRecord(record: NotificationRecord): string[] {
+  const errors: string[] = [];
+  if (typeof record.gameId !== 'string' || record.gameId.trim() === '') {
+    errors.push('gameId must be a non-empty string');
+  }
+  if (typeof record.title !== 'string' || record.title.trim() === '') {
+    errors.push('title must be a non-empty string');
+  }
+  if (record.notificationType !== 'deal' && record.notificationType !== 'free' && record.notificationType !== 'wishlist') {
+    errors.push("notificationType must be one of: 'deal', 'free', 'wishlist'");
+  }
+  if (typeof record.score !== 'number' || record.score < 0) {
+    errors.push('score must be a non-negative number');
+  }
+  if (typeof record.price !== 'number' || record.price < 0) {
+    errors.push('price must be a non-negative number');
+  }
+  if (typeof record.notifiedAt !== 'string' || Number.isNaN(Date.parse(record.notifiedAt))) {
+    errors.push('notifiedAt must be a valid date string');
+  }
+  return errors;
+}
+
+export function validateNotificationHistory(history: NotificationHistory): string[] {
+  if (!Array.isArray(history.records)) {
+    return ['records must be an array'];
+  }
+  return history.records.flatMap((record, index) =>
+    validateNotificationRecord(record).map((error) => `record ${index}: ${error}`),
+  );
 }

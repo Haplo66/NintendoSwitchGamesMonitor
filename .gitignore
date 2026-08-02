@@ -14,6 +14,7 @@ data/*
 !data/.gitkeep
 !data/family-profile.json
 !data/wishlist.json
+!data/notification-history.json
 
 # Logs
 *.log
