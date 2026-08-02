@@ -1,16 +1,30 @@
 [
   {
-    "name": "Alex (Kid)",
-    "maxAge": 10,
+    "name": "Yaara",
+    "maxAge": 13,
     "preferredGenres": ["Platformer", "Party", "Racing", "Adventure"],
     "excludedGenres": ["Shooter", "Horror"],
     "notes": "Loves Mario games; keep everything E or E10+."
   },
   {
-    "name": "Maya (Teen)",
-    "maxAge": 14,
+    "name": "Barak",
+    "maxAge": 11,
     "preferredGenres": ["Action", "Adventure", "RPG"],
-    "excludedGenres": ["Horror"],
+    "excludedGenres": ["Shooter", "Horror"],
+    "notes": "Enjoys story-driven adventures."
+  },
+  {
+    "name": "Alon",
+    "maxAge": 10,
+    "preferredGenres": ["Action", "Adventure", "RPG"],
+    "excludedGenres": ["Shooter", "Horror"],
+    "notes": "Enjoys story-driven adventures."
+  },
+  {
+    "name": "Aluma",
+    "maxAge": 7,
+    "preferredGenres": ["Action", "Adventure", "RPG"],
+    "excludedGenres": ["Shooter", "Horror"],
     "notes": "Enjoys story-driven adventures."
   }
 ]
