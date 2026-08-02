@@ -15,6 +15,7 @@ export interface MonitorReportData {
   generatedAt: string;
   collector: string;
   minDealScore: number;
+  defaultWishlistDiscountPercent: number;
   gamesCollected: number;
   gamesAnalyzed: number;
   reported: GameAnalysis[];
@@ -27,6 +28,7 @@ export function buildMonitorReportData(result: MonitorResult): MonitorReportData
     generatedAt: result.generatedAt,
     collector: result.collector,
     minDealScore: result.minDealScore,
+    defaultWishlistDiscountPercent: result.defaultWishlistDiscountPercent,
     gamesCollected: result.analyzedCount,
     gamesAnalyzed: result.analyzedCount,
     reported: result.reportedAnalyses,
@@ -39,15 +41,19 @@ function formatAmount(currency: string, value: number): string {
   return `${currency} ${value.toFixed(2)}`;
 }
 
-function wishlistLabel(analysis: GameAnalysis): string {
+function wishlistLabel(analysis: GameAnalysis, defaultWishlistDiscountPercent: number): string {
   const match = analysis.wishlistMatch;
   if (!match || !match.matched) {
     return 'None';
   }
-  const target =
-    match.wishlistItem.targetPrice !== undefined
-      ? `, target ${formatAmount(analysis.game.currency, match.wishlistItem.targetPrice)}`
-      : '';
+  let target = '';
+  if (match.effectiveTargetPrice !== undefined && match.targetPriceOrigin !== undefined) {
+    const originLabel =
+      match.targetPriceOrigin === 'configured'
+        ? 'Configured target'
+        : `Auto target (${defaultWishlistDiscountPercent}% discount)`;
+    target = `, ${originLabel}: ${formatAmount(analysis.game.currency, match.effectiveTargetPrice)}`;
+  }
   return `Matched "${match.wishlistItem.gameTitle}"${target}, reached: ${match.priceTargetReached}`;
 }
 
@@ -105,7 +111,7 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
         out.push(`- **Discount:** ${calculateDiscountPercent(game)}%`);
       }
       out.push(`- **Score:** ${analysis.dealScore.score}`);
-      out.push(`- **Wishlist match:** ${wishlistLabel(analysis)}`);
+      out.push(`- **Wishlist match:** ${wishlistLabel(analysis, data.defaultWishlistDiscountPercent)}`);
       out.push(`- **Family matches:** ${familyLabel(analysis)}`);
       const reasons = reasonsList(analysis);
       if (reasons.length > 0) {

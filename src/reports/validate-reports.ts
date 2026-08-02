@@ -50,20 +50,22 @@ function makeGame(overrides: Partial<Game> = {}): Game {
   };
 }
 
-function makeAnalysis(game: Game): GameAnalysis {
+function makeAnalysis(game: Game, wishlistMatch?: GameAnalysis['wishlistMatch']): GameAnalysis {
   const analysis: GameAnalysis = {
     game,
     familyMatches: [],
     dealScore: { score: 100, reasons: ['Age appropriate for the family'] },
   };
-  if (game.id === 'game-1') {
+  if (wishlistMatch !== undefined) {
+    analysis.wishlistMatch = wishlistMatch;
+  } else if (game.id === 'game-1') {
     analysis.familyMatches = [
       { profileName: 'Alex (Kid)', matched: true, reasons: ['Age appropriate'] },
       { profileName: 'Maya (Teen)', matched: false, reasons: [] },
     ];
     analysis.wishlistMatch = {
       matched: true,
-      wishlistItem: { id: 'w1', gameTitle: 'Mario Kart 8 Deluxe', notifyOnAnyDiscount: false },
+      wishlistItem: { gameTitle: 'Mario Kart 8 Deluxe', notifyOnAnyDiscount: false },
       priceTargetReached: true,
     };
   }
@@ -75,6 +77,7 @@ function sampleData(): MonitorReportData {
     generatedAt: '2026-08-01T12:00:00.000Z',
     collector: 'mock',
     minDealScore: 80,
+    defaultWishlistDiscountPercent: 40,
     gamesCollected: 5,
     gamesAnalyzed: 5,
     reported: [
@@ -91,6 +94,7 @@ function emptyData(): MonitorReportData {
     generatedAt: '2026-08-01T12:00:00.000Z',
     collector: 'mock',
     minDealScore: 80,
+    defaultWishlistDiscountPercent: 40,
     gamesCollected: 3,
     gamesAnalyzed: 3,
     reported: [],
@@ -104,6 +108,7 @@ function buildResult(data: MonitorReportData): MonitorResult {
     generatedAt: data.generatedAt,
     collector: data.collector,
     minDealScore: data.minDealScore,
+    defaultWishlistDiscountPercent: data.defaultWishlistDiscountPercent,
     analyzedCount: data.gamesAnalyzed,
     reportedCount: data.reported.length,
     skippedByCooldownCount: data.skippedByCooldown.length,
@@ -161,6 +166,39 @@ const checks: Check[] = [
       assert.ok(html.includes('Discounted Games'), 'Deal section missing');
       assert.ok(html.includes('Mario Kart 8 Deluxe'), 'Reported game missing in HTML');
       assert.ok(html.includes('Skipped'), 'Skipped section missing in HTML');
+    },
+  },
+  {
+    name: 'report shows configured vs auto wishlist targets',
+    run: () => {
+      const data: MonitorReportData = {
+        ...sample,
+        reported: [
+          makeAnalysis(
+            makeGame(),
+            {
+              matched: true,
+              wishlistItem: { gameTitle: 'Mario Kart 8 Deluxe', targetPrice: 39.99, notifyOnAnyDiscount: false },
+              priceTargetReached: true,
+              effectiveTargetPrice: 39.99,
+              targetPriceOrigin: 'configured',
+            },
+          ),
+          makeAnalysis(
+            makeGame({ id: 'game-5', title: 'Stardew Valley', originalPrice: 59.99, currentPrice: 35.99 }),
+            {
+              matched: true,
+              wishlistItem: { gameTitle: 'Stardew Valley', notifyOnAnyDiscount: false },
+              priceTargetReached: true,
+              effectiveTargetPrice: 35.99,
+              targetPriceOrigin: 'auto',
+            },
+          ),
+        ],
+      };
+      const md = generateMonitorReportMarkdown(data);
+      assert.ok(md.includes('Configured target: EUR 39.99'), 'Configured target label missing');
+      assert.ok(md.includes('Auto target (40% discount): EUR 35.99'), 'Auto target label missing');
     },
   },
   {

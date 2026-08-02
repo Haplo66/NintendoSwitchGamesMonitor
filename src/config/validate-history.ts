@@ -182,7 +182,7 @@ const checks: Check[] = [
       ];
       analyses[1].wishlistMatch = {
         matched: true,
-        wishlistItem: { id: 'w1', gameTitle: 'Zelda', notifyOnAnyDiscount: false },
+        wishlistItem: { gameTitle: 'Zelda', notifyOnAnyDiscount: false },
         priceTargetReached: true,
       };
       analyses.push(makeAnalysis(makeGame({ id: 'deal-1', title: 'Pokemon', currentPrice: 40 })));

@@ -61,6 +61,8 @@ const checks: Check[] = [
         maxGamesPerEmail: 5,
         notifyFreeGames: false,
         notifyWishlistMatches: false,
+        defaultWishlistDiscountPercent: 30,
+        defaultNotifyOnAnyDiscount: true,
       };
       try {
         writeSettings(settings, file);
@@ -84,6 +86,14 @@ const checks: Check[] = [
           DEFAULT_NOTIFICATION_SETTINGS.notificationCooldownDays,
         );
         assert.strictEqual(loaded.notifyFreeGames, DEFAULT_NOTIFICATION_SETTINGS.notifyFreeGames);
+        assert.strictEqual(
+          loaded.defaultWishlistDiscountPercent,
+          DEFAULT_NOTIFICATION_SETTINGS.defaultWishlistDiscountPercent,
+        );
+        assert.strictEqual(
+          loaded.defaultNotifyOnAnyDiscount,
+          DEFAULT_NOTIFICATION_SETTINGS.defaultNotifyOnAnyDiscount,
+        );
       } finally {
         fs.rmSync(file, { force: true });
       }
@@ -124,6 +134,10 @@ const checks: Check[] = [
         { maxGamesPerEmail: 2.5 },
         { notifyFreeGames: 'yes' },
         { notifyWishlistMatches: 1 },
+        { defaultWishlistDiscountPercent: 0 },
+        { defaultWishlistDiscountPercent: 100 },
+        { defaultWishlistDiscountPercent: 2.5 },
+        { defaultNotifyOnAnyDiscount: 'yes' },
       ];
       for (const bad of cases) {
         const file = tempSettingsFile();
@@ -145,12 +159,16 @@ const checks: Check[] = [
         MAX_GAMES_PER_EMAIL: '4',
         NOTIFY_FREE_GAMES: 'false',
         NOTIFY_WISHLIST_MATCHES: '0',
+        DEFAULT_WISHLIST_DISCOUNT_PERCENT: '25',
+        DEFAULT_NOTIFY_ON_ANY_DISCOUNT: 'true',
       });
       assert.strictEqual(resolved.minimumDealScore, 90);
       assert.strictEqual(resolved.notificationCooldownDays, 3);
       assert.strictEqual(resolved.maxGamesPerEmail, 4);
       assert.strictEqual(resolved.notifyFreeGames, false);
       assert.strictEqual(resolved.notifyWishlistMatches, false);
+      assert.strictEqual(resolved.defaultWishlistDiscountPercent, 25);
+      assert.strictEqual(resolved.defaultNotifyOnAnyDiscount, true);
     },
   },
   {
@@ -159,6 +177,14 @@ const checks: Check[] = [
       assert.throws(() => resolveNotificationSettings({ MAX_GAMES_PER_EMAIL: 'abc' }), ConfigError);
       assert.throws(() => resolveNotificationSettings({ NOTIFY_FREE_GAMES: 'maybe' }), ConfigError);
       assert.throws(() => resolveNotificationSettings({ MIN_DEAL_SCORE: '-5' }), ConfigError);
+      assert.throws(
+        () => resolveNotificationSettings({ DEFAULT_WISHLIST_DISCOUNT_PERCENT: '150' }),
+        ConfigError,
+      );
+      assert.throws(
+        () => resolveNotificationSettings({ DEFAULT_NOTIFY_ON_ANY_DISCOUNT: 'maybe' }),
+        ConfigError,
+      );
     },
   },
   {

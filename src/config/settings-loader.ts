@@ -10,6 +10,8 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   maxGamesPerEmail: 10,
   notifyFreeGames: true,
   notifyWishlistMatches: true,
+  defaultWishlistDiscountPercent: 40,
+  defaultNotifyOnAnyDiscount: false,
 };
 
 export function defaultSettingsFile(): string {
@@ -39,12 +41,26 @@ export function validateNotificationSettings(settings: unknown): string[] {
       errors.push(`${key} must be a boolean`);
     }
   };
+  const checkRange = (key: string, minimum: number, maximum: number, integer: boolean): void => {
+    const v = value[key];
+    if (
+      typeof v !== 'number' ||
+      !Number.isFinite(v) ||
+      v < minimum ||
+      v > maximum ||
+      (integer && !Number.isInteger(v))
+    ) {
+      errors.push(`${key} must be a ${integer ? 'whole ' : ''}number between ${minimum} and ${maximum}`);
+    }
+  };
 
   checkNumber('minimumDealScore', 0, false);
   checkNumber('notificationCooldownDays', 0, false);
   checkNumber('maxGamesPerEmail', 1, true);
   checkBoolean('notifyFreeGames');
   checkBoolean('notifyWishlistMatches');
+  checkRange('defaultWishlistDiscountPercent', 1, 99, true);
+  checkBoolean('defaultNotifyOnAnyDiscount');
   return errors;
 }
 
@@ -119,6 +135,12 @@ export function resolveNotificationSettings(
     notifyWishlistMatches:
       parseEnvBoolean('NOTIFY_WISHLIST_MATCHES', env.NOTIFY_WISHLIST_MATCHES) ??
       base.notifyWishlistMatches,
+    defaultWishlistDiscountPercent:
+      parseEnvNumber('DEFAULT_WISHLIST_DISCOUNT_PERCENT', env.DEFAULT_WISHLIST_DISCOUNT_PERCENT) ??
+      base.defaultWishlistDiscountPercent,
+    defaultNotifyOnAnyDiscount:
+      parseEnvBoolean('DEFAULT_NOTIFY_ON_ANY_DISCOUNT', env.DEFAULT_NOTIFY_ON_ANY_DISCOUNT) ??
+      base.defaultNotifyOnAnyDiscount,
   };
 
   const errors = validateNotificationSettings(settings);

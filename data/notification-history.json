@@ -1,3 +1,28 @@
 {
-  "records": []
+  "records": [
+    {
+      "gameId": "mock-mario-kart-8-deluxe",
+      "title": "Mario Kart 8 Deluxe",
+      "notificationType": "wishlist",
+      "score": 104,
+      "price": 33.59,
+      "notifiedAt": "2026-08-02T01:25:20.708Z"
+    },
+    {
+      "gameId": "mock-fortnite",
+      "title": "Fortnite",
+      "notificationType": "free",
+      "score": 70,
+      "price": 0,
+      "notifiedAt": "2026-08-02T01:25:20.708Z"
+    },
+    {
+      "gameId": "mock-fall-guys",
+      "title": "Fall Guys: Ultimate Knockout",
+      "notificationType": "free",
+      "score": 80,
+      "price": 0,
+      "notifiedAt": "2026-08-02T01:25:20.708Z"
+    }
+  ]
 }

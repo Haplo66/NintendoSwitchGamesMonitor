@@ -86,6 +86,8 @@ This builds the project, generates a sample `NotificationReport`, renders it to 
 | `MAX_GAMES_PER_EMAIL` | Cap on games included in a single email, best-scoring first (default: `10`)   |
 | `NOTIFY_FREE_GAMES`   | Report games just because they are free (`true`/`false`, default: `true`)      |
 | `NOTIFY_WISHLIST_MATCHES` | Report games just because they match the wishlist (`true`/`false`, default: `true`) |
+| `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | Discount percent used to compute automatic wishlist target prices (default: `40`) |
+| `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | Default `notifyOnAnyDiscount` for wishlist items that omit it (default: `false`) |
 
 Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
 
@@ -208,6 +210,8 @@ Configure these under **Settings → Secrets and variables → Actions**. Secret
 | `MAX_GAMES_PER_EMAIL` | Cap on games per email (optional)           | scheduled runs              |
 | `NOTIFY_FREE_GAMES` | Report free games (optional)                 | scheduled runs              |
 | `NOTIFY_WISHLIST_MATCHES` | Report wishlist matches (optional)      | scheduled runs              |
+| `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | Auto wishlist target discount % (optional) | scheduled runs  |
+| `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | Default notify-on-any-discount (optional) | scheduled runs  |
 
 Manual dispatch always lets you override `EMAIL_PROVIDER` and `GAME_COLLECTOR` per run, independent of the stored secrets.
 
@@ -257,6 +261,8 @@ reports/html/monitor-YYYY-MM-DD-HHmm.html
 ```
 
 - **Markdown report** — header (app name, timestamp, collector), summary table (games collected / analyzed / reported / skipped by cooldown), **Top Opportunities** (price, discount, score, reasons, wishlist and family matches per game), and a **Skipped** section split into low-score and cooldown groups.
+
+For wishlist matches, the report shows where the target price came from: **Configured target** when the item specifies `targetPrice`, or **Auto target (40% discount)** when it was computed from the game's original price and `defaultWishlistDiscountPercent`.
 - **HTML report** — reuses the email rendering (header, deal/free cards, summary) so it is readable in a browser, plus a skipped-games section.
 
 Files are never overwritten: if a name collision occurs, a numeric suffix (`-2`, `-3`, …) is added. Reports are git-ignored runtime artifacts.
@@ -271,28 +277,60 @@ Runs checks (no external services) that confirm the markdown and HTML reports ar
 
 ## Family Profiles & Wishlist
 
-The service is family-aware: games are matched against who lives in the household and what they want.
+The service is family-aware: games are matched against who lives in the household and what they want. Configuration is human-friendly — you only write the information that matters, and the application infers or defaults the rest.
+
+### Configuration philosophy
+
+- **No user-maintained IDs** — family profiles are identified by `name` and wishlist items by `gameTitle`. If an internal identifier is ever needed, it is generated in memory only. You never maintain IDs.
+- **Minimal entries** — every optional field can be omitted from the JSON files. Missing values are populated at load time with sensible runtime defaults; your files are never modified.
+- **Auto-computed values** — a wishlist item without a `targetPrice` gets an automatic target price from the game's original price and the global `defaultWishlistDiscountPercent` (runtime only, never written back).
 
 ### Family profiles
 
-`data/family-profile.json` holds one entry per family member. Each profile captures:
+`data/family-profile.json` holds one entry per family member. Only `name` is required:
 
-- `name` — who the profile belongs to (e.g., a kid or teen)
-- `maxAge` — optional age limit used as the foundation for age filtering
-- `preferredGenres` — genres to prioritize
-- `excludedGenres` — genres to keep away from this member
-- `notes` — optional free-form notes
+```json
+[
+  {
+    "name": "Alex (Kid)",
+    "maxAge": 10,
+    "preferredGenres": ["Platformer", "Party", "Racing", "Adventure"],
+    "excludedGenres": ["Shooter", "Horror"],
+    "notes": "Loves Mario games; keep everything E or E10+."
+  }
+]
+```
+
+- `name` — **required**, unique. Used as the identifier and shown in match results.
+- `maxAge` — optional age limit used as the foundation for age filtering.
+- `preferredGenres` — optional genres to prioritize (defaults to `[]`).
+- `excludedGenres` — optional genres to keep away from this member (defaults to `[]`).
+- `notes` — optional free-form notes.
 
 ### Wishlist
 
-`data/wishlist.json` lists the games the family wants to watch. Each item captures:
+`data/wishlist.json` lists the games the family wants to watch. Only `gameTitle` is required:
 
-- `gameTitle` — the game to monitor
-- `targetPrice` — optional price at which it is worth buying
-- `notifyOnAnyDiscount` — flag to alert on any discount, even if the target price is not reached
-- `notes` — optional free-form notes
+```json
+{
+  "items": [
+    {
+      "gameTitle": "Mario Kart 8 Deluxe",
+      "targetPrice": 39.99
+    },
+    {
+      "gameTitle": "Stardew Valley"
+    }
+  ]
+}
+```
 
-The wishlist is designed to be matched against collected games later: once a collected game's title matches a wishlist item and its price is at or below the target price (or any discount applies), it becomes a notification candidate.
+- `gameTitle` — **required**, unique (case-insensitive). Used as the identifier.
+- `targetPrice` — optional explicit buy price. When omitted, a target price is **auto-computed** after collection from the game's original price: `originalPrice × (1 − defaultWishlistDiscountPercent / 100)` (rounded to two decimals, runtime only). If no original price is known, no target is used.
+- `notifyOnAnyDiscount` — optional flag to alert on any discount, even if the target price is not reached. Defaults to the global `defaultNotifyOnAnyDiscount` setting.
+- `notes` — optional free-form notes.
+
+Once a collected game's title matches a wishlist item and its price is at or below the effective target price (or any discount applies), it becomes a notification candidate.
 
 ### Validating configuration
 
@@ -300,14 +338,14 @@ The wishlist is designed to be matched against collected games later: once a col
 npm run validate-config
 ```
 
-This loads both files, prints a summary, and runs checks that confirm the JSON files exist, required fields are present, and malformed configuration fails with a clear error — with no SMTP credentials or external services required.
+This loads both files, prints a summary, and runs checks that confirm the JSON files exist, required fields are present and unique, optional fields are populated with runtime defaults, automatic target prices are calculated correctly, explicit target prices override automatic values, and malformed configuration fails with a clear error — with no SMTP credentials or external services required.
 
 ## Analysis & Deal Intelligence
 
 The analysis layer evaluates collected games against the family profiles and the wishlist, producing match information and a deal score — no notifications yet.
 
 1. **Family matcher** (`src/analyzer/family-matcher.ts`) — checks a game against a family profile: age compatibility (ESRB rating vs `maxAge`), excluded genres (block), and preferred genres (positive reason). Returns `FamilyMatchResult[]` (`profileName`, `matched`, `reasons`).
-2. **Wishlist matcher** (`src/analyzer/wishlist-matcher.ts`) — compares collected games to wishlist items by title and evaluates the price target. Returns `WishlistMatchResult | null` (`matched`, `wishlistItem`, `priceTargetReached`).
+2. **Wishlist matcher** (`src/analyzer/wishlist-matcher.ts`) — compares collected games to wishlist items by title and evaluates the price target. The effective target price is the item's `targetPrice` when present, otherwise it is **auto-computed** as `originalPrice × (1 − defaultWishlistDiscountPercent / 100)` at runtime. Returns `WishlistMatchResult | null` (`matched`, `wishlistItem`, `priceTargetReached`, `effectiveTargetPrice`, `targetPriceOrigin`).
 3. **Deal scorer** (`src/analyzer/deal-score.ts`) — scores a deal on: discount percentage (higher = better), free games (strong bonus), wishlist match (strong bonus), and family profile matches (bonus). Returns `DealScoreResult` (`score`, `reasons`).
 
 ```
@@ -345,7 +383,9 @@ User-editable notification preferences live in `data/settings.json`:
   "notificationCooldownDays": 14,
   "maxGamesPerEmail": 10,
   "notifyFreeGames": true,
-  "notifyWishlistMatches": true
+  "notifyWishlistMatches": true,
+  "defaultWishlistDiscountPercent": 40,
+  "defaultNotifyOnAnyDiscount": false
 }
 ```
 
@@ -354,6 +394,8 @@ User-editable notification preferences live in `data/settings.json`:
 - `maxGamesPerEmail` — cap on games per email (best-scoring first when over the cap).
 - `notifyFreeGames` — whether "free" alone is enough to report a game.
 - `notifyWishlistMatches` — whether a wishlist match alone is enough to report a game.
+- `defaultWishlistDiscountPercent` — discount percent used to compute automatic wishlist target prices (must be a whole number between `1` and `99`).
+- `defaultNotifyOnAnyDiscount` — default `notifyOnAnyDiscount` for wishlist items that omit it.
 
 A missing settings file falls back to the defaults; a malformed file or invalid values fail with a clear error.
 
@@ -378,6 +420,8 @@ defaults
 | Max games per email     | `MAX_GAMES_PER_EMAIL`       | `maxGamesPerEmail`            | `10`          |
 | Notify free games       | `NOTIFY_FREE_GAMES`         | `notifyFreeGames`             | `true`        |
 | Notify wishlist matches | `NOTIFY_WISHLIST_MATCHES`   | `notifyWishlistMatches`       | `true`        |
+| Default wishlist discount % | `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | `defaultWishlistDiscountPercent` | `40`    |
+| Default notify on any discount | `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | `defaultNotifyOnAnyDiscount` | `false` |
 | Collector               | `GAME_COLLECTOR`            | —                             | `mock`        |
 | Deals per run           | `DEALS_LIMIT`               | —                             | `100`         |
 | Deals source URL        | `DEALS_SOURCE_URL`          | —                             | eShop feed    |

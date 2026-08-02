@@ -2,6 +2,7 @@ import 'dotenv/config';
 
 import { MockGameCollector } from '../collectors/mock-game-collector';
 import { loadFamilyProfiles } from '../config/family-profiles-loader';
+import { resolveNotificationSettings } from '../config/settings-loader';
 import { loadWishlist } from '../config/wishlist-loader';
 import { GameAnalysis } from '../models';
 import { analyzeGamesWith } from './analyze';
@@ -34,12 +35,17 @@ function printAnalysisReport(results: GameAnalysis[]): void {
     }
 
     if (analysis.wishlistMatch) {
-      const wishlist = analysis.wishlistMatch;
-      const target = wishlist.wishlistItem.targetPrice
-        ? ` target ${formatPrice(wishlist.wishlistItem.targetPrice, game.currency)}`
-        : ' no target price';
+      const match = analysis.wishlistMatch;
+      let target: string;
+      if (match.effectiveTargetPrice !== undefined && match.targetPriceOrigin !== undefined) {
+        const origin =
+          match.targetPriceOrigin === 'configured' ? 'configured target' : 'auto target';
+        target = ` ${origin} ${formatPrice(match.effectiveTargetPrice, game.currency)}`;
+      } else {
+        target = ' no target price';
+      }
       console.log(
-        `    Wishlist: matched "${wishlist.wishlistItem.gameTitle}" (${target}, reached: ${wishlist.priceTargetReached})`,
+        `    Wishlist: matched "${match.wishlistItem.gameTitle}" (${target}, reached: ${match.priceTargetReached})`,
       );
     } else {
       console.log('    Wishlist: no match');
@@ -73,7 +79,13 @@ export async function analyzeGames(): Promise<GameAnalysis[]> {
     `Analyzing ${games.length} games against ${profiles.length} family profile(s) and ${wishlist.items.length} wishlist item(s).`,
   );
 
-  const results: GameAnalysis[] = analyzeGamesWith(games, profiles, wishlist);
+  const settings = resolveNotificationSettings();
+  const results: GameAnalysis[] = analyzeGamesWith(
+    games,
+    profiles,
+    wishlist,
+    settings.defaultWishlistDiscountPercent,
+  );
 
   printAnalysisReport(results);
   return results;

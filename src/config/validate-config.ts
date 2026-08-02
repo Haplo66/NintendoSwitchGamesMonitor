@@ -5,7 +5,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { FamilyProfile, WishlistItem } from '../models';
+import { computeWishlistTargetPrice } from '../analyzer/wishlist-matcher';
+import { FamilyProfile, Game, WishlistItem } from '../models';
 import { loadFamilyProfiles } from './family-profiles-loader';
 import { ConfigError, loadJsonFile } from './json-loader';
 import { validateFamilyProfile, validateWishlistItem } from './validators';
@@ -48,7 +49,8 @@ export async function validateConfig(): Promise<void> {
   console.log(`Loaded wishlist with ${wishlist.items.length} item(s):`);
   for (const item of wishlist.items) {
     console.log(
-      `  - ${item.gameTitle}${item.targetPrice ? ` (target $${item.targetPrice.toFixed(2)})` : ''}`,
+      `  - ${item.gameTitle}${item.targetPrice !== undefined ? ` (target $${item.targetPrice.toFixed(2)})` : ''}` +
+        ` · notify on any discount: ${item.notifyOnAnyDiscount}`,
     );
   }
   console.log('');
@@ -96,7 +98,7 @@ export async function validateConfig(): Promise<void> {
     {
       name: 'malformed family profile fails clearly',
       run: () => {
-        const bad = { id: 'x', name: 123, preferredGenres: 'not-array' } as unknown as FamilyProfile;
+        const bad = { name: 123, preferredGenres: 'not-array' } as unknown as FamilyProfile;
         assert.notDeepStrictEqual(validateFamilyProfile(bad), []);
         assert.throws(() => loadFamilyProfilesWith(bad), ConfigError);
       },
@@ -104,8 +106,81 @@ export async function validateConfig(): Promise<void> {
     {
       name: 'malformed wishlist item fails clearly',
       run: () => {
-        const bad = { id: 'x', gameTitle: '', notifyOnAnyDiscount: 'yes' } as unknown as WishlistItem;
+        const bad = { gameTitle: '', notifyOnAnyDiscount: 'yes' } as unknown as WishlistItem;
         assert.notDeepStrictEqual(validateWishlistItem(bad), []);
+      },
+    },
+    {
+      name: 'duplicate family profile names are rejected',
+      run: () => {
+        const file = tempConfigFile(JSON.stringify([
+          { name: 'Alex' },
+          { name: 'alex' },
+        ]));
+        try {
+          assert.throws(() => loadFamilyProfiles(file), ConfigError);
+        } finally {
+          fs.rmSync(file, { force: true });
+        }
+      },
+    },
+    {
+      name: 'duplicate wishlist titles are rejected (case-insensitive)',
+      run: () => {
+        const file = tempConfigFile(JSON.stringify({
+          items: [{ gameTitle: 'Zelda' }, { gameTitle: 'zelda' }],
+        }));
+        try {
+          assert.throws(() => loadWishlist(file), ConfigError);
+        } finally {
+          fs.rmSync(file, { force: true });
+        }
+      },
+    },
+    {
+      name: 'runtime defaults populate optional fields',
+      run: () => {
+        const profileFile = tempConfigFile(JSON.stringify([{ name: 'Kid' }]));
+        try {
+          const loaded = loadFamilyProfiles(profileFile);
+          assert.strictEqual(loaded[0].name, 'Kid');
+          assert.strictEqual(loaded[0].maxAge, undefined);
+          assert.deepStrictEqual(loaded[0].preferredGenres, []);
+          assert.deepStrictEqual(loaded[0].excludedGenres, []);
+          assert.strictEqual(loaded[0].notes, undefined);
+        } finally {
+          fs.rmSync(profileFile, { force: true });
+        }
+
+        const wishlistFile = tempConfigFile(JSON.stringify({ items: [{ gameTitle: 'Stardew Valley' }] }));
+        try {
+          const loaded = loadWishlist(wishlistFile);
+          assert.strictEqual(loaded.items[0].notifyOnAnyDiscount, false);
+          assert.strictEqual(loaded.items[0].targetPrice, undefined);
+          const withDefault = loadWishlist(wishlistFile, { defaultNotifyOnAnyDiscount: true });
+          assert.strictEqual(withDefault.items[0].notifyOnAnyDiscount, true);
+        } finally {
+          fs.rmSync(wishlistFile, { force: true });
+        }
+      },
+    },
+    {
+      name: 'automatic target price is calculated from discount percent',
+      run: () => {
+        const game = makeGame({ originalPrice: 59.99, currentPrice: 35.99 });
+        const item: WishlistItem = { gameTitle: 'Game', notifyOnAnyDiscount: false };
+        assert.strictEqual(computeWishlistTargetPrice(game, item, 40), 35.99);
+        assert.strictEqual(computeWishlistTargetPrice(game, item, 25), 44.99);
+        const noOriginal = makeGame({ originalPrice: undefined });
+        assert.strictEqual(computeWishlistTargetPrice(noOriginal, item, 40), undefined);
+      },
+    },
+    {
+      name: 'explicit target price overrides automatic value',
+      run: () => {
+        const game = makeGame({ originalPrice: 59.99, currentPrice: 35.99 });
+        const item: WishlistItem = { gameTitle: 'Game', targetPrice: 30, notifyOnAnyDiscount: false };
+        assert.strictEqual(computeWishlistTargetPrice(game, item, 40), 30);
       },
     },
   ];
@@ -114,14 +189,28 @@ export async function validateConfig(): Promise<void> {
   console.log('\nAll config validation checks passed.');
 }
 
+function makeGame(overrides: Partial<Game>): Game {
+  return {
+    id: 'game-1',
+    title: 'Game',
+    platform: 'Nintendo Switch',
+    currentPrice: 39.99,
+    originalPrice: 59.99,
+    currency: 'EUR',
+    genres: ['Racing'],
+    source: 'test',
+    ...overrides,
+  };
+}
+
+function tempConfigFile(content: string): string {
+  const file = path.join(os.tmpdir(), `nsm-config-${Date.now()}-${Math.random()}.json`);
+  fs.writeFileSync(file, content, 'utf8');
+  return file;
+}
+
 function loadFamilyProfilesWith(profile: FamilyProfile): FamilyProfile[] {
-  const file = path.join(os.tmpdir(), `nsm-profile-${Date.now()}.json`);
-  fs.writeFileSync(file, JSON.stringify([profile]), 'utf8');
-  try {
-    return loadFamilyProfiles(file);
-  } finally {
-    fs.rmSync(file, { force: true });
-  }
+  return loadFamilyProfiles(tempConfigFile(JSON.stringify([profile])));
 }
 
 if (require.main === module) {

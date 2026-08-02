@@ -1,5 +1,4 @@
 export interface WishlistItem {
-  id: string;
   gameTitle: string;
   targetPrice?: number;
   notifyOnAnyDiscount: boolean;

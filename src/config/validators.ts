@@ -9,16 +9,21 @@ export function validateFamilyProfile(profile: FamilyProfile): string[] {
     errors.push('maxAge must be a positive number when provided');
   }
   if (
-    !Array.isArray(profile.preferredGenres) ||
-    !profile.preferredGenres.every((genre) => typeof genre === 'string')
+    profile.preferredGenres !== undefined &&
+    (!Array.isArray(profile.preferredGenres) ||
+      !profile.preferredGenres.every((genre) => typeof genre === 'string'))
   ) {
-    errors.push('preferredGenres must be an array of strings');
+    errors.push('preferredGenres must be an array of strings when provided');
   }
   if (
-    !Array.isArray(profile.excludedGenres) ||
-    !profile.excludedGenres.every((genre) => typeof genre === 'string')
+    profile.excludedGenres !== undefined &&
+    (!Array.isArray(profile.excludedGenres) ||
+      !profile.excludedGenres.every((genre) => typeof genre === 'string'))
   ) {
-    errors.push('excludedGenres must be an array of strings');
+    errors.push('excludedGenres must be an array of strings when provided');
+  }
+  if (profile.notes !== undefined && typeof profile.notes !== 'string') {
+    errors.push('notes must be a string when provided');
   }
   return errors;
 }
@@ -34,8 +39,11 @@ export function validateWishlistItem(item: WishlistItem): string[] {
   ) {
     errors.push('targetPrice must be a non-negative number when provided');
   }
-  if (typeof item.notifyOnAnyDiscount !== 'boolean') {
-    errors.push('notifyOnAnyDiscount must be a boolean');
+  if (item.notifyOnAnyDiscount !== undefined && typeof item.notifyOnAnyDiscount !== 'boolean') {
+    errors.push('notifyOnAnyDiscount must be a boolean when provided');
+  }
+  if (item.notes !== undefined && typeof item.notes !== 'string') {
+    errors.push('notes must be a string when provided');
   }
   return errors;
 }

@@ -88,4 +88,16 @@ Features:
 - HTML reports
 - Historical run visibility
 
-> **Status: 🔄 In progress**
+> **Status: ✅ Complete**
+
+## v0.11.1 Simplified Configuration & Auto-Populated Defaults
+
+Features:
+- Removed user-maintained IDs (family profiles keyed by `name`, wishlist keyed by `gameTitle`)
+- Minimal configuration with runtime defaults for optional fields
+- Global defaults for automatic wishlist target prices (`defaultWishlistDiscountPercent`, `defaultNotifyOnAnyDiscount`)
+- Automatic wishlist target price calculation (`originalPrice × (1 − discount%)`, runtime only)
+- Reports show configured vs auto target prices
+- Extended config/settings validation and updated docs
+
+> **Status: ✅ Complete**

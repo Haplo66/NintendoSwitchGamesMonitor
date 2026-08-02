@@ -37,10 +37,13 @@ export function resolveCollectorSettings(env: NodeJS.ProcessEnv = process.env): 
 }
 
 export function loadAppConfig(options: LoadAppConfigOptions = {}): AppConfig {
+  const notification = resolveNotificationSettings(process.env);
   return {
-    notification: resolveNotificationSettings(process.env),
+    notification,
     collector: resolveCollectorSettings(process.env),
     familyProfiles: loadFamilyProfiles(options.familyProfileFile),
-    wishlist: loadWishlist(options.wishlistFile),
+    wishlist: loadWishlist(options.wishlistFile, {
+      defaultNotifyOnAnyDiscount: notification.defaultNotifyOnAnyDiscount,
+    }),
   };
 }

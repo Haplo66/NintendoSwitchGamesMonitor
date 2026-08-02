@@ -6,8 +6,12 @@ export interface FamilyMatchResult {
   reasons: string[];
 }
 
+export type WishlistTargetPriceOrigin = 'configured' | 'auto';
+
 export interface WishlistMatchResult {
   matched: boolean;
   wishlistItem: WishlistItem;
   priceTargetReached: boolean;
+  effectiveTargetPrice?: number;
+  targetPriceOrigin?: WishlistTargetPriceOrigin;
 }

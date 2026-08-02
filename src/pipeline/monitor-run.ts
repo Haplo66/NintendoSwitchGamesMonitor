@@ -149,7 +149,12 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     `Analyzing against ${profiles.length} family profile(s) and ${wishlist.items.length} wishlist item(s)...`,
   );
 
-  const analyses = analyzeGamesWith(games, profiles, wishlist);
+  const analyses = analyzeGamesWith(
+    games,
+    profiles,
+    wishlist,
+    config.notification.defaultWishlistDiscountPercent,
+  );
   const reported = analyses.filter((analysis) =>
     isWorthReporting(analysis, minDealScore, {
       notifyFreeGames: config.notification.notifyFreeGames,
@@ -210,6 +215,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     generatedAt: report.generatedAt,
     collector: collectorKind,
     minDealScore,
+    defaultWishlistDiscountPercent: config.notification.defaultWishlistDiscountPercent,
     analyzedCount: analyses.length,
     reportedCount: toEmail.length,
     skippedByCooldownCount: skippedByCooldown,

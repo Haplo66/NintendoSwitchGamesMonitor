@@ -3,5 +3,7 @@
   "notificationCooldownDays": 14,
   "maxGamesPerEmail": 10,
   "notifyFreeGames": true,
-  "notifyWishlistMatches": true
+  "notifyWishlistMatches": true,
+  "defaultWishlistDiscountPercent": 40,
+  "defaultNotifyOnAnyDiscount": false
 }

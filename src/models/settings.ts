@@ -4,6 +4,8 @@ export interface NotificationSettings {
   maxGamesPerEmail: number;
   notifyFreeGames: boolean;
   notifyWishlistMatches: boolean;
+  defaultWishlistDiscountPercent: number;
+  defaultNotifyOnAnyDiscount: boolean;
 }
 
 export interface CollectorSettings {

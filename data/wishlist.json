@@ -1,23 +1,19 @@
 {
   "items": [
     {
-      "id": "mario-kart-8-deluxe",
       "gameTitle": "Mario Kart 8 Deluxe",
       "targetPrice": 39.99,
       "notifyOnAnyDiscount": false,
       "notes": "Waiting for a good sale."
     },
     {
-      "id": "luigis-mansion-3",
       "gameTitle": "Luigi's Mansion 3",
       "targetPrice": 44.99,
       "notifyOnAnyDiscount": false,
       "notes": "Ideally below $45."
     },
     {
-      "id": "stardew-valley",
       "gameTitle": "Stardew Valley",
-      "targetPrice": 14.99,
       "notifyOnAnyDiscount": true,
       "notes": "Ideally below $10."
     }
