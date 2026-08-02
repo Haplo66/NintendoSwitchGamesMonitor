@@ -8,6 +8,7 @@ export interface MonitorResult {
   defaultWishlistDiscountPercent: number;
   executionTimeMs: number;
   analyzedCount: number;
+  potentialMatchCount: number;
   reportedCount: number;
   skippedByCooldownCount: number;
   analyses: GameAnalysis[];

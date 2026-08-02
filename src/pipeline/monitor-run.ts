@@ -12,7 +12,7 @@ import {
   saveNotificationHistory,
   toNotificationRecords,
 } from '../config/notification-history-store';
-import { Game, GameAnalysis, MonitorResult } from '../models';
+import { Game, GameAnalysis, MonitorResult, NotificationHistory } from '../models';
 import { buildDailyDigest } from '../notifications/daily-digest-builder';
 import { createEmailProvider } from '../notifications/email-factory';
 import { EmailProvider } from '../notifications/email-provider';
@@ -28,11 +28,13 @@ export interface MonitorOptions {
   minDealScore?: number;
   dealLimit?: number;
   maxGamesPerEmail?: number;
+  ignoreNotificationHistory?: boolean;
 }
 
 export interface MonitorRunResult {
   result: MonitorResult;
   html: string;
+  emailSent: boolean;
 }
 
 export interface ReportingOptions {
@@ -124,14 +126,26 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     console.log(`  - ${analysis.game.title} (score ${analysis.dealScore.score})`);
   }
 
-  const history = loadNotificationHistory();
-  const notifiable = filterNotifiableGames(reported, history, cooldownDays);
-  const skippedByCooldown = reported.length - notifiable.length;
-  const skippedByCooldownAnalyses = reported.filter((analysis) => !notifiable.includes(analysis));
-  if (skippedByCooldown > 0) {
-    console.log(
-      `${skippedByCooldown} game(s) already notified within the last ${cooldownDays} day(s) (notificationCooldownDays), skipping.`,
-    );
+  const ignoreNotificationHistory =
+    options.ignoreNotificationHistory ??
+    process.env.IGNORE_NOTIFICATION_HISTORY === 'true';
+
+  let history: NotificationHistory = { records: [] };
+  let notifiable: GameAnalysis[] = reported;
+  let skippedByCooldown = 0;
+  let skippedByCooldownAnalyses: GameAnalysis[] = [];
+  if (ignoreNotificationHistory) {
+    console.log('Test mode: notification history ignored (IGNORE_NOTIFICATION_HISTORY=true).');
+  } else {
+    history = loadNotificationHistory();
+    notifiable = filterNotifiableGames(reported, history, cooldownDays);
+    skippedByCooldown = reported.length - notifiable.length;
+    skippedByCooldownAnalyses = reported.filter((analysis) => !notifiable.includes(analysis));
+    if (skippedByCooldown > 0) {
+      console.log(
+        `${skippedByCooldown} game(s) already notified within the last ${cooldownDays} day(s) (notificationCooldownDays), skipping.`,
+      );
+    }
   }
 
   const toEmail = limitGamesPerEmail(notifiable, maxGamesPerEmail);
@@ -152,6 +166,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     defaultWishlistDiscountPercent: config.notification.defaultWishlistDiscountPercent,
     executionTimeMs: Date.now() - startedAt,
     analyzedCount: analyses.length,
+    potentialMatchCount: reported.length,
     reportedCount: toEmail.length,
     skippedByCooldownCount: skippedByCooldown,
     analyses,
@@ -168,27 +183,35 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   });
   const html = renderDigestEmail(digest);
 
-  const provider: EmailProvider = createEmailProvider(options.emailProviderKind);
-  await provider.sendEmail({
-    subject: `🎮 Nintendo Switch Daily Digest — ${toEmail.length} game(s) worth checking`,
-    html,
-  });
-
-  const records = toNotificationRecords(toEmail);
-  if (records.length > 0) {
-    saveNotificationHistory(addNotificationRecords(history, records));
-    console.log(`Recorded ${records.length} notification(s) to history.`);
+  const sendEmail = toEmail.length > 0 || config.notification.sendEmptyDigest;
+  if (sendEmail) {
+    const provider: EmailProvider = createEmailProvider(options.emailProviderKind);
+    await provider.sendEmail({
+      subject: `🎮 Nintendo Switch Daily Digest — ${toEmail.length} game(s) worth checking`,
+      html,
+    });
+  } else {
+    console.log('Digest skipped: no games to report (sendEmptyDigest=false).');
   }
 
-  return { result, html };
+  if (!ignoreNotificationHistory) {
+    const records = toNotificationRecords(toEmail);
+    if (records.length > 0) {
+      saveNotificationHistory(addNotificationRecords(history, records));
+      console.log(`Recorded ${records.length} notification(s) to history.`);
+    }
+  }
+
+  return { result, html, emailSent: sendEmail };
 }
 
 if (require.main === module) {
   runMonitor()
-    .then(({ result }) => {
+    .then(({ result, emailSent }) => {
+      const action = emailSent ? `email sent via "${process.env.EMAIL_PROVIDER ?? 'gmail'}" provider` : 'email skipped';
       console.log(
         `\nMonitor run complete: analyzed ${result.analyzedCount} game(s), ` +
-          `reported ${result.reportedCount}, email sent via "${process.env.EMAIL_PROVIDER ?? 'gmail'}" provider.`,
+          `reported ${result.reportedCount}, ${action}.`,
       );
     })
     .catch((error: unknown) => {

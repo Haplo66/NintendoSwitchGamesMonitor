@@ -114,3 +114,13 @@ Features:
 - Updated README (digest layout, settings)
 
 > **Status: 🔄 In progress**
+
+## v0.13 Digest Sending Rules
+
+Features:
+- `sendEmptyDigest` setting (default `false`) — empty digests are skipped and logged instead of emailed
+- Clearer summary metrics: **Potential matches**, **New notifications**, **Skipped by cooldown** (replacing "Deals found")
+- Test mode via `IGNORE_NOTIFICATION_HISTORY=true` — bypasses cooldown filtering and never writes to history
+- Extended email/settings validation and updated docs
+
+> **Status: 🔄 In progress**

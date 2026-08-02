@@ -1,6 +1,7 @@
 export interface DigestSummary {
   gamesChecked: number;
-  dealsFound: number;
+  potentialMatches: number;
+  newNotifications: number;
   wishlistHits: number;
   freeGames: number;
   skippedByCooldown: number;

@@ -19,7 +19,8 @@ function buildSampleDigest(): DailyDigest {
     defaultWishlistDiscountPercent: 40,
     summary: {
       gamesChecked: 5,
-      dealsFound: 3,
+      potentialMatches: 4,
+      newNotifications: 3,
       wishlistHits: 2,
       freeGames: 1,
       skippedByCooldown: 1,

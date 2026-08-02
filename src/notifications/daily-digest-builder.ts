@@ -62,12 +62,6 @@ export function buildDailyDigest(
   const showStatistics = options.showStatistics ?? DEFAULT_DAILY_DIGEST_SETTINGS.showStatistics;
   const showPriceWatch = options.showPriceWatch ?? DEFAULT_DAILY_DIGEST_SETTINGS.showPriceWatch;
 
-  const dealsFound = result.reportedAnalyses.filter(
-    (analysis) =>
-      analysis.game.currentPrice > 0 &&
-      analysis.game.originalPrice !== undefined &&
-      analysis.game.originalPrice > analysis.game.currentPrice,
-  ).length;
   const wishlistHits = result.analyses.filter(
     (analysis) => analysis.wishlistMatch?.matched ?? false,
   ).length;
@@ -77,7 +71,8 @@ export function buildDailyDigest(
 
   const summary: DigestSummary = {
     gamesChecked: result.analyzedCount,
-    dealsFound,
+    potentialMatches: result.potentialMatchCount,
+    newNotifications: result.reportedCount,
     wishlistHits,
     freeGames: freeGamesCount,
     skippedByCooldown: result.skippedByCooldownCount,

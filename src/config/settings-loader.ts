@@ -19,6 +19,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   notifyWishlistMatches: true,
   defaultWishlistDiscountPercent: 40,
   defaultNotifyOnAnyDiscount: false,
+  sendEmptyDigest: false,
   dailyDigest: { ...DEFAULT_DAILY_DIGEST_SETTINGS },
 };
 
@@ -69,6 +70,7 @@ export function validateNotificationSettings(settings: unknown): string[] {
   checkBoolean('notifyWishlistMatches');
   checkRange('defaultWishlistDiscountPercent', 1, 99, true);
   checkBoolean('defaultNotifyOnAnyDiscount');
+  checkBoolean('sendEmptyDigest');
 
   const digest = value.dailyDigest;
   if (digest !== undefined) {
@@ -193,6 +195,7 @@ export function resolveNotificationSettings(
     defaultNotifyOnAnyDiscount:
       parseEnvBoolean('DEFAULT_NOTIFY_ON_ANY_DISCOUNT', env.DEFAULT_NOTIFY_ON_ANY_DISCOUNT) ??
       base.defaultNotifyOnAnyDiscount,
+    sendEmptyDigest: base.sendEmptyDigest,
     dailyDigest: { ...base.dailyDigest },
   };
 

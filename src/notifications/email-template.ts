@@ -130,10 +130,11 @@ export function renderDigestHeader(digest: DailyDigest): string {
 export function renderDigestSummary(summary: DigestSummary): string {
   const stats = [
     ['Games checked', summary.gamesChecked],
-    ['Deals found', summary.dealsFound],
+    ['Potential matches', summary.potentialMatches],
+    ['New notifications', summary.newNotifications],
     ['Wishlist hits', summary.wishlistHits],
     ['Free games', summary.freeGames],
-    ['Skipped', summary.skippedByCooldown],
+    ['Skipped by cooldown', summary.skippedByCooldown],
   ];
   const cells = stats
     .map(

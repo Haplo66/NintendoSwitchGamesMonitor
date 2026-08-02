@@ -45,7 +45,7 @@ EmailProvider
 The notification email is a **daily digest** written for a busy parent. It opens with a one-glance summary, then walks through the deals worth their attention:
 
 1. **Header** — Nintendo red banner with the app name, formatted date, and the collector used.
-2. **Today's Summary** — a quick stats bar: games checked, deals found, wishlist hits, free games, and games skipped by cooldown.
+2. **Today's Summary** — a quick stats bar: games checked, potential matches, new notifications, wishlist hits, free games, and games skipped by cooldown.
 3. **Wishlist Alerts** — games on the family wishlist whose price target was reached (or any discount, when enabled). Each alert shows current/original price, discount %, the target and where it came from (`Configured target` vs `Auto target (N% discount)`), and a store link.
 4. **Best Deals** — the highest-scoring non-wishlist deals, each with price, discount badge, deal score, and why it's recommended.
 5. **Free Games** — free-to-download games, nothing to buy.
@@ -104,6 +104,7 @@ This builds the project, generates a sample `DailyDigest`, renders it to HTML, a
 | `NOTIFY_WISHLIST_MATCHES` | Report games just because they match the wishlist (`true`/`false`, default: `true`) |
 | `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | Discount percent used to compute automatic wishlist target prices (default: `40`) |
 | `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | Default `notifyOnAnyDiscount` for wishlist items that omit it (default: `false`) |
+| `IGNORE_NOTIFICATION_HISTORY` | Test mode: bypass cooldown filtering and never write to notification history (`true`/`false`, default: `false`) |
 
 Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
 
@@ -197,6 +198,12 @@ This collects games, analyzes them against the family profiles and wishlist, gen
 
 ```bash
 $env:GAME_COLLECTOR = "deku"; $env:EMAIL_PROVIDER = "mock"; npm run monitor
+```
+
+When no games are worth reporting and `sendEmptyDigest` is `false` (default), the email is **skipped** and a log line confirms it. For local testing, set `IGNORE_NOTIFICATION_HISTORY=true` to bypass cooldown filtering and keep the history file untouched:
+
+```bash
+$env:EMAIL_PROVIDER = "mock"; $env:IGNORE_NOTIFICATION_HISTORY = "true"; npm run monitor
 ```
 
 ## Scheduled Execution (GitHub Actions)
@@ -402,6 +409,7 @@ User-editable notification preferences live in `data/settings.json`:
   "notifyWishlistMatches": true,
   "defaultWishlistDiscountPercent": 40,
   "defaultNotifyOnAnyDiscount": false,
+  "sendEmptyDigest": false,
   "dailyDigest": {
     "maxBestDeals": 5,
     "maxWishlistAlerts": 10,
@@ -418,6 +426,7 @@ User-editable notification preferences live in `data/settings.json`:
 - `notifyWishlistMatches` — whether a wishlist match alone is enough to report a game.
 - `defaultWishlistDiscountPercent` — discount percent used to compute automatic wishlist target prices (must be a whole number between `1` and `99`).
 - `defaultNotifyOnAnyDiscount` — default `notifyOnAnyDiscount` for wishlist items that omit it.
+- `sendEmptyDigest` — when `false` (default) and no games are reported, the digest email is **skipped** (a log line confirms it); when `true`, an empty digest is still sent.
 - `dailyDigest` — layout preferences for the digest email:
   - `maxBestDeals` — how many non-wishlist deals to show in the **Best Deals** section (whole number, default `5`).
   - `maxWishlistAlerts` — how many wishlist alerts (and price-watch items) to show (whole number, default `10`).
@@ -454,7 +463,7 @@ defaults
 | Deals source URL        | `DEALS_SOURCE_URL`          | —                             | eShop feed    |
 | Deals currency          | `DEALS_CURRENCY`            | —                             | `EUR`         |
 
-`dailyDigest` is configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above.
+`dailyDigest` and `sendEmptyDigest` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above.
 
 ### Validating settings
 

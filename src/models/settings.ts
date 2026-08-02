@@ -13,6 +13,7 @@ export interface NotificationSettings {
   notifyWishlistMatches: boolean;
   defaultWishlistDiscountPercent: number;
   defaultNotifyOnAnyDiscount: boolean;
+  sendEmptyDigest: boolean;
   dailyDigest: DailyDigestSettings;
 }
 

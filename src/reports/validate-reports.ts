@@ -107,6 +107,7 @@ function sampleResult(): MonitorResult {
     defaultWishlistDiscountPercent: 40,
     executionTimeMs: 1234,
     analyzedCount: analyses.length,
+    potentialMatchCount: 4,
     reportedCount: reportedAnalyses.length,
     skippedByCooldownCount: 1,
     analyses,
@@ -125,6 +126,7 @@ function emptyResult(): MonitorResult {
     defaultWishlistDiscountPercent: 40,
     executionTimeMs: 500,
     analyzedCount: 0,
+    potentialMatchCount: 0,
     reportedCount: 0,
     skippedByCooldownCount: 0,
     analyses: [],
@@ -154,7 +156,8 @@ const checks: Check[] = [
     name: 'markdown summary table has correct values',
     run: () => {
       assert.ok(markdown.includes('| Games checked | 6 |'), 'Games checked wrong');
-      assert.ok(markdown.includes('| Deals found | 2 |'), 'Deals found wrong');
+      assert.ok(markdown.includes('| Potential matches | 4 |'), 'Potential matches wrong');
+      assert.ok(markdown.includes('| New notifications | 3 |'), 'New notifications wrong');
       assert.ok(markdown.includes('| Wishlist hits | 2 |'), 'Wishlist hits wrong');
       assert.ok(markdown.includes('| Free games | 1 |'), 'Free games wrong');
       assert.ok(markdown.includes('| Skipped by cooldown | 1 |'), 'Skipped cooldown wrong');
@@ -238,7 +241,8 @@ const checks: Check[] = [
     run: () => {
       const data = buildMonitorReportData(sampleResult());
       assert.strictEqual(data.digest.summary.gamesChecked, 6);
-      assert.strictEqual(data.digest.summary.dealsFound, 2);
+      assert.strictEqual(data.digest.summary.potentialMatches, 4);
+      assert.strictEqual(data.digest.summary.newNotifications, 3);
       assert.strictEqual(data.digest.wishlistAlerts.length, 1);
       assert.strictEqual(data.digest.bestDeals.length, 1);
       assert.strictEqual(data.digest.freeGames.length, 1);

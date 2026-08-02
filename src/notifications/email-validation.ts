@@ -15,7 +15,8 @@ function buildSampleDigest(): DailyDigest {
     defaultWishlistDiscountPercent: 40,
     summary: {
       gamesChecked: 5,
-      dealsFound: 3,
+      potentialMatches: 4,
+      newNotifications: 3,
       wishlistHits: 2,
       freeGames: 1,
       skippedByCooldown: 1,
@@ -88,7 +89,8 @@ function emptyDigest(): DailyDigest {
     defaultWishlistDiscountPercent: 40,
     summary: {
       gamesChecked: 0,
-      dealsFound: 0,
+      potentialMatches: 0,
+      newNotifications: 0,
       wishlistHits: 0,
       freeGames: 0,
       skippedByCooldown: 0,
@@ -165,10 +167,11 @@ export async function validateEmailRendering(): Promise<void> {
       run: () => {
         assert.ok(html.includes('Today\u2019s Summary'), 'Summary section missing');
         assert.ok(hasStat(html, 5, 'Games checked'), 'Games checked value wrong');
-        assert.ok(hasStat(html, 3, 'Deals found'), 'Deals found value wrong');
+        assert.ok(hasStat(html, 4, 'Potential matches'), 'Potential matches value wrong');
+        assert.ok(hasStat(html, 3, 'New notifications'), 'New notifications value wrong');
         assert.ok(hasStat(html, 2, 'Wishlist hits'), 'Wishlist hits value wrong');
         assert.ok(hasStat(html, 1, 'Free games'), 'Free games value wrong');
-        assert.ok(hasStat(html, 1, 'Skipped'), 'Skipped value wrong');
+        assert.ok(hasStat(html, 1, 'Skipped by cooldown'), 'Skipped by cooldown value wrong');
       },
     },
     {

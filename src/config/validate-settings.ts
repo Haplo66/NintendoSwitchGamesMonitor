@@ -63,6 +63,7 @@ const checks: Check[] = [
         notifyWishlistMatches: false,
         defaultWishlistDiscountPercent: 30,
         defaultNotifyOnAnyDiscount: true,
+        sendEmptyDigest: true,
         dailyDigest: {
           maxBestDeals: 3,
           maxWishlistAlerts: 5,
@@ -99,6 +100,10 @@ const checks: Check[] = [
         assert.strictEqual(
           loaded.defaultNotifyOnAnyDiscount,
           DEFAULT_NOTIFICATION_SETTINGS.defaultNotifyOnAnyDiscount,
+        );
+        assert.strictEqual(
+          loaded.sendEmptyDigest,
+          DEFAULT_NOTIFICATION_SETTINGS.sendEmptyDigest,
         );
         assert.strictEqual(
           loaded.dailyDigest.maxBestDeals,
@@ -160,6 +165,8 @@ const checks: Check[] = [
         { defaultWishlistDiscountPercent: 100 },
         { defaultWishlistDiscountPercent: 2.5 },
         { defaultNotifyOnAnyDiscount: 'yes' },
+        { sendEmptyDigest: 'yes' },
+        { sendEmptyDigest: 1 },
         { dailyDigest: 'nope' },
         { dailyDigest: { maxBestDeals: 0 } },
         { dailyDigest: { maxWishlistAlerts: 2.5 } },
@@ -196,6 +203,7 @@ const checks: Check[] = [
       assert.strictEqual(resolved.notifyWishlistMatches, false);
       assert.strictEqual(resolved.defaultWishlistDiscountPercent, 25);
       assert.strictEqual(resolved.defaultNotifyOnAnyDiscount, true);
+      assert.strictEqual(resolved.sendEmptyDigest, false);
     },
   },
   {

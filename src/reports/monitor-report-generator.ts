@@ -51,7 +51,8 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
   out.push('| Metric | Count |');
   out.push('| --- | ---: |');
   out.push(`| Games checked | ${digest.summary.gamesChecked} |`);
-  out.push(`| Deals found | ${digest.summary.dealsFound} |`);
+  out.push(`| Potential matches | ${digest.summary.potentialMatches} |`);
+  out.push(`| New notifications | ${digest.summary.newNotifications} |`);
   out.push(`| Wishlist hits | ${digest.summary.wishlistHits} |`);
   out.push(`| Free games | ${digest.summary.freeGames} |`);
   out.push(`| Skipped by cooldown | ${digest.summary.skippedByCooldown} |`);
