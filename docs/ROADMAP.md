@@ -124,3 +124,14 @@ Features:
 - Extended email/settings validation and updated docs
 
 > **Status: 🔄 In progress**
+
+## v0.14 Email Test Mode
+
+Features:
+- `FORCE_EMAIL=true` test mode — sends the digest even with 0 new notifications, keeps cooldown filtering, never writes to history
+- Compact monitor summary printed each run (Potential matches / New notifications / Skipped cooldown / Email outcome)
+- Normal scheduled behavior unchanged (only useful digests are sent, no spam)
+- New `validate-force-email` validation covering FORCE_EMAIL behavior
+- Updated docs (.env.example, README)
+
+> **Status: 🔄 In progress**

@@ -1,0 +1,168 @@
+import 'dotenv/config';
+
+import * as assert from 'node:assert';
+import * as fs from 'node:fs';
+
+import {
+  defaultNotificationHistoryFile,
+} from '../config/notification-history-store';
+import { decideDigestEmail, runMonitor } from './monitor-run';
+
+interface Check {
+  name: string;
+  run: () => void;
+}
+
+async function runChecks(checks: Check[]): Promise<void> {
+  let failed = 0;
+  for (const check of checks) {
+    try {
+      check.run();
+      console.log(`  ✓ ${check.name}`);
+    } catch (error) {
+      failed += 1;
+      console.error(`  ✗ ${check.name}`);
+      console.error(`    ${(error as Error).message}`);
+    }
+  }
+  if (failed > 0) {
+    throw new Error(`${failed} check(s) failed`);
+  }
+}
+
+function readHistoryFile(): string | undefined {
+  const file = defaultNotificationHistoryFile();
+  if (!fs.existsSync(file)) {
+    return undefined;
+  }
+  return fs.readFileSync(file, 'utf8');
+}
+
+function writeHistoryFile(content: string): void {
+  fs.writeFileSync(defaultNotificationHistoryFile(), content, 'utf8');
+}
+
+function restoreHistoryFile(content: string | undefined): void {
+  if (content === undefined) {
+    fs.rmSync(defaultNotificationHistoryFile(), { force: true });
+    return;
+  }
+  writeHistoryFile(content);
+}
+
+function cooldownHistory(now: Date): string {
+  const notifiedAt = now.toISOString();
+  const records = [
+    {
+      gameId: 'mock-mario-kart-8-deluxe',
+      title: 'Mario Kart 8 Deluxe',
+      notificationType: 'wishlist',
+      score: 124,
+      price: 33.59,
+      notifiedAt,
+    },
+    {
+      gameId: 'mock-fortnite',
+      title: 'Fortnite',
+      notificationType: 'free',
+      score: 60,
+      price: 0,
+      notifiedAt,
+    },
+    {
+      gameId: 'mock-fall-guys',
+      title: 'Fall Guys: Ultimate Knockout',
+      notificationType: 'free',
+      score: 100,
+      price: 0,
+      notifiedAt,
+    },
+  ];
+  return `${JSON.stringify({ records }, null, 2)}\n`;
+}
+
+export async function validateForceEmail(): Promise<void> {
+  process.env.FORCE_EMAIL = 'false';
+  process.env.IGNORE_NOTIFICATION_HISTORY = 'false';
+
+  const backup = readHistoryFile();
+  const controlledHistory = cooldownHistory(new Date());
+  writeHistoryFile(controlledHistory);
+
+  try {
+    const forceRun = await runMonitor({ emailProviderKind: 'mock', forceEmail: true });
+    const historyAfterForce = readHistoryFile();
+    const bypassRun = await runMonitor({ emailProviderKind: 'mock', ignoreNotificationHistory: true });
+    const normalRun = await runMonitor({ emailProviderKind: 'mock' });
+
+    const checks: Check[] = [
+      {
+        name: 'FORCE_EMAIL sends email even with zero new notifications',
+        run: () => {
+          assert.strictEqual(forceRun.result.reportedCount, 0, 'Expected zero new notifications');
+          assert.strictEqual(forceRun.emailSent, true, 'FORCE_EMAIL run did not send email');
+        },
+      },
+      {
+        name: 'FORCE_EMAIL does not modify notification history',
+        run: () => {
+          assert.strictEqual(
+            historyAfterForce,
+            controlledHistory,
+            'History file changed after FORCE_EMAIL run',
+          );
+        },
+      },
+      {
+        name: 'FORCE_EMAIL does not bypass cooldown filtering',
+        run: () => {
+          assert.strictEqual(forceRun.result.reportedCount, 0, 'FORCE_EMAIL bypassed cooldown filtering');
+          assert.ok(
+            bypassRun.result.reportedCount > forceRun.result.reportedCount,
+            `Bypass mode should report more than FORCE_EMAIL (bypass=${bypassRun.result.reportedCount})`,
+          );
+        },
+      },
+      {
+        name: 'normal mode skips the digest email when empty',
+        run: () => {
+          assert.strictEqual(normalRun.result.reportedCount, 0, 'Expected zero new notifications');
+          assert.strictEqual(normalRun.emailSent, false, 'Normal mode sent an empty digest');
+        },
+      },
+      {
+        name: 'digest email decision logic covers all combinations',
+        run: () => {
+          assert.deepStrictEqual(decideDigestEmail(0, false, false), {
+            send: false,
+            reason: 'no new notifications',
+          });
+          assert.deepStrictEqual(decideDigestEmail(3, false, false), {
+            send: true,
+            reason: '3 new notification(s)',
+          });
+          assert.deepStrictEqual(decideDigestEmail(0, true, false), {
+            send: true,
+            reason: 'sendEmptyDigest=true',
+          });
+          assert.deepStrictEqual(decideDigestEmail(0, false, true), {
+            send: true,
+            reason: 'FORCE_EMAIL=true',
+          });
+        },
+      },
+    ];
+
+    await runChecks(checks);
+    console.log('\nAll FORCE_EMAIL validation checks passed.');
+  } finally {
+    restoreHistoryFile(backup);
+  }
+}
+
+if (require.main === module) {
+  validateForceEmail().catch((error: unknown) => {
+    console.error('FORCE_EMAIL validation failed:', error);
+    process.exitCode = 1;
+  });
+}

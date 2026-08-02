@@ -105,6 +105,7 @@ This builds the project, generates a sample `DailyDigest`, renders it to HTML, a
 | `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | Discount percent used to compute automatic wishlist target prices (default: `40`) |
 | `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | Default `notifyOnAnyDiscount` for wishlist items that omit it (default: `false`) |
 | `IGNORE_NOTIFICATION_HISTORY` | Test mode: bypass cooldown filtering and never write to notification history (`true`/`false`, default: `false`) |
+| `FORCE_EMAIL` | Test mode: always send the digest email (even with 0 new notifications) and never write to history (`true`/`false`, default: `false`) |
 
 Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
 
@@ -204,6 +205,32 @@ When no games are worth reporting and `sendEmptyDigest` is `false` (default), th
 
 ```bash
 $env:EMAIL_PROVIDER = "mock"; $env:IGNORE_NOTIFICATION_HISTORY = "true"; npm run monitor
+```
+
+To verify Gmail delivery without polluting notification history, set `FORCE_EMAIL=true`. It sends the digest even when there are 0 new notifications (cooldown filtering still applies) and never writes to history:
+
+```bash
+$env:EMAIL_PROVIDER = "gmail"; $env:FORCE_EMAIL = "true"; npm run monitor
+```
+
+Every run ends with a compact summary of the decision, for example:
+
+```
+Monitor summary:
+  Potential matches: 3
+  New notifications: 0
+  Skipped cooldown: 3
+  Email: skipped (no new notifications)
+```
+
+or, with `FORCE_EMAIL=true`:
+
+```
+Monitor summary:
+  Potential matches: 3
+  New notifications: 0
+  Skipped cooldown: 3
+  Email: sent (FORCE_EMAIL=true)
 ```
 
 ## Scheduled Execution (GitHub Actions)
@@ -496,6 +523,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-collector` | Build and validate the game collector against real data |
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |
 | `npm run monitor`       | Build and run the full monitor pipeline (collect → analyze → email) |
+| `npm run validate-force-email` | Build and validate FORCE_EMAIL test-mode behavior (send empty digest, history untouched) |
 | `npm run report`        | Build, run the pipeline with mock email, and write a markdown + HTML report |
 | `npm run validate-reports` | Build and validate report generation (markdown + HTML) |
 

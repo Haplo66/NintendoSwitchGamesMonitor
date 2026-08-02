@@ -29,12 +29,35 @@ export interface MonitorOptions {
   dealLimit?: number;
   maxGamesPerEmail?: number;
   ignoreNotificationHistory?: boolean;
+  forceEmail?: boolean;
 }
 
 export interface MonitorRunResult {
   result: MonitorResult;
   html: string;
   emailSent: boolean;
+}
+
+export interface DigestEmailDecision {
+  send: boolean;
+  reason: string;
+}
+
+export function decideDigestEmail(
+  newNotificationCount: number,
+  sendEmptyDigest: boolean,
+  forceEmail: boolean,
+): DigestEmailDecision {
+  if (newNotificationCount > 0) {
+    return { send: true, reason: `${newNotificationCount} new notification(s)` };
+  }
+  if (sendEmptyDigest) {
+    return { send: true, reason: 'sendEmptyDigest=true' };
+  }
+  if (forceEmail) {
+    return { send: true, reason: 'FORCE_EMAIL=true' };
+  }
+  return { send: false, reason: 'no new notifications' };
 }
 
 export interface ReportingOptions {
@@ -129,6 +152,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const ignoreNotificationHistory =
     options.ignoreNotificationHistory ??
     process.env.IGNORE_NOTIFICATION_HISTORY === 'true';
+  const forceEmail = options.forceEmail ?? process.env.FORCE_EMAIL === 'true';
 
   let history: NotificationHistory = { records: [] };
   let notifiable: GameAnalysis[] = reported;
@@ -183,18 +207,22 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   });
   const html = renderDigestEmail(digest);
 
-  const sendEmail = toEmail.length > 0 || config.notification.sendEmptyDigest;
-  if (sendEmail) {
+  const decision = decideDigestEmail(
+    toEmail.length,
+    config.notification.sendEmptyDigest,
+    forceEmail,
+  );
+  if (decision.send) {
     const provider: EmailProvider = createEmailProvider(options.emailProviderKind);
     await provider.sendEmail({
       subject: `🎮 Nintendo Switch Daily Digest — ${toEmail.length} game(s) worth checking`,
       html,
     });
   } else {
-    console.log('Digest skipped: no games to report (sendEmptyDigest=false).');
+    console.log(`Digest skipped: ${decision.reason} (sendEmptyDigest=false).`);
   }
 
-  if (!ignoreNotificationHistory) {
+  if (!ignoreNotificationHistory && !forceEmail) {
     const records = toNotificationRecords(toEmail);
     if (records.length > 0) {
       saveNotificationHistory(addNotificationRecords(history, records));
@@ -202,17 +230,20 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     }
   }
 
-  return { result, html, emailSent: sendEmail };
+  console.log('');
+  console.log('Monitor summary:');
+  console.log(`  Potential matches: ${reported.length}`);
+  console.log(`  New notifications: ${toEmail.length}`);
+  console.log(`  Skipped cooldown: ${skippedByCooldown}`);
+  console.log(`  Email: ${decision.send ? `sent (${decision.reason})` : `skipped (${decision.reason})`}`);
+
+  return { result, html, emailSent: decision.send };
 }
 
 if (require.main === module) {
   runMonitor()
-    .then(({ result, emailSent }) => {
-      const action = emailSent ? `email sent via "${process.env.EMAIL_PROVIDER ?? 'gmail'}" provider` : 'email skipped';
-      console.log(
-        `\nMonitor run complete: analyzed ${result.analyzedCount} game(s), ` +
-          `reported ${result.reportedCount}, ${action}.`,
-      );
+    .then(() => {
+      console.log('\nMonitor run complete.');
     })
     .catch((error: unknown) => {
       console.error('Monitor run failed:', error);
