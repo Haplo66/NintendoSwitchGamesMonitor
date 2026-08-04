@@ -1,6 +1,6 @@
 {
-  "minimumDealScore": 80,
-  "notificationCooldownDays": 14,
+  "minimumDealScore": 70,
+  "notificationCooldownDays": 0,
   "maxGamesPerEmail": 10,
   "notifyFreeGames": true,
   "notifyWishlistMatches": true,

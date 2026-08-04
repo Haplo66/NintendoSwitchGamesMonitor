@@ -23,6 +23,14 @@
       "score": 100,
       "price": 0,
       "notifiedAt": "2026-08-02T01:43:54.775Z"
+    },
+    {
+      "gameId": "nintendo-price-70010000006442",
+      "title": "Celeste",
+      "notificationType": "deal",
+      "score": 90,
+      "price": 4.99,
+      "notifiedAt": "2026-08-04T18:21:24.078Z"
     }
   ]
 }

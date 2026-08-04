@@ -23,7 +23,7 @@
   {
     "name": "Aluma",
     "maxAge": 7,
-    "preferredGenres": ["Action", "Adventure", "RPG"],
+    "preferredGenres": ["Platformer", "Party", "Racing", "Adventure"],
     "excludedGenres": ["Shooter", "Horror"],
     "notes": "Enjoys story-driven adventures."
   }

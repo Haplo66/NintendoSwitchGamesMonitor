@@ -1,18 +1,6 @@
 {
   "items": [
     {
-      "gameTitle": "Mario Kart 8 Deluxe",
-      "targetPrice": 39.99,
-      "notifyOnAnyDiscount": false,
-      "notes": "Waiting for a good sale."
-    },
-    {
-      "gameTitle": "Luigi's Mansion 3",
-      "targetPrice": 44.99,
-      "notifyOnAnyDiscount": false,
-      "notes": "Ideally below $45."
-    },
-    {
       "gameTitle": "Stardew Valley",
       "notifyOnAnyDiscount": true,
       "notes": "Ideally below $10."
@@ -20,7 +8,7 @@
     {
       "gameTitle": "Super Smash Bros",
       "notifyOnAnyDiscount": true,
-      "notes": "Ideally below $10."
+      "notes": "Ideally below $40."
     }
   ]
 }
