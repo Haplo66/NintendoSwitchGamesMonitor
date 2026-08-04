@@ -130,6 +130,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   console.log('');
   console.log('Monitor configuration:');
   console.log(`  Collector: ${collectorKind}`);
+  console.log(`  Region: ${config.collector.nintendoRegion}`);
   console.log(`  Email: ${options.emailProviderKind ?? process.env.EMAIL_PROVIDER ?? 'gmail'}`);
   console.log(`  Minimum score: ${minDealScore}`);
   console.log(`  Cooldown: ${cooldownDays} days`);
@@ -141,6 +142,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const collector: GameCollector = createGameCollector(collectorKind, {
     sourceUrl: config.collector.dealsSourceUrl,
     currency: config.collector.dealsCurrency,
+    region: config.collector.nintendoRegion,
   });
   const games = await collector.collectGames({ limit: dealLimit });
   console.log(`Collected ${games.length} game(s) using \"${collectorKind}\" collector.`);

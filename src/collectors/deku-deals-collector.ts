@@ -1,16 +1,13 @@
 import { Game } from '../models';
+import { NintendoRegion } from '../models/settings';
 import { CollectGamesOptions, GameCollector } from './game-collector';
 import { CollectorError } from './collector-error';
+import {
+  DEFAULT_NINTENDO_REGION,
+  REGION_PROFILES,
+  resolveNintendoRegion,
+} from './region';
 
-export const DEFAULT_SOURCE_URL =
-  'https://searching.nintendo-europe.com/en/select' +
-  '?fq=type:GAME' +
-  '&fq=playable_on_txt:HAC' +
-  '&fq=price_has_discount_b:true' +
-  '&q=*' +
-  '&wt=json';
-
-const DEFAULT_CURRENCY = 'EUR';
 const DEFAULT_LIMIT = 100;
 const REQUEST_TIMEOUT_MS = 15000;
 const USER_AGENT = 'NintendoSwitchGamesMonitor/0.6.0 (+https://github.com/Haplo66/NintendoSwitchGamesMonitor)';
@@ -19,6 +16,8 @@ export interface DealDoc {
   fs_id?: string | number;
   title?: string;
   url?: string;
+  store_url_s?: string;
+  store_url_l?: string;
   price_regular_f?: number;
   price_discounted_f?: number;
   price_has_discount_b?: boolean;
@@ -32,6 +31,7 @@ export interface DealDoc {
 export interface DekuDealsCollectorOptions {
   sourceUrl?: string;
   currency?: string;
+  region?: NintendoRegion;
 }
 
 function extractDocs(body: unknown): DealDoc[] | null {
@@ -44,7 +44,42 @@ function extractDocs(body: unknown): DealDoc[] | null {
   return null;
 }
 
-export function mapDealDoc(doc: DealDoc, currency: string): Game | null {
+function slugifyTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export function buildDealUrl(
+  doc: DealDoc,
+  title: string,
+  region: NintendoRegion,
+): string | undefined {
+  const storeBase = REGION_PROFILES[region].storeBase;
+  const rawUrl = doc.url ?? doc.store_url_s ?? doc.store_url_l;
+
+  if (region === 'EU') {
+    if (!doc.url) {
+      return undefined;
+    }
+    return `${storeBase}${doc.url.startsWith('/') ? doc.url : `/${doc.url}`}`;
+  }
+
+  if (typeof rawUrl === 'string' && rawUrl) {
+    return `${storeBase}${rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`}`;
+  }
+
+  const slug = slugifyTitle(title);
+  return slug ? `${storeBase}/us/store/products/${slug}/` : undefined;
+}
+
+export function mapDealDoc(
+  doc: DealDoc,
+  currency: string,
+  region: NintendoRegion = DEFAULT_NINTENDO_REGION,
+): Game | null {
   const rawId = doc.fs_id;
   const title = typeof doc.title === 'string' ? doc.title.trim() : '';
   const currentPrice = doc.price_discounted_f ?? doc.price_regular_f;
@@ -60,9 +95,7 @@ export function mapDealDoc(doc: DealDoc, currency: string): Game | null {
   }
 
   const isDiscounted = doc.price_has_discount_b === true && typeof doc.price_regular_f === 'number';
-  const storeUrl = doc.url
-    ? `https://www.nintendo-europe.com${doc.url.startsWith('/') ? doc.url : `/${doc.url}`}`
-    : undefined;
+  const storeUrl = buildDealUrl(doc, title, region);
 
   return {
     id: `dekudeals-${String(rawId)}`,
@@ -89,10 +122,13 @@ export function mapDealDoc(doc: DealDoc, currency: string): Game | null {
 export class DekuDealsCollector implements GameCollector {
   private readonly sourceUrl: string;
   private readonly currency: string;
+  private readonly region: NintendoRegion;
 
   constructor(options: DekuDealsCollectorOptions = {}) {
-    this.sourceUrl = options.sourceUrl ?? process.env.DEALS_SOURCE_URL ?? DEFAULT_SOURCE_URL;
-    this.currency = options.currency ?? process.env.DEALS_CURRENCY ?? DEFAULT_CURRENCY;
+    this.region = options.region ?? resolveNintendoRegion(process.env);
+    const profile = REGION_PROFILES[this.region];
+    this.sourceUrl = options.sourceUrl ?? process.env.DEALS_SOURCE_URL ?? profile.sourceUrl;
+    this.currency = options.currency ?? process.env.DEALS_CURRENCY ?? profile.currency;
   }
 
   async collectGames(options: CollectGamesOptions = {}): Promise<Game[]> {
@@ -138,7 +174,7 @@ export class DekuDealsCollector implements GameCollector {
 
     const games: Game[] = [];
     for (const doc of docs) {
-      const game = mapDealDoc(doc, this.currency);
+      const game = mapDealDoc(doc, this.currency, this.region);
       if (game && (!options.currency || game.currency === options.currency)) {
         games.push(game);
       }

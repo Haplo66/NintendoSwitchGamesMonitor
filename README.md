@@ -94,8 +94,9 @@ This builds the project, generates a sample `DailyDigest`, renders it to HTML, a
 | `EMAIL_PROVIDER`      | Active provider: `gmail` or `mock` (default: `gmail`)                           |
 | `MOCK_EMAIL_OUT_DIR`  | Where the mock provider saves rendered HTML (default: `data/emails`)            |
 | `GAME_COLLECTOR`      | Active collector: `mock` or `deku` (default: `mock`)                            |
-| `DEALS_SOURCE_URL`    | Deals JSON feed used by the `deku` collector (default: Nintendo eShop sales feed) |
-| `DEALS_CURRENCY`      | Currency reported by the deals source (default: `EUR`)                          |
+| `NINTENDO_REGION`     | eShop region for the `deku` collector: `US` (default) or `EU`                    |
+| `DEALS_SOURCE_URL`    | Deals JSON feed used by the `deku` collector (default: the configured region's feed) |
+| `DEALS_CURRENCY`      | Currency reported by the deals source (default: `USD` for US, `EUR` for EU)     |
 | `DEALS_LIMIT`         | Deals fetched per run for the `deku` collector (default: `100`)                 |
 | `MIN_DEAL_SCORE`      | Minimum score for a game to be included in the report (default: `80`)          |
 | `NOTIFICATION_COOLDOWN_DAYS` | Days before the same game at the same price is notified again (default: `14`) |
@@ -141,6 +142,29 @@ npm run collect-games                         # mock (default)
 $env:GAME_COLLECTOR = "deku"; npm run collect-games   # real data
 ```
 
+### Region configuration
+
+The `deku` collector targets the **US** Nintendo eShop by default (`NINTENDO_REGION=US`). It produces US-focused deals:
+
+- **Prices in USD**
+- **US (ESRB) age ratings** when the source provides them
+- **Deal URLs** pointing to the US eShop (`nintendo.com/us/store/products/…`)
+
+Two regions are supported via `NINTENDO_REGION`:
+
+| Value | Currency | Default deals feed    | Deal URL host          |
+| ----- | -------- | --------------------- | ---------------------- |
+| `US`  | `USD`    | `searching.nintendo.com` | `www.nintendo.com`   |
+| `EU`  | `EUR`    | `searching.nintendo-europe.com` | `www.nintendo-europe.com` |
+
+```bash
+$env:GAME_COLLECTOR  = "deku"
+$env:NINTENDO_REGION = "US";  npm run collect-games   # US deals (USD, ESRB)
+$env:NINTENDO_REGION = "EU";  npm run collect-games   # EU deals (EUR, PEGI)
+```
+
+`DEALS_SOURCE_URL` and `DEALS_CURRENCY` still override the source/currency for a given region when you need a custom feed.
+
 ### Collecting games locally
 
 ```bash
@@ -155,7 +179,7 @@ This builds the project, runs the selected collector, and prints the collected g
 npm run validate-collector
 ```
 
-Runs checks that fetch real data and confirm the collector returns games, every `Game` has the required fields, malformed source records are rejected, and valid records are normalized correctly.
+Runs checks that fetch real data and confirm the collector returns games, every `Game` has the required fields, malformed source records are rejected, valid records are normalized correctly, and region configuration (`US`/`EU`) resolves correctly (currency, ratings, and deal URLs).
 
 ## End-to-End Monitoring Pipeline
 
@@ -506,8 +530,9 @@ defaults
 | Default notify on any discount | `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | `defaultNotifyOnAnyDiscount` | `false` |
 | Collector               | `GAME_COLLECTOR`            | —                             | `mock`        |
 | Deals per run           | `DEALS_LIMIT`               | —                             | `100`         |
-| Deals source URL        | `DEALS_SOURCE_URL`          | —                             | eShop feed    |
-| Deals currency          | `DEALS_CURRENCY`            | —                             | `EUR`         |
+| eShop region            | `NINTENDO_REGION`           | —                             | `US`          |
+| Deals source URL        | `DEALS_SOURCE_URL`          | —                             | region feed   |
+| Deals currency          | `DEALS_CURRENCY`            | —                             | `USD` (US) / `EUR` (EU) |
 
 `dailyDigest` and `sendEmptyDigest` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above.
 

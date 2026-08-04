@@ -85,7 +85,7 @@ export async function validateDryRun(): Promise<void> {
   const previousGameCollector = process.env.GAME_COLLECTOR;
 
   try {
-    const dryRunResult = await runMonitor({ emailProviderKind: 'mock', dryRun: true });
+    const dryRunResult = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock', dryRun: true });
     const historyAfterDryRun = readHistoryFile();
 
     process.env.EMAIL_PROVIDER = 'gmail';

@@ -3,9 +3,11 @@ import 'dotenv/config';
 import * as assert from 'node:assert';
 
 import { Game } from '../models';
+import { resolveCollectorSettings } from '../config/app-config';
 import { createGameCollector } from './collector-factory';
 import { DealDoc, DekuDealsCollector, mapDealDoc } from './deku-deals-collector';
 import { GameCollector } from './game-collector';
+import { resolveNintendoRegion } from './region';
 
 interface Check {
   name: string;
@@ -41,9 +43,75 @@ function assertRequiredGameFields(game: Game): void {
 export async function validateCollector(): Promise<void> {
   const checks: Check[] = [
     {
+      name: 'NINTENDO_REGION defaults to US and supports US/EU',
+      run: () => {
+        assert.strictEqual(resolveNintendoRegion({}), 'US');
+        assert.strictEqual(resolveNintendoRegion({ NINTENDO_REGION: 'US' }), 'US');
+        assert.strictEqual(resolveNintendoRegion({ NINTENDO_REGION: 'eu' }), 'EU');
+        assert.throws(() => resolveNintendoRegion({ NINTENDO_REGION: 'JP' }), /NINTENDO_REGION/);
+      },
+    },
+    {
+      name: 'collector uses the configured region/currency',
+      run: () => {
+        assert.strictEqual(resolveCollectorSettings({ NINTENDO_REGION: 'US' }).nintendoRegion, 'US');
+        assert.strictEqual(resolveCollectorSettings({ NINTENDO_REGION: 'US' }).dealsCurrency, 'USD');
+        assert.ok(
+          resolveCollectorSettings({ NINTENDO_REGION: 'US' }).dealsSourceUrl.includes('searching.nintendo.com'),
+          'US region should use the US eShop source',
+        );
+      },
+    },
+    {
+      name: 'US region maps USD prices, ESRB ratings, and US deal URLs',
+      run: () => {
+        const game = mapDealDoc(
+          {
+            fs_id: 70010000026992,
+            title: '  Legend of Zelda  ',
+            price_regular_f: 59.99,
+            price_discounted_f: 41.99,
+            price_has_discount_b: true,
+            pretty_agerating_s: 'Everyone',
+          },
+          'USD',
+          'US',
+        );
+        assert.ok(game !== null);
+        assert.strictEqual(game.currency, 'USD');
+        assert.strictEqual(game.ageRating, 'Everyone');
+        assert.strictEqual(
+          game.storeUrl,
+          'https://www.nintendo.com/us/store/products/legend-of-zelda/',
+        );
+      },
+    },
+    {
+      name: 'EU region keeps EUR and Europe store URLs',
+      run: () => {
+        const game = mapDealDoc(
+          {
+            fs_id: 2814376,
+            title: 'Pixel Game',
+            url: '/en-gb/Games/Pixel-Game.html',
+            price_discounted_f: 4.04,
+            price_regular_f: 4.49,
+            price_has_discount_b: true,
+            pretty_agerating_s: 'PEGI 7',
+          },
+          'EUR',
+          'EU',
+        );
+        assert.ok(game !== null);
+        assert.strictEqual(game.currency, 'EUR');
+        assert.strictEqual(game.ageRating, 'PEGI 7');
+        assert.strictEqual(game.storeUrl, 'https://www.nintendo-europe.com/en-gb/Games/Pixel-Game.html');
+      },
+    },
+    {
       name: 'collector returns games',
       run: async () => {
-        const collector: GameCollector = new DekuDealsCollector();
+        const collector: GameCollector = new DekuDealsCollector({ region: 'EU' });
         const games = await collector.collectGames({ limit: 10 });
         assert.ok(games.length > 0, 'Collector returned no games');
       },
@@ -51,7 +119,7 @@ export async function validateCollector(): Promise<void> {
     {
       name: 'required Game fields exist on every game',
       run: async () => {
-        const collector: GameCollector = new DekuDealsCollector();
+        const collector: GameCollector = new DekuDealsCollector({ region: 'EU' });
         const games = await collector.collectGames({ limit: 10 });
         for (const game of games) {
           assertRequiredGameFields(game);

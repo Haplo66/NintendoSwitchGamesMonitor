@@ -1,12 +1,14 @@
 import { DekuDealsCollector } from './deku-deals-collector';
 import { GameCollector } from './game-collector';
 import { MockGameCollector } from './mock-game-collector';
+import { NintendoRegion } from '../models/settings';
 
 export type GameCollectorKind = 'mock' | 'deku';
 
 export interface CollectorFactoryOptions {
   sourceUrl?: string;
   currency?: string;
+  region?: NintendoRegion;
 }
 
 export function createGameCollector(
@@ -20,6 +22,7 @@ export function createGameCollector(
       return new DekuDealsCollector({
         sourceUrl: options.sourceUrl,
         currency: options.currency,
+        region: options.region,
       });
     case 'mock':
       return new MockGameCollector();

@@ -46,7 +46,7 @@ Keep the App Password only in `.env` (local) or GitHub secrets (CI). Never commi
 
 ## Collector Setup
 
-For real Nintendo Switch deals, set `GAME_COLLECTOR=deku`. This uses the free Nintendo eShop deals feed configured via `DEALS_SOURCE_URL` (defaults to the public sales feed). Use `GAME_COLLECTOR=mock` for offline sample data.
+For real Nintendo Switch deals, set `GAME_COLLECTOR=deku`. The collector defaults to the **US** eShop (`NINTENDO_REGION=US`): prices in **USD**, US (ESRB) ratings, and deal links to `nintendo.com/us/store/products/…`. Set `NINTENDO_REGION=EU` for European deals (EUR, PEGI ratings, `nintendo-europe.com` links). The free Nintendo eShop deals feed is configured via `DEALS_SOURCE_URL` (defaults to the region's public sales feed). Use `GAME_COLLECTOR=mock` for offline sample data.
 
 ## GitHub Actions
 

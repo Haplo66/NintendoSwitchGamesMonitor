@@ -157,3 +157,14 @@ Features:
 - GitHub Actions behavior unchanged
 
 > **Status: 🔄 In progress**
+
+## v0.17 US eShop Localization
+
+Features:
+- Real collector defaults to **US** eShop (`NINTENDO_REGION=US`): USD prices, US (ESRB) ratings, deal links to `nintendo.com/us/store/products/…`
+- `NINTENDO_REGION` config supporting `US` (default) and `EU` (Europe feed, EUR/PEGI)
+- Region drives the default deals feed, currency, and deal URL host; `DEALS_SOURCE_URL` / `DEALS_CURRENCY` still override per-region
+- Collector validation extended with offline region checks (US loads USD/ESRB/US URLs, EU preserves EUR/PEGI/Europe URLs)
+- Validation scripts pinned to the mock collector for deterministic offline runs
+
+> **Status: 🔄 In progress**
