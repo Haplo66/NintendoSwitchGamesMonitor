@@ -2,66 +2,88 @@
   {
     "nsuid": "70010000000025",
     "title": "The Legend of Zelda: Breath of the Wild",
+    "slug": "the-legend-of-zelda-breath-of-the-wild-switch",
+    "platforms": ["switch1"],
     "genres": ["Adventure", "Action", "Role-Playing"],
     "esrbRating": "Everyone 10+"
   },
   {
     "nsuid": "70010000000153",
     "title": "Mario Kart 8 Deluxe",
+    "slug": "mario-kart-8-deluxe-switch",
+    "platforms": ["switch1"],
     "genres": ["Racing", "Multiplayer"],
     "esrbRating": "Everyone"
   },
   {
     "nsuid": "70010000001130",
     "title": "Super Mario Odyssey",
+    "slug": "super-mario-odyssey-switch",
+    "platforms": ["switch1"],
     "genres": ["Platformer", "Action"],
     "esrbRating": "Everyone 10+"
   },
   {
     "nsuid": "70010000027619",
     "title": "Animal Crossing: New Horizons",
+    "slug": "animal-crossing-new-horizons-switch",
+    "platforms": ["switch1"],
     "genres": ["Simulation"],
     "esrbRating": "Everyone"
   },
   {
     "nsuid": "70010000012332",
     "title": "Super Smash Bros. Ultimate",
+    "slug": "super-smash-bros-ultimate-switch",
+    "platforms": ["switch1"],
     "genres": ["Action", "Fighting", "Multiplayer"],
     "esrbRating": "Everyone 10+"
   },
   {
     "nsuid": "70010000046405",
     "title": "Kirby and the Forgotten Land",
+    "slug": "kirby-and-the-forgotten-land-switch",
+    "platforms": ["switch1"],
     "genres": ["Platformer", "Action"],
     "esrbRating": "Everyone 10+"
   },
   {
     "nsuid": "70010000042924",
     "title": "Metroid Dread",
+    "slug": "metroid-dread-switch",
+    "platforms": ["switch1"],
     "genres": ["Action", "Adventure"],
     "esrbRating": "Teen"
   },
   {
     "nsuid": "70010000003208",
     "title": "Hollow Knight",
+    "slug": "hollow-knight-switch",
+    "platforms": ["switch1"],
     "genres": ["Action", "Adventure", "Platformer", "Indie"],
     "esrbRating": "Everyone 10+"
   },
   {
     "nsuid": "70010000006442",
     "title": "Celeste",
+    "slug": "celeste-switch",
+    "platforms": ["switch1"],
     "genres": ["Indie", "Platformer"],
     "esrbRating": "Everyone 10+"
   },
   {
     "nsuid": "70010000033131",
     "title": "Hades",
+    "slug": "hades-switch",
+    "platforms": ["switch1"],
     "genres": ["Action", "Adventure", "Role-Playing", "Indie"],
     "esrbRating": "Teen"
   },
   {
     "nsuid": "70010000001801",
     "title": "Stardew Valley",
+    "slug": "stardew-valley-switch",
+    "platforms": ["switch1"],
     "genres": ["Indie", "Simulation", "Role-Playing"],
     "esrbRating": "Everyone 10+"
   }

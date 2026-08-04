@@ -1,13 +1,14 @@
 import { GameCollector } from './game-collector';
 import { MockGameCollector } from './mock-game-collector';
 import { NintendoPriceCollector, DEFAULT_GAME_CATALOG_PATH } from './nintendo-price-collector';
-import { NintendoRegion } from '../models/settings';
+import { NintendoPlatform, NintendoRegion } from '../models/settings';
 
 export type GameCollectorKind = 'mock' | 'nintendo';
 
 export interface CollectorFactoryOptions {
   currency?: string;
   region?: NintendoRegion;
+  platform?: NintendoPlatform;
   catalogPath?: string;
 }
 
@@ -22,6 +23,7 @@ export function createGameCollector(
       return new NintendoPriceCollector({
         currency: options.currency,
         region: options.region,
+        platform: options.platform,
         catalogPath: options.catalogPath,
       });
     case 'mock':

@@ -1,22 +1,25 @@
 import * as fs from 'node:fs';
 
 import { Game } from '../models';
-import { NintendoRegion } from '../models/settings';
+import { NintendoPlatform, NintendoRegion } from '../models/settings';
 import { CollectGamesOptions, GameCollector } from './game-collector';
 import { CollectorError } from './collector-error';
 import { resolveNintendoRegion } from './region';
+import { GamePlatform, gameOnPlatform, resolveNintendoPlatform } from './platform';
 
 export const DEFAULT_GAME_CATALOG_PATH = 'data/game-catalog.json';
 export const PRICE_API_URL = 'https://api.ec.nintendo.com/v1/price';
 
 const REQUEST_TIMEOUT_MS = 15000;
 const PRICE_BATCH_SIZE = 20;
-const USER_AGENT = 'NintendoSwitchGamesMonitor/0.18.0 (+https://github.com/Haplo66/NintendoSwitchGamesMonitor)';
+const USER_AGENT = 'NintendoSwitchGamesMonitor/0.19.0 (+https://github.com/Haplo66/NintendoSwitchGamesMonitor)';
 const LANGUAGE = 'en';
 
 export interface CatalogGame {
   nsuid: string;
   title: string;
+  slug: string;
+  platforms?: GamePlatform[];
   genres?: string[];
   esrbRating?: string;
 }
@@ -24,6 +27,7 @@ export interface CatalogGame {
 export interface NintendoPriceCollectorOptions {
   currency?: string;
   region?: NintendoRegion;
+  platform?: NintendoPlatform;
   catalogPath?: string;
   priceApiUrl?: string;
 }
@@ -74,15 +78,26 @@ export function normalizeCatalog(entries: unknown[]): CatalogGame[] {
     const record = entry as Record<string, unknown>;
     const nsuid = typeof record.nsuid === 'string' ? record.nsuid.trim() : '';
     const title = typeof record.title === 'string' ? record.title.trim() : '';
-    if (!nsuid || !title) {
+    const slug = typeof record.slug === 'string' ? record.slug.trim() : '';
+    if (!nsuid || !title || !slug) {
       continue;
     }
+    const platforms = Array.isArray(record.platforms)
+      ? record.platforms.filter((option): option is GamePlatform => option === 'switch1' || option === 'switch2')
+      : [];
     const genres = Array.isArray(record.genres)
       ? record.genres.filter((genre): genre is string => typeof genre === 'string')
       : undefined;
     const esrbRating =
       typeof record.esrbRating === 'string' && record.esrbRating.trim() ? record.esrbRating.trim() : undefined;
-    games.push({ nsuid, title, genres, esrbRating });
+    games.push({
+      nsuid,
+      title,
+      slug,
+      platforms: platforms.length > 0 ? platforms : ['switch1'],
+      genres,
+      esrbRating,
+    });
   }
   return games;
 }
@@ -91,17 +106,12 @@ export function loadGameCatalog(filePath: string = DEFAULT_GAME_CATALOG_PATH): C
   return loadCatalogFile(filePath);
 }
 
-function slugifyTitle(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-export function buildDealUrl(entry: CatalogGame, base: string): string | undefined {
-  const slug = slugifyTitle(entry.title);
-  return slug ? `${base}/us/store/products/${slug}/` : undefined;
+export function buildStoreUrl(entry: CatalogGame): string | undefined {
+  const slug = entry.slug.trim();
+  if (!slug) {
+    return undefined;
+  }
+  return `https://www.nintendo.com/us/store/products/${slug}/`;
 }
 
 function parseMoneyToNumber(value: PriceMoney | undefined): number | undefined {
@@ -144,7 +154,7 @@ export function mapPriceToGame(
     currency,
     ageRating: entry.esrbRating,
     genres: entry.genres ?? [],
-    storeUrl: buildDealUrl(entry, 'https://www.nintendo.com'),
+    storeUrl: buildStoreUrl(entry),
     source: 'nintendo-price',
   };
 }
@@ -152,14 +162,20 @@ export function mapPriceToGame(
 export class NintendoPriceCollector implements GameCollector {
   private readonly currency: string;
   private readonly region: NintendoRegion;
+  private readonly platform: NintendoPlatform;
   private readonly catalogPath: string;
   private readonly priceApiUrl: string;
 
   constructor(options: NintendoPriceCollectorOptions = {}) {
     this.region = options.region ?? resolveNintendoRegion(process.env);
     this.currency = options.currency ?? process.env.DEALS_CURRENCY ?? 'USD';
+    this.platform = options.platform ?? resolveNintendoPlatform(process.env);
     this.catalogPath = options.catalogPath ?? process.env.GAME_CATALOG ?? DEFAULT_GAME_CATALOG_PATH;
     this.priceApiUrl = options.priceApiUrl ?? PRICE_API_URL;
+  }
+
+  filterCatalogByPlatform(catalog: CatalogGame[]): CatalogGame[] {
+    return catalog.filter((entry) => gameOnPlatform(entry.platforms, this.platform));
   }
 
   private async fetchPrices(nsuids: string[]): Promise<PriceEntry[]> {
@@ -206,7 +222,7 @@ export class NintendoPriceCollector implements GameCollector {
   }
 
   async collectGames(options: CollectGamesOptions = {}): Promise<Game[]> {
-    const catalog = loadGameCatalog(this.catalogPath);
+    const catalog = this.filterCatalogByPlatform(loadGameCatalog(this.catalogPath));
     if (catalog.length === 0) {
       return [];
     }

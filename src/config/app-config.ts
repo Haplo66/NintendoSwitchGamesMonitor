@@ -1,6 +1,7 @@
 import { CollectorSettings, FamilyProfile, NotificationSettings, Wishlist } from '../models';
 import { REGION_PROFILES, resolveNintendoRegion } from '../collectors/region';
 import { DEFAULT_GAME_CATALOG_PATH } from '../collectors/nintendo-price-collector';
+import { DEFAULT_NINTENDO_PLATFORM, resolveNintendoPlatform } from '../collectors/platform';
 import { loadFamilyProfiles } from './family-profiles-loader';
 import { parseEnvNumber } from './settings-loader';
 import { resolveNotificationSettings } from './settings-loader';
@@ -25,6 +26,7 @@ export const DEFAULT_COLLECTOR_SETTINGS: CollectorSettings = {
   gameCatalogPath: DEFAULT_GAME_CATALOG_PATH,
   dealsCurrency: REGION_PROFILES.US.currency,
   nintendoRegion: 'US',
+  platform: DEFAULT_NINTENDO_PLATFORM,
 };
 
 export function resolveCollectorSettings(env: NodeJS.ProcessEnv = process.env): CollectorSettings {
@@ -38,6 +40,7 @@ export function resolveCollectorSettings(env: NodeJS.ProcessEnv = process.env): 
     gameCatalogPath: env.GAME_CATALOG?.trim() || DEFAULT_GAME_CATALOG_PATH,
     dealsCurrency: env.DEALS_CURRENCY?.trim() || regionProfile.currency,
     nintendoRegion,
+    platform: resolveNintendoPlatform(env),
   };
 }
 

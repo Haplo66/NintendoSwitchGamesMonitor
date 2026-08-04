@@ -22,7 +22,7 @@ cp .env.example .env
 | `EMAIL_TO` | Recipient of the daily digest | `EMAIL_TO=your-email@gmail.com` |
 | `GAME_COLLECTOR` | `nintendo` for real US Switch deals, `mock` for sample data | `GAME_COLLECTOR=nintendo` |
 
-Other variables are optional (see `.env.example`): `SMTP_HOST`, `SMTP_PORT`, `GAME_CATALOG`, `DEALS_CURRENCY`, `DEALS_LIMIT`, `MIN_DEAL_SCORE`, `NOTIFICATION_COOLDOWN_DAYS`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`, `IGNORE_NOTIFICATION_HISTORY`, `FORCE_EMAIL`, `DRY_RUN`.
+Other variables are optional (see `.env.example`): `SMTP_HOST`, `SMTP_PORT`, `GAME_CATALOG`, `NINTENDO_PLATFORM`, `DEALS_CURRENCY`, `DEALS_LIMIT`, `MIN_DEAL_SCORE`, `NOTIFICATION_COOLDOWN_DAYS`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`, `IGNORE_NOTIFICATION_HISTORY`, `FORCE_EMAIL`, `DRY_RUN`.
 
 ## Gmail Production Setup
 
@@ -46,7 +46,7 @@ Keep the App Password only in `.env` (local) or GitHub secrets (CI). Never commi
 
 ## Collector Setup
 
-For real Nintendo Switch deals, set `GAME_COLLECTOR=nintendo`. The collector targets the **US** eShop (`NINTENDO_REGION=US`): prices in **USD**, US (ESRB) ratings and genres from the local game catalog, and deal links to `nintendo.com/us/store/products/…`. It watches the games listed in `data/game-catalog.json` and queries Nintendo's official price API (`api.ec.nintendo.com/v1/price`) to detect current sales; games that are not discounted are ignored. Point `GAME_CATALOG` at another file to watch a different set of games. Use `GAME_COLLECTOR=mock` for offline sample data.
+For real Nintendo Switch deals, set `GAME_COLLECTOR=nintendo`. The collector targets the **US** eShop (`NINTENDO_REGION=US`): prices in **USD**, US (ESRB) ratings and genres from the local game catalog, and deal links to `nintendo.com/us/store/products/<slug>/` (the `slug` is taken verbatim from the catalog entry, so every deal link is canonical and resolvable). Before querying prices it filters the catalog to the configured console (`NINTENDO_PLATFORM=switch1` / `switch2` / `both`; default `switch1`). It watches the games listed in `data/game-catalog.json` and queries Nintendo's official price API (`api.ec.nintendo.com/v1/price`) to detect current sales; games that are not discounted are ignored. Point `GAME_CATALOG` at another file to watch a different set of games. Use `GAME_COLLECTOR=mock` for offline sample data.
 
 ## GitHub Actions
 
@@ -58,7 +58,7 @@ A cron schedule runs the pipeline once per day (06:30 UTC). Scheduled runs use r
 
 - `EMAIL_PROVIDER` / `GAME_COLLECTOR` default to `gmail` / `nintendo` in production.
 - Gmail secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_TO`.
-- Optional overrides: `GAME_CATALOG`, `DEALS_CURRENCY`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`.
+- Optional overrides: `GAME_CATALOG`, `NINTENDO_PLATFORM`, `DEALS_CURRENCY`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`.
 
 Configure them under **Settings → Secrets and variables → Actions**.
 

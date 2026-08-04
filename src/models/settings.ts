@@ -19,10 +19,13 @@ export interface NotificationSettings {
 
 export type NintendoRegion = 'US';
 
+export type NintendoPlatform = 'switch1' | 'switch2' | 'both';
+
 export interface CollectorSettings {
   collectorKind: string;
   dealLimit: number;
   gameCatalogPath: string;
   dealsCurrency: string;
   nintendoRegion: NintendoRegion;
+  platform: NintendoPlatform;
 }

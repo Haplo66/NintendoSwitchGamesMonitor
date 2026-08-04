@@ -181,3 +181,14 @@ Features:
 - Docs updated (README, `.env.example`, PRODUCTION.md) including a "Maintaining the game catalog" section and the future automated-discovery path
 
 > **Status: ✅ In progress**
+
+## v0.19 Store Link Quality & Platform Filtering
+
+Features:
+- Store links are built from a canonical catalog `slug` (`nintendo.com/us/store/products/<slug>/`), never derived from the game title — every reported link resolves (all 11 catalog slugs verified HTTP 200)
+- Catalog entries carry `platforms` (`switch1` / `switch2`); `NINTENDO_PLATFORM` (`switch1` | `switch2` | `both`, default `switch1`) filters the catalog before price fetching and analysis
+- Entries missing a `slug` are dropped; entries missing `platforms` default to `switch1`
+- Collector validation extended with platform checks (resolution/normalization, platform filtering incl. `both`, slug-based URL construction) and default-catalog checks (slug + platforms present, URLs well-formed)
+- Docs updated (README, `.env.example`, PRODUCTION.md, ROADMAP)
+
+> **Status: ✅ In progress**

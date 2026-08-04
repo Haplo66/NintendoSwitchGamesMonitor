@@ -10,11 +10,12 @@ import {
   CatalogGame,
   NintendoPriceCollector,
   PriceEntry,
-  buildDealUrl,
+  buildStoreUrl,
   loadGameCatalog,
   mapPriceToGame,
   normalizeCatalog,
 } from './nintendo-price-collector';
+import { normalizeNintendoPlatform, resolveNintendoPlatform } from './platform';
 import { resolveNintendoRegion } from './region';
 
 interface Check {
@@ -51,6 +52,8 @@ function assertRequiredGameFields(game: Game): void {
 const CATALOG_ENTRY: CatalogGame = {
   nsuid: '70010000000025',
   title: 'The Legend of Zelda: Breath of the Wild',
+  slug: 'the-legend-of-zelda-breath-of-the-wild-switch',
+  platforms: ['switch1'],
   genres: ['Adventure', 'Action'],
   esrbRating: 'Everyone 10+',
 };
@@ -78,38 +81,69 @@ export async function validateCollector(): Promise<void> {
       },
     },
     {
-      name: 'collector settings resolve to the US region and USD',
+      name: 'NINTENDO_PLATFORM defaults to switch1 and accepts switch1/switch2/both',
+      run: () => {
+        assert.strictEqual(resolveNintendoPlatform({}), 'switch1');
+        assert.strictEqual(resolveNintendoPlatform({ NINTENDO_PLATFORM: 'switch2' }), 'switch2');
+        assert.strictEqual(resolveNintendoPlatform({ NINTENDO_PLATFORM: 'Switch 2' }), 'switch2');
+        assert.strictEqual(resolveNintendoPlatform({ NINTENDO_PLATFORM: 'bOtH' }), 'both');
+        assert.throws(() => resolveNintendoPlatform({ NINTENDO_PLATFORM: 'ps5' }), /NINTENDO_PLATFORM/);
+        assert.throws(() => normalizeNintendoPlatform('ps5'), /NINTENDO_PLATFORM/);
+      },
+    },
+    {
+      name: 'collector settings resolve to the US region, USD, and default platform',
       run: () => {
         const settings = resolveCollectorSettings({ NINTENDO_REGION: 'US' });
         assert.strictEqual(settings.nintendoRegion, 'US');
         assert.strictEqual(settings.dealsCurrency, 'USD');
+        assert.strictEqual(settings.platform, 'switch1');
         assert.ok(settings.gameCatalogPath.length > 0, 'gameCatalogPath is empty');
       },
     },
     {
-      name: 'the default game catalog loads valid entries',
+      name: 'the default game catalog loads valid entries with slugs and platforms',
       run: () => {
         const catalog = loadGameCatalog();
         assert.ok(catalog.length > 0, 'Default catalog loaded no games');
         for (const entry of catalog) {
           assert.ok(typeof entry.nsuid === 'string' && entry.nsuid.length > 0, 'entry nsuid is missing');
           assert.ok(typeof entry.title === 'string' && entry.title.length > 0, 'entry title is missing');
+          assert.ok(typeof entry.slug === 'string' && entry.slug.length > 0, 'entry slug is missing');
+          assert.ok(Array.isArray(entry.platforms) && entry.platforms.length > 0, 'entry platforms are missing');
+          const url = buildStoreUrl(entry);
+          assert.ok(
+            url && url.startsWith('https://www.nintendo.com/us/store/products/') && url.endsWith('/'),
+            `entry store URL is malformed for ${entry.title}`,
+          );
         }
       },
     },
     {
-      name: 'catalog normalization trims values and drops invalid entries',
+      name: 'catalog normalization requires a slug, trims values, and defaults platforms',
       run: () => {
         const normalized = normalizeCatalog([
-          { nsuid: ' 70010000000153 ', title: ' Mario Kart ', genres: ['Racing', 42], esrbRating: 'E' },
-          { nsuid: '', title: 'No nsuid' },
-          { title: 'No nsuid either' },
+          {
+            nsuid: ' 70010000000153 ',
+            title: ' Mario Kart ',
+            slug: ' mario-kart-8-deluxe-switch ',
+            genres: ['Racing', 42],
+            esrbRating: 'E',
+          },
+          { nsuid: '70010000000002', title: 'No platforms', slug: 'no-platforms-switch' },
+          { nsuid: '70010000000003', title: 'Switch 2 only', slug: 'y-switch', platforms: ['switch2'] },
+          { nsuid: '70010000000001', title: 'No slug', slug: '', platforms: ['switch2'] },
+          { nsuid: '', title: 'No nsuid', slug: 'x' },
           'not-an-object',
         ]);
-        assert.strictEqual(normalized.length, 1);
+        assert.strictEqual(normalized.length, 3);
         assert.strictEqual(normalized[0].nsuid, '70010000000153');
         assert.strictEqual(normalized[0].title, 'Mario Kart');
+        assert.strictEqual(normalized[0].slug, 'mario-kart-8-deluxe-switch');
         assert.deepStrictEqual(normalized[0].genres, ['Racing']);
+        assert.deepStrictEqual(normalized[0].platforms, ['switch1']);
+        assert.deepStrictEqual(normalized[1].platforms, ['switch1']);
+        assert.deepStrictEqual(normalized[2].platforms, ['switch2']);
       },
     },
     {
@@ -125,7 +159,7 @@ export async function validateCollector(): Promise<void> {
         assert.strictEqual(game.source, 'nintendo-price');
         assert.strictEqual(
           game.storeUrl,
-          'https://www.nintendo.com/us/store/products/the-legend-of-zelda-breath-of-the-wild/',
+          'https://www.nintendo.com/us/store/products/the-legend-of-zelda-breath-of-the-wild-switch/',
         );
       },
     },
@@ -195,10 +229,46 @@ export async function validateCollector(): Promise<void> {
       },
     },
     {
-      name: 'deal URLs are unique per title and point to the US store',
+      name: 'store URLs are built from the canonical catalog slug',
       run: () => {
-        const url = buildDealUrl({ nsuid: 'x', title: 'Stardew Valley' }, 'https://www.nintendo.com');
-        assert.strictEqual(url, 'https://www.nintendo.com/us/store/products/stardew-valley/');
+        const celeste = buildStoreUrl({ nsuid: 'x', title: 'Celeste', slug: 'celeste-switch' });
+        assert.strictEqual(
+          celeste,
+          'https://www.nintendo.com/us/store/products/celeste-switch/',
+        );
+        const hollow = buildStoreUrl({
+          nsuid: 'x',
+          title: 'Hollow Knight',
+          slug: 'hollow-knight-switch',
+        });
+        assert.strictEqual(
+          hollow,
+          'https://www.nintendo.com/us/store/products/hollow-knight-switch/',
+        );
+        assert.strictEqual(buildStoreUrl({ nsuid: 'x', title: 'No slug', slug: '' }), undefined);
+        assert.strictEqual(buildStoreUrl({ nsuid: 'x', title: 'No slug', slug: '  ' }), undefined);
+      },
+    },
+    {
+      name: 'platform filtering excludes games of the other platform and both includes all',
+      run: () => {
+        const switch1Only = new NintendoPriceCollector({ platform: 'switch1' });
+        const switch2Only = new NintendoPriceCollector({ platform: 'switch2' });
+        const both = new NintendoPriceCollector({ platform: 'both' });
+        const catalog: CatalogGame[] = [
+          { nsuid: 'a', title: 'Switch 1 only', slug: 'a-switch', platforms: ['switch1'] },
+          { nsuid: 'b', title: 'Switch 2 only', slug: 'b-switch', platforms: ['switch2'] },
+          { nsuid: 'c', title: 'Both consoles', slug: 'c-switch', platforms: ['switch1', 'switch2'] },
+        ];
+        assert.deepStrictEqual(
+          switch1Only.filterCatalogByPlatform(catalog).map((e) => e.title),
+          ['Switch 1 only', 'Both consoles'],
+        );
+        assert.deepStrictEqual(
+          switch2Only.filterCatalogByPlatform(catalog).map((e) => e.title),
+          ['Switch 2 only', 'Both consoles'],
+        );
+        assert.strictEqual(both.filterCatalogByPlatform(catalog).length, 3);
       },
     },
     {

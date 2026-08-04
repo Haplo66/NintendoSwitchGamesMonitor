@@ -95,6 +95,7 @@ This builds the project, generates a sample `DailyDigest`, renders it to HTML, a
 | `MOCK_EMAIL_OUT_DIR`  | Where the mock provider saves rendered HTML (default: `data/emails`)            |
 | `GAME_COLLECTOR`      | Active collector: `mock` or `nintendo` (default: `mock`)                   |
 | `NINTENDO_REGION`     | eShop region for the `nintendo` collector: `US` (default, only value)      |
+| `NINTENDO_PLATFORM`   | Target console, filters the catalog before analysis: `switch1`, `switch2`, or `both` (default: `switch1`) |
 | `GAME_CATALOG`        | Path to the US game catalog JSON watched by the `nintendo` collector (default: `data/game-catalog.json`) |
 | `DEALS_CURRENCY`      | Currency expected from the price API (default: `USD`)                      |
 | `DEALS_LIMIT`         | Max games to return per run for the `nintendo` collector (default: `100`)  |
@@ -118,7 +119,7 @@ Data collection is built behind a small abstraction so the pipeline can be devel
 1. **Models** (`src/models/game.ts`) — a generic `Game` type (id, title, prices, currency, age rating, genres, store/image URLs, source). It carries no logic, so any future source can map its data into it.
 2. **Collector abstraction** (`src/collectors/game-collector.ts`) — a `GameCollector` interface (`collectGames(options)` → `Promise<Game[]>`). It is deliberately not Nintendo-specific.
 3. **Mock collector** (`src/collectors/mock-game-collector.ts`) — a `MockGameCollector` that returns sample data covering a discounted game, a free game, and a kid-friendly game, letting the rest of the pipeline (analysis → notification) be built before real sources exist.
-4. **Real collector** (`src/collectors/nintendo-price-collector.ts`) — a `NintendoPriceCollector` that watches a curated catalog of US games (`data/game-catalog.json`) and queries Nintendo's official eShop **price API** (`api.ec.nintendo.com/v1/price`) to detect current sales. It returns a `Game` per cataloged title that is currently discounted: current price, original price, currency (`USD`), age rating (ESRB, from the catalog), genres (from the catalog), and a deal URL to the US store. Games that are not on sale are ignored.
+4. **Real collector** (`src/collectors/nintendo-price-collector.ts`) — a `NintendoPriceCollector` that watches a curated catalog of US games (`data/game-catalog.json`) filtered to the configured platform (`NINTENDO_PLATFORM`) and queries Nintendo's official eShop **price API** (`api.ec.nintendo.com/v1/price`) to detect current sales. It returns a `Game` per cataloged, platform-matching title that is currently discounted: current price, original price, currency (`USD`), age rating (ESRB, from the catalog), genres (from the catalog), and a canonical store URL to the US store. Games that are not on sale are ignored.
 
 ```
 GameCollector
@@ -148,33 +149,40 @@ The `nintendo` collector targets the **US** Nintendo eShop only (`NINTENDO_REGIO
 
 - **Prices in USD** (taken directly from the price API, `currency: "USD"`)
 - **US (ESRB) age ratings** and **genres** from `data/game-catalog.json`
-- **Deal URLs** pointing to the US eShop (`nintendo.com/us/store/products/…`)
+- **Deal URLs** pointing to the canonical US store page (`nintendo.com/us/store/products/<slug>/`), where `<slug>` is taken verbatim from the catalog entry
+- **Platform filtering** — only catalog entries whose `platforms` include the configured console (`NINTENDO_PLATFORM`) are collected; `both` collects every entry
 
-Only cataloged games currently on sale are reported; games that are not discounted are skipped.
+Only cataloged games currently on sale and present on the selected platform are reported; games that are not discounted are skipped.
 
 ```bash
 $env:GAME_COLLECTOR  = "nintendo"
-$env:NINTENDO_REGION = "US";  npm run collect-games   # US deals (USD, ESRB)
+$env:NINTENDO_REGION = "US";  npm run collect-games   # US deals (USD, ESRB), Switch 1 only
+$env:NINTENDO_PLATFORM = "switch2";  npm run collect-games   # Switch 2 only
+$env:NINTENDO_PLATFORM = "both";  npm run collect-games      # all cataloged platforms
 ```
 
 `GAME_CATALOG` points the collector at an alternate catalog file. `DEALS_CURRENCY` overrides the expected currency (default `USD`).
 
 ### Maintaining the game catalog
 
-`data/game-catalog.json` is a JSON array of the US games you want to watch. Each entry has an `nsuid` (Nintendo's regional product id), a `title`, and optional `genres` / `esrbRating` metadata used to enrich the reported deal:
+`data/game-catalog.json` is a JSON array of the US games you want to watch. Each entry has an `nsuid` (Nintendo's regional product id), a `title`, a canonical `slug` (used verbatim to build the store URL), a `platforms` array (`switch1` / `switch2` — which consoles carry the title), and optional `genres` / `esrbRating` metadata used to enrich the reported deal:
 
 ```json
 {
   "nsuid": "70010000000025",
   "title": "The Legend of Zelda: Breath of the Wild",
+  "slug": "the-legend-of-zelda-breath-of-the-wild-switch",
+  "platforms": ["switch1"],
   "genres": ["Adventure", "Action", "Role-Playing"],
   "esrbRating": "Everyone 10+"
 }
 ```
 
-- **Add a game** — look up its US `nsuid` (e.g. via `www.nintendo.com/us/games/…` game pages or the game-guide search), then append an entry. The collector will start checking it on the next run.
+- **Add a game** — look up its US `nsuid` (e.g. via `www.nintendo.com/us/games/…` game pages or the game-guide search) and its store `slug` (the path segment of `nintendo.com/us/store/products/<slug>/`; confirm the page resolves), then append an entry. The collector will start checking it on the next run.
 - **Remove a game** — delete its entry. It is no longer queried.
-- **Correct data** — the collector trusts the catalog file (trims titles/nsuids, drops entries missing either). Run `npm run validate-collector` after editing to confirm the file parses and every entry is valid.
+- **Link quality** — the collector never derives URLs from the title; it uses the catalog `slug` verbatim, so every store link is canonical and resolvable. An entry missing a `slug` is dropped.
+- **Platforms** — list every console the title runs on (`switch1`, `switch2`). A game the selected `NINTENDO_PLATFORM` does not include is not collected. `both` collects every entry.
+- **Correct data** — the collector trusts the catalog file (trims titles/nsuids/slugs, drops entries missing any of them, and defaults missing `platforms` to `switch1`). Run `npm run validate-collector` after editing to confirm the file parses and every entry is valid.
 - **Automated discovery (future)** — the initial entries were sourced from Nintendo's public game-guide search index (`ncom_game_en_us`, nsuid/title rating/genres) and verified against the price API. This same index could one day be used to auto-populate or refresh the catalog.
 
 ### Collecting games locally
@@ -543,6 +551,7 @@ defaults
 | Collector               | `GAME_COLLECTOR`            | —                             | `mock`        |
 | Deals per run           | `DEALS_LIMIT`               | —                             | `100`         |
 | eShop region            | `NINTENDO_REGION`           | —                             | `US`          |
+| Console platform        | `NINTENDO_PLATFORM`         | —                             | `switch1`     |
 | Game catalog path       | `GAME_CATALOG`              | —                             | `data/game-catalog.json` |
 | Deals currency          | `DEALS_CURRENCY`            | —                             | `USD`         |
 
