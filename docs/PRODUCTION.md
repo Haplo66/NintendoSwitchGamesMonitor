@@ -54,9 +54,11 @@ The monitor runs automatically via `.github/workflows/monitor.yml` — no server
 
 ### Scheduled execution
 
-A cron schedule runs the pipeline once per day (06:30 UTC). Scheduled runs use repository secrets:
+A cron schedule runs the pipeline once per day (06:30 UTC) using **production configuration**: `GAME_COLLECTOR=nintendo`, `EMAIL_PROVIDER=gmail`, `NINTENDO_PLATFORM=switch1`, and `DRY_RUN=false`. Each morning it collects the Nintendo catalog and emails the daily digest whenever there are new notifications; cooldown filtering and notification history behave exactly as they do locally. Any failing step fails the run and the error is visible in the GitHub Actions logs for that run.
 
-- `EMAIL_PROVIDER` / `GAME_COLLECTOR` default to `gmail` / `nintendo` in production.
+Repository secrets used by the scheduled run:
+
+- `EMAIL_PROVIDER` / `GAME_COLLECTOR` default to `gmail` / `nintendo` in production; `NINTENDO_PLATFORM` defaults to `switch1`.
 - Gmail secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_TO`.
 - Optional overrides: `GAME_CATALOG`, `NINTENDO_PLATFORM`, `DEALS_CURRENCY`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`.
 
@@ -64,11 +66,13 @@ Configure them under **Settings → Secrets and variables → Actions**.
 
 ### Manual execution
 
-Trigger a run anytime from the **Actions** tab. Manual dispatch lets you pick per run:
+Trigger a run anytime from the **Actions** tab — either to test the workflow before trusting the schedule, or to force a run out-of-band. Manual dispatch lets you pick per run:
 
 - **Email provider** — `mock` (default, no credentials needed) or `gmail`.
 - **Game collector** — `nintendo` (default) or `mock`.
 - **Dry run** — boolean toggle (default off).
+
+Because manual runs default to `mock` / `nintendo` / dry-run-off, they are safe to run without exposing any email credentials until you explicitly enable them.
 
 ### DRY_RUN option
 
@@ -82,7 +86,7 @@ Turning on **Dry run** in manual dispatch sets `DRY_RUN=true`: the full pipeline
 
 Run through these before trusting the scheduled job:
 
-1. **Configuration validation passes** — `npm run validate-config`, `npm run validate-settings`.
+1. **Configuration validation passes** — `npm run validate-config`, `npm run validate-settings`, and `npm run validate-production` (workflow config, production settings, scheduled-mode behavior).
 2. **DRY_RUN run succeeds** — `npm run monitor:dry` completes the full pipeline, prints the summary with `Email: not sent (DRY_RUN=true)`, and leaves `data/notification-history.json` untouched.
 3. **Live Gmail test succeeds** — `npm run monitor:test-email` with `EMAIL_PROVIDER=gmail` sends a real digest to the recipient inbox.
 4. **Notification history behaves correctly** — a normal `npm run monitor` records notified games; re-running does not notify the same game+price within the cooldown window.

@@ -25,7 +25,9 @@
     "validate-dry-run": "npm run build && node dist/pipeline/validate-dry-run.js",
     "validate-force-email": "npm run build && node dist/pipeline/validate-force-email.js",
     "report": "npm run build && node dist/reports/generate-report.js",
-    "validate-reports": "npm run build && node dist/reports/validate-reports.js"
+    "validate-reports": "npm run build && node dist/reports/validate-reports.js",
+    "validate-production": "npm run build && node dist/config/validate-production.js",
+    "test": "npm run build && npm run validate-collector && npm run validate-config && npm run validate-settings && npm run validate-history && npm run validate-dry-run && npm run validate-force-email && npm run validate-reports && npm run validate-email && npm run validate-production"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

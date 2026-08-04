@@ -84,6 +84,8 @@ function cooldownHistory(now: Date): string {
 export async function validateForceEmail(): Promise<void> {
   process.env.FORCE_EMAIL = 'false';
   process.env.IGNORE_NOTIFICATION_HISTORY = 'false';
+  const previousCooldown = process.env.NOTIFICATION_COOLDOWN_DAYS;
+  process.env.NOTIFICATION_COOLDOWN_DAYS = '14';
 
   const backup = readHistoryFile();
   const controlledHistory = cooldownHistory(new Date());
@@ -170,6 +172,11 @@ export async function validateForceEmail(): Promise<void> {
     console.log('\nAll FORCE_EMAIL validation checks passed.');
   } finally {
     restoreHistoryFile(backup);
+    if (previousCooldown === undefined) {
+      delete process.env.NOTIFICATION_COOLDOWN_DAYS;
+    } else {
+      process.env.NOTIFICATION_COOLDOWN_DAYS = previousCooldown;
+    }
   }
 }
 

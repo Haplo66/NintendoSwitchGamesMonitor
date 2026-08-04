@@ -300,10 +300,10 @@ Monitor summary:
 
 The monitor runs automatically in the cloud via GitHub Actions (`.github/workflows/monitor.yml`), so there is no server to keep running:
 
-- **Schedule** — runs once per day at 06:30 UTC via cron.
-- **Manual dispatch** — trigger a run anytime from the **Actions** tab. Manual runs default to `EMAIL_PROVIDER=mock`, so you can validate the whole workflow end-to-end without any email credentials. A **Dry run** toggle (default off) runs the full pipeline but sends no email and writes no history.
+- **Schedule** — runs once per day at 06:30 UTC via cron. Scheduled runs use **production configuration**: `GAME_COLLECTOR=nintendo`, `EMAIL_PROVIDER=gmail`, `NINTENDO_PLATFORM=switch1`, and `DRY_RUN=false` — so every morning it collects the Nintendo catalog, and emails the daily digest whenever there are new notifications. If a step fails, the workflow fails and the error is visible in the GitHub Actions run logs.
+- **Manual dispatch** — trigger a run anytime from the **Actions** tab. Manual runs let you override `EMAIL_PROVIDER` (`mock` default / `gmail`) and `GAME_COLLECTOR` per run, plus a **Dry run** toggle (default off) that runs the full pipeline but sends no email and writes no history. This is the safe way to test the whole workflow before trusting the scheduled job.
 - **Steps** — checks out the repo, sets up Node.js, installs dependencies with `npm ci`, then runs `npm run monitor`.
-- **Logging** — the pipeline output shows the collector used, the number of games collected, how many were reported, and the completion status. In mock mode the rendered HTML email is also uploaded as a `monitor-emails` workflow artifact for inspection.
+- **Logging** — the pipeline output shows the resolved configuration (collector, region, platform, dry-run), the number of games collected, how many were reported, and the completion status. In mock mode the rendered HTML email is also uploaded as a `monitor-emails` workflow artifact for inspection.
 
 ### Required secrets
 
@@ -318,6 +318,7 @@ Configure these under **Settings → Secrets and variables → Actions**. Secret
 | `SMTP_PASSWORD`    | Gmail App Password                             | gmail mode                  |
 | `EMAIL_TO`         | Recipient address for notification emails      | gmail mode                  |
 | `GAME_COLLECTOR`   | `nintendo` or `mock`                           | scheduled runs              |
+| `NINTENDO_PLATFORM` | Target console: `switch1`, `switch2`, or `both` (default `switch1`) | scheduled runs |
 | `GAME_CATALOG`     | Game catalog path (optional, defaults to `data/game-catalog.json`) | scheduled nintendo runs |
 | `MIN_DEAL_SCORE`   | Report threshold (optional, default `80`)      | scheduled runs              |
 | `MAX_GAMES_PER_EMAIL` | Cap on games per email (optional)           | scheduled runs              |
@@ -326,7 +327,7 @@ Configure these under **Settings → Secrets and variables → Actions**. Secret
 | `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | Auto wishlist target discount % (optional) | scheduled runs  |
 | `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | Default notify-on-any-discount (optional) | scheduled runs  |
 
-Manual dispatch always lets you override `EMAIL_PROVIDER` and `GAME_COLLECTOR` per run, independent of the stored secrets.
+Manual dispatch always lets you override `EMAIL_PROVIDER` and `GAME_COLLECTOR` per run, independent of the stored secrets. `NINTENDO_PLATFORM` falls back to `switch1` when no secret is set, so the scheduled run always filters to a concrete platform.
 
 ## Notification History & Intelligence
 

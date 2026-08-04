@@ -54,11 +54,13 @@ jobs:
         run: |
           EMAIL_PROVIDER="${{ inputs.email_provider || secrets.EMAIL_PROVIDER || 'gmail' }}"
           GAME_COLLECTOR="${{ inputs.game_collector || secrets.GAME_COLLECTOR || 'nintendo' }}"
+          NINTENDO_PLATFORM="${NINTENDO_PLATFORM:-switch1}"
           DRY_RUN="${{ inputs.dry_run }}"
           echo "EMAIL_PROVIDER=$EMAIL_PROVIDER" >> "$GITHUB_ENV"
           echo "GAME_COLLECTOR=$GAME_COLLECTOR" >> "$GITHUB_ENV"
+          echo "NINTENDO_PLATFORM=$NINTENDO_PLATFORM" >> "$GITHUB_ENV"
           echo "DRY_RUN=$DRY_RUN" >> "$GITHUB_ENV"
-          echo "::notice::Resolved configuration -> EMAIL_PROVIDER=$EMAIL_PROVIDER, GAME_COLLECTOR=$GAME_COLLECTOR, DRY_RUN=$DRY_RUN"
+          echo "::notice::Resolved configuration -> EMAIL_PROVIDER=$EMAIL_PROVIDER, GAME_COLLECTOR=$GAME_COLLECTOR, NINTENDO_PLATFORM=$NINTENDO_PLATFORM, DRY_RUN=$DRY_RUN"
 
       - name: Run monitoring pipeline
         env:
@@ -69,6 +71,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          NINTENDO_PLATFORM: ${{ env.NINTENDO_PLATFORM }}
           DRY_RUN: ${{ env.DRY_RUN }}
           DEALS_CURRENCY: ${{ secrets.DEALS_CURRENCY }}
           GAME_CATALOG: ${{ secrets.GAME_CATALOG }}

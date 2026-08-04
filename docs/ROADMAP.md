@@ -182,7 +182,7 @@ Features:
 
 > **Status: ✅ In progress**
 
-## v0.19 Store Link Quality & Platform Filtering
+## v0.19 Store Link Quality & Platform Filtering (v0.19.0)
 
 Features:
 - Store links are built from a canonical catalog `slug` (`nintendo.com/us/store/products/<slug>/`), never derived from the game title — every reported link resolves (all 11 catalog slugs verified HTTP 200)
@@ -190,5 +190,16 @@ Features:
 - Entries missing a `slug` are dropped; entries missing `platforms` default to `switch1`
 - Collector validation extended with platform checks (resolution/normalization, platform filtering incl. `both`, slug-based URL construction) and default-catalog checks (slug + platforms present, URLs well-formed)
 - Docs updated (README, `.env.example`, PRODUCTION.md, ROADMAP)
+
+> **Status: ✅ In progress**
+
+## v0.19 Production Automation (v0.19.1)
+
+Features:
+- Daily scheduled digest — the GitHub Actions workflow runs once per day (06:30 UTC) with production configuration (`GAME_COLLECTOR=nintendo`, `EMAIL_PROVIDER=gmail`, `NINTENDO_PLATFORM=switch1`, `DRY_RUN=false`) and emails the digest whenever there are new notifications
+- GitHub Actions execution — `NINTENDO_PLATFORM` wired through the scheduled/manual paths (defaults to `switch1`); manual `workflow_dispatch` retained for test runs
+- Production secrets — documented required repository secrets (Gmail SMTP, recipients) and optional overrides; `.env.example` notes the CI mapping
+- Automated email delivery — normal scheduled (non-dry) runs send the digest and record notifications to history; cooldown/history behavior unchanged; step failures surface in the workflow logs
+- New `validate-production` validation covering workflow configuration (cron, manual dispatch, production defaults, secrets), production settings loading, and scheduled-mode behavior (email sent on new notifications; cooldown + unchanged history on re-run); `npm test` aggregates all validation suites
 
 > **Status: ✅ In progress**
