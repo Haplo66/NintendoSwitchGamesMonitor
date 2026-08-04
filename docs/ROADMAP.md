@@ -135,3 +135,14 @@ Features:
 - Updated docs (.env.example, README)
 
 > **Status: 🔄 In progress**
+
+## v0.15 Dry Run Mode
+
+Features:
+- `DRY_RUN=true` test mode — runs the full pipeline (collect, analyze, generate the HTML digest/report) but sends **no email** and **never writes to notification history**
+- Startup logging prints collector, email provider, minimum score, cooldown, and test-mode status (including DRY_RUN)
+- Production configuration defaults: `GAME_COLLECTOR=deku`, `EMAIL_PROVIDER=gmail`; GitHub Actions `dry_run` manual-dispatch toggle
+- New `validate-dry-run` validation covering full pipeline execution, HTML generation, email suppression, and unchanged history
+- Updated docs (.env.example, README)
+
+> **Status: 🔄 In progress**

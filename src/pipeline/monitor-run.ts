@@ -50,19 +50,20 @@ export function decideDigestEmail(
   forceEmail: boolean,
   dryRun: boolean,
 ): DigestEmailDecision {
-  if (dryRun) {
-    return { send: false, reason: 'DRY_RUN=true' };
-  }
+  let decision: DigestEmailDecision;
   if (newNotificationCount > 0) {
-    return { send: true, reason: `${newNotificationCount} new notification(s)` };
+    decision = { send: true, reason: `${newNotificationCount} new notification(s)` };
+  } else if (sendEmptyDigest) {
+    decision = { send: true, reason: 'sendEmptyDigest=true' };
+  } else if (forceEmail) {
+    decision = { send: true, reason: 'FORCE_EMAIL=true' };
+  } else {
+    decision = { send: false, reason: 'no new notifications' };
   }
-  if (sendEmptyDigest) {
-    return { send: true, reason: 'sendEmptyDigest=true' };
+  if (dryRun && decision.send) {
+    return { send: true, reason: 'DRY_RUN=true' };
   }
-  if (forceEmail) {
-    return { send: true, reason: 'FORCE_EMAIL=true' };
-  }
-  return { send: false, reason: 'no new notifications' };
+  return decision;
 }
 
 export interface ReportingOptions {
@@ -229,14 +230,17 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     forceEmail,
     dryRun,
   );
-  if (decision.send && !dryRun) {
+  const emailSent = decision.send && !dryRun;
+  if (emailSent) {
     const provider: EmailProvider = createEmailProvider(options.emailProviderKind);
     await provider.sendEmail({
       subject: `🎮 Nintendo Switch Daily Digest — ${toEmail.length} game(s) worth checking`,
       html,
     });
+  } else if (decision.send && dryRun) {
+    console.log('DRY_RUN: digest rendered but email delivery is suppressed (no email sent).');
   } else if (!decision.send) {
-    console.log(`Digest skipped: ${decision.reason} (sendEmptyDigest=false, IGNORE_NOTIFICATION_HISTORY=true, FORCE_EMAIL=true, or DRY_RUN=true).`);
+    console.log(`Digest skipped: ${decision.reason}.`);
   }
 
   if (!ignoreNotificationHistory && !forceEmail && !dryRun) {
@@ -252,9 +256,17 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   console.log(`  Potential matches: ${reported.length}`);
   console.log(`  New notifications: ${toEmail.length}`);
   console.log(`  Skipped cooldown: ${skippedByCooldown}`);
-  console.log(`  Email: ${decision.send ? `sent (${decision.reason})` : `skipped (${decision.reason})`}`);
+  console.log(
+    `  Email: ${
+      emailSent
+        ? `sent (${decision.reason})`
+        : decision.send
+          ? `not sent (${decision.reason})`
+          : `skipped (${decision.reason})`
+    }`,
+  );
 
-  return { result, html, emailSent: decision.send };
+  return { result, html, emailSent };
 }
 
 if (require.main === module) {

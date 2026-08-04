@@ -106,6 +106,7 @@ This builds the project, generates a sample `DailyDigest`, renders it to HTML, a
 | `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | Default `notifyOnAnyDiscount` for wishlist items that omit it (default: `false`) |
 | `IGNORE_NOTIFICATION_HISTORY` | Test mode: bypass cooldown filtering and never write to notification history (`true`/`false`, default: `false`) |
 | `FORCE_EMAIL` | Test mode: always send the digest email (even with 0 new notifications) and never write to history (`true`/`false`, default: `false`) |
+| `DRY_RUN` | Test mode: run the full pipeline (collect, analyze, generate the HTML digest/report) but send no email and never write to history (`true`/`false`, default: `false`) |
 
 Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
 
@@ -213,6 +214,14 @@ To verify Gmail delivery without polluting notification history, set `FORCE_EMAI
 $env:EMAIL_PROVIDER = "gmail"; $env:FORCE_EMAIL = "true"; npm run monitor
 ```
 
+For a rehearsal that runs the whole pipeline without touching the outside world, set `DRY_RUN=true`. It performs the full collection and analysis, generates the HTML digest/report, and prints what would be emailed, but it **sends no email** and **never writes to notification history**:
+
+```bash
+$env:EMAIL_PROVIDER = "mock"; $env:DRY_RUN = "true"; npm run monitor
+```
+
+`DRY_RUN` is independent of `IGNORE_NOTIFICATION_HISTORY` and `FORCE_EMAIL`. Combination behavior is: `FORCE_EMAIL` still applies its cooldown filtering and sends despite 0 notifications (unless `DRY_RUN` is also set, which suppresses delivery); `DRY_RUN` always suppresses email delivery and history writes, regardless of the other flags.
+
 Every run ends with a compact summary of the decision, for example:
 
 ```
@@ -233,12 +242,22 @@ Monitor summary:
   Email: sent (FORCE_EMAIL=true)
 ```
 
+or, with `DRY_RUN=true`:
+
+```
+Monitor summary:
+  Potential matches: 3
+  New notifications: 3
+  Skipped cooldown: 0
+  Email: not sent (DRY_RUN=true)
+```
+
 ## Scheduled Execution (GitHub Actions)
 
 The monitor runs automatically in the cloud via GitHub Actions (`.github/workflows/monitor.yml`), so there is no server to keep running:
 
 - **Schedule** — runs once per day at 06:30 UTC via cron.
-- **Manual dispatch** — trigger a run anytime from the **Actions** tab. Manual runs default to `EMAIL_PROVIDER=mock`, so you can validate the whole workflow end-to-end without any email credentials.
+- **Manual dispatch** — trigger a run anytime from the **Actions** tab. Manual runs default to `EMAIL_PROVIDER=mock`, so you can validate the whole workflow end-to-end without any email credentials. A **Dry run** toggle (default off) runs the full pipeline but sends no email and writes no history.
 - **Steps** — checks out the repo, sets up Node.js, installs dependencies with `npm ci`, then runs `npm run monitor`.
 - **Logging** — the pipeline output shows the collector used, the number of games collected, how many were reported, and the completion status. In mock mode the rendered HTML email is also uploaded as a `monitor-emails` workflow artifact for inspection.
 
@@ -524,6 +543,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |
 | `npm run monitor`       | Build and run the full monitor pipeline (collect → analyze → email) |
 | `npm run validate-force-email` | Build and validate FORCE_EMAIL test-mode behavior (send empty digest, history untouched) |
+| `npm run validate-dry-run` | Build and validate DRY_RUN test-mode behavior (full pipeline + HTML generated, no email sent, history untouched) |
 | `npm run report`        | Build, run the pipeline with mock email, and write a markdown + HTML report |
 | `npm run validate-reports` | Build and validate report generation (markdown + HTML) |
 

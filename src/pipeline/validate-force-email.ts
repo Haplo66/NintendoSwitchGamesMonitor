@@ -154,9 +154,13 @@ export async function validateForceEmail(): Promise<void> {
       {
         name: 'digest email decision includes DRY_RUN option',
         run: () => {
-          assert.deepStrictEqual(decideDigestEmail(0, false, false, true), {
+          assert.deepStrictEqual(decideDigestEmail(3, false, false, true), {
             send: true,
             reason: 'DRY_RUN=true',
+          });
+          assert.deepStrictEqual(decideDigestEmail(0, false, false, true), {
+            send: false,
+            reason: 'no new notifications',
           });
         },
       },

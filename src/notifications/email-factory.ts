@@ -4,8 +4,14 @@ import { MockEmailProvider } from './mock-email-provider';
 
 export type EmailProviderKind = 'gmail' | 'mock';
 
+export const DEFAULT_EMAIL_PROVIDER: EmailProviderKind = 'gmail';
+
+export function resolveEmailProviderKind(kind?: EmailProviderKind | string): EmailProviderKind {
+  return (kind ?? process.env.EMAIL_PROVIDER ?? DEFAULT_EMAIL_PROVIDER).toLowerCase() as EmailProviderKind;
+}
+
 export function createEmailProvider(kind?: EmailProviderKind | string): EmailProvider {
-  const selected = (kind ?? process.env.EMAIL_PROVIDER ?? 'gmail').toLowerCase();
+  const selected = resolveEmailProviderKind(kind);
 
   switch (selected) {
     case 'mock':

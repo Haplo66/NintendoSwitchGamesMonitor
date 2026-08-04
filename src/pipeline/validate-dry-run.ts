@@ -3,9 +3,16 @@ import 'dotenv/config';
 import * as assert from 'node:assert';
 import * as fs from 'node:fs';
 
+import { resolveCollectorSettings } from '../config/app-config';
+import { defaultNotificationHistoryFile } from '../config/notification-history-store';
+import { createGameCollector } from '../collectors/collector-factory';
+import { DekuDealsCollector } from '../collectors/deku-deals-collector';
 import {
-  defaultNotificationHistoryFile,
-} from '../config/notification-history-store';
+  DEFAULT_EMAIL_PROVIDER,
+  createEmailProvider,
+  resolveEmailProviderKind,
+} from '../notifications/email-factory';
+import { MockEmailProvider } from '../notifications/mock-email-provider';
 import { decideDigestEmail, runMonitor } from './monitor-run';
 
 interface Check {
@@ -50,35 +57,20 @@ function restoreHistoryFile(content: string | undefined): void {
   writeHistoryFile(content);
 }
 
-function cooldownHistory(now: Date): string {
-  const notifiedAt = now.toISOString();
-  const records = [
-    {
-      gameId: 'mock-mario-kart-8-deluxe',
-      title: 'Mario Kart 8 Deluxe',
-      notificationType: 'wishlist',
-      score: 124,
-      price: 33.59,
-      notifiedAt,
-    },
-    {
-      gameId: 'mock-fortnite',
-      title: 'Fortnite',
-      notificationType: 'free',
-      score: 60,
-      price: 0,
-      notifiedAt,
-    },
-    {
-      gameId: 'mock-fall-guys',
-      title: 'Fall Guys: Ultimate Knockout',
-      notificationType: 'free',
-      score: 100,
-      price: 0,
-      notifiedAt,
-    },
-  ];
-  return `${JSON.stringify({ records }, null, 2)}\n`;
+const EMPTY_HISTORY = `${JSON.stringify({ records: [] }, null, 2)}\n`;
+
+function verifyDecision(
+  count: number,
+  sendEmptyDigest: boolean,
+  forceEmail: boolean,
+  dryRun: boolean,
+  expectedSend: boolean,
+  expectedReason: string,
+): void {
+  assert.deepStrictEqual(decideDigestEmail(count, sendEmptyDigest, forceEmail, dryRun), {
+    send: expectedSend,
+    reason: expectedReason,
+  });
 }
 
 export async function validateDryRun(): Promise<void> {
@@ -87,20 +79,63 @@ export async function validateDryRun(): Promise<void> {
   process.env.FORCE_EMAIL = 'false';
 
   const backup = readHistoryFile();
-  const controlledHistory = cooldownHistory(new Date());
-  writeHistoryFile(controlledHistory);
+  writeHistoryFile(EMPTY_HISTORY);
+
+  const previousEmailProvider = process.env.EMAIL_PROVIDER;
+  const previousGameCollector = process.env.GAME_COLLECTOR;
 
   try {
     const dryRunResult = await runMonitor({ emailProviderKind: 'mock', dryRun: true });
     const historyAfterDryRun = readHistoryFile();
 
+    process.env.EMAIL_PROVIDER = 'gmail';
+    process.env.GAME_COLLECTOR = 'deku';
+
     const checks: Check[] = [
       {
-        name: 'DRY_RUN generates report/email HTML without sending email',
+        name: 'production configuration loads GAME_COLLECTOR=deku',
         run: () => {
-          assert.strictEqual(dryRunResult.result.reportedCount, 0, 'Expected zero new notifications');
-          assert.strictEqual(dryRunResult.emailSent, true, 'DRY_RUN should attempt email delivery');
-          assert.ok(dryRunResult.html.includes('Nintendo Switch Daily Digest'), 'DRY_RUN should generate HTML report');
+          const collector = resolveCollectorSettings({ GAME_COLLECTOR: 'deku' });
+          assert.strictEqual(collector.collectorKind, 'deku', 'GAME_COLLECTOR=deku must select the deku collector');
+          assert.ok(
+            createGameCollector('deku') instanceof DekuDealsCollector,
+            'createGameCollector("deku") must produce a DekuDealsCollector',
+          );
+        },
+      },
+      {
+        name: 'production configuration loads EMAIL_PROVIDER=gmail',
+        run: () => {
+          assert.strictEqual(DEFAULT_EMAIL_PROVIDER, 'gmail', 'Production email provider default must be gmail');
+          assert.strictEqual(resolveEmailProviderKind(undefined), 'gmail', 'Unset EMAIL_PROVIDER must resolve to gmail');
+          assert.strictEqual(resolveEmailProviderKind('gmail'), 'gmail');
+          assert.ok(createEmailProvider('mock') instanceof MockEmailProvider, 'mock provider resolves correctly');
+        },
+      },
+      {
+        name: 'DRY_RUN runs the full pipeline (games collected, analyzed, reported)',
+        run: () => {
+          assert.ok(dryRunResult.result.analyzedCount > 0, 'DRY_RUN should run full collection/analysis');
+          assert.ok(dryRunResult.result.potentialMatchCount > 0, 'DRY_RUN should find reportable games');
+        },
+      },
+      {
+        name: 'DRY_RUN generates the HTML digest/report',
+        run: () => {
+          assert.ok(
+            dryRunResult.html.includes('Nintendo Switch Daily Digest'),
+            'DRY_RUN should generate the HTML digest',
+          );
+        },
+      },
+      {
+        name: 'DRY_RUN does not send an email',
+        run: () => {
+          assert.ok(
+            dryRunResult.result.potentialMatchCount > 0,
+            'Precondition: DRY_RUN should have something worth sending',
+          );
+          assert.strictEqual(dryRunResult.emailSent, false, 'DRY_RUN must not send an email');
         },
       },
       {
@@ -108,49 +143,35 @@ export async function validateDryRun(): Promise<void> {
         run: () => {
           assert.strictEqual(
             historyAfterDryRun,
-            controlledHistory,
+            EMPTY_HISTORY,
             'History file changed after DRY_RUN run',
           );
         },
       },
       {
-        name: 'DRY_RUN allows email delivery (but not actually sent)',
-        run: () => {
-          assert.ok(dryRunResult.emailSent, 'DRY_RUN should attempt email');
-        },
-      },
-      {
         name: 'digest email decision logic covers all combinations',
         run: () => {
-          assert.deepStrictEqual(decideDigestEmail(0, false, false, false), {
-            send: false,
-            reason: 'no new notifications',
-          });
-          assert.deepStrictEqual(decideDigestEmail(3, false, false, false), {
-            send: true,
-            reason: '3 new notification(s)',
-          });
-          assert.deepStrictEqual(decideDigestEmail(0, true, false, false), {
-            send: true,
-            reason: 'sendEmptyDigest=true',
-          });
-          assert.deepStrictEqual(decideDigestEmail(0, false, true, false), {
-            send: true,
-            reason: 'FORCE_EMAIL=true',
-          });
-          assert.deepStrictEqual(decideDigestEmail(0, false, false, true), {
-            send: true,
-            reason: 'DRY_RUN=true',
-          });
+          verifyDecision(0, false, false, false, false, 'no new notifications');
+          verifyDecision(3, false, false, false, true, '3 new notification(s)');
+          verifyDecision(0, true, false, false, true, 'sendEmptyDigest=true');
+          verifyDecision(0, false, true, false, true, 'FORCE_EMAIL=true');
+          verifyDecision(3, false, false, true, true, 'DRY_RUN=true');
+          verifyDecision(0, true, false, true, true, 'DRY_RUN=true');
+          verifyDecision(0, false, true, true, true, 'DRY_RUN=true');
+          verifyDecision(0, false, false, true, false, 'no new notifications');
         },
       },
       {
-        name: 'digest email decision includes DRY_RUN option',
+        name: 'DRY_RUN reports an email would be sent but suppresses delivery',
         run: () => {
-          assert.deepStrictEqual(decideDigestEmail(0, false, false, true), {
-            send: true,
-            reason: 'DRY_RUN=true',
-          });
+          const decision = decideDigestEmail(
+            dryRunResult.result.potentialMatchCount,
+            false,
+            false,
+            true,
+          );
+          assert.ok(decision.send, 'DRY_RUN should indicate an email would be sent');
+          assert.strictEqual(dryRunResult.emailSent, false, 'but the email must not actually be sent');
         },
       },
     ];
@@ -159,6 +180,16 @@ export async function validateDryRun(): Promise<void> {
     console.log('\nAll DRY_RUN validation checks passed.');
   } finally {
     restoreHistoryFile(backup);
+    if (previousEmailProvider === undefined) {
+      delete process.env.EMAIL_PROVIDER;
+    } else {
+      process.env.EMAIL_PROVIDER = previousEmailProvider;
+    }
+    if (previousGameCollector === undefined) {
+      delete process.env.GAME_COLLECTOR;
+    } else {
+      process.env.GAME_COLLECTOR = previousGameCollector;
+    }
   }
 }
 

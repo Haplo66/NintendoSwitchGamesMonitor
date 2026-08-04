@@ -20,6 +20,10 @@ on:
         options:
           - deku
           - mock
+      dry_run:
+        description: 'Dry run (full pipeline, no email sent, no history written)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -50,9 +54,11 @@ jobs:
         run: |
           EMAIL_PROVIDER="${{ inputs.email_provider || secrets.EMAIL_PROVIDER || 'gmail' }}"
           GAME_COLLECTOR="${{ inputs.game_collector || secrets.GAME_COLLECTOR || 'deku' }}"
+          DRY_RUN="${{ inputs.dry_run }}"
           echo "EMAIL_PROVIDER=$EMAIL_PROVIDER" >> "$GITHUB_ENV"
           echo "GAME_COLLECTOR=$GAME_COLLECTOR" >> "$GITHUB_ENV"
-          echo "::notice::Resolved configuration -> EMAIL_PROVIDER=$EMAIL_PROVIDER, GAME_COLLECTOR=$GAME_COLLECTOR"
+          echo "DRY_RUN=$DRY_RUN" >> "$GITHUB_ENV"
+          echo "::notice::Resolved configuration -> EMAIL_PROVIDER=$EMAIL_PROVIDER, GAME_COLLECTOR=$GAME_COLLECTOR, DRY_RUN=$DRY_RUN"
 
       - name: Run monitoring pipeline
         env:
@@ -63,6 +69,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          DRY_RUN: ${{ env.DRY_RUN }}
           DEALS_SOURCE_URL: ${{ secrets.DEALS_SOURCE_URL }}
           DEALS_CURRENCY: ${{ secrets.DEALS_CURRENCY }}
           MIN_DEAL_SCORE: ${{ secrets.MIN_DEAL_SCORE }}
