@@ -93,11 +93,11 @@ This builds the project, generates a sample `DailyDigest`, renders it to HTML, a
 | `EMAIL_TO`            | Recipient address the notification emails are sent to                           |
 | `EMAIL_PROVIDER`      | Active provider: `gmail` or `mock` (default: `gmail`)                           |
 | `MOCK_EMAIL_OUT_DIR`  | Where the mock provider saves rendered HTML (default: `data/emails`)            |
-| `GAME_COLLECTOR`      | Active collector: `mock` or `deku` (default: `mock`)                            |
-| `NINTENDO_REGION`     | eShop region for the `deku` collector: `US` (default) or `EU`                    |
-| `DEALS_SOURCE_URL`    | Deals JSON feed used by the `deku` collector (default: the configured region's feed) |
-| `DEALS_CURRENCY`      | Currency reported by the deals source (default: `USD` for US, `EUR` for EU)     |
-| `DEALS_LIMIT`         | Deals fetched per run for the `deku` collector (default: `100`)                 |
+| `GAME_COLLECTOR`      | Active collector: `mock` or `nintendo` (default: `mock`)                   |
+| `NINTENDO_REGION`     | eShop region for the `nintendo` collector: `US` (default, only value)      |
+| `GAME_CATALOG`        | Path to the US game catalog JSON watched by the `nintendo` collector (default: `data/game-catalog.json`) |
+| `DEALS_CURRENCY`      | Currency expected from the price API (default: `USD`)                      |
+| `DEALS_LIMIT`         | Max games to return per run for the `nintendo` collector (default: `100`)  |
 | `MIN_DEAL_SCORE`      | Minimum score for a game to be included in the report (default: `80`)          |
 | `NOTIFICATION_COOLDOWN_DAYS` | Days before the same game at the same price is notified again (default: `14`) |
 | `MAX_GAMES_PER_EMAIL` | Cap on games included in a single email, best-scoring first (default: `10`)   |
@@ -118,52 +118,64 @@ Data collection is built behind a small abstraction so the pipeline can be devel
 1. **Models** (`src/models/game.ts`) — a generic `Game` type (id, title, prices, currency, age rating, genres, store/image URLs, source). It carries no logic, so any future source can map its data into it.
 2. **Collector abstraction** (`src/collectors/game-collector.ts`) — a `GameCollector` interface (`collectGames(options)` → `Promise<Game[]>`). It is deliberately not Nintendo-specific.
 3. **Mock collector** (`src/collectors/mock-game-collector.ts`) — a `MockGameCollector` that returns sample data covering a discounted game, a free game, and a kid-friendly game, letting the rest of the pipeline (analysis → notification) be built before real sources exist.
-4. **Real collector** (`src/collectors/deku-deals-collector.ts`) — a `DekuDealsCollector` that fetches live Switch game deals. DekuDeals itself offers no public API and blocks automated access, so the collector reads a JSON deals feed that is fully configurable via `DEALS_SOURCE_URL`. The default is the public Nintendo eShop sales feed (Apache Solr JSON), which provides title, current/original price, discount %, age rating, genres, image, and store URL.
+4. **Real collector** (`src/collectors/nintendo-price-collector.ts`) — a `NintendoPriceCollector` that watches a curated catalog of US games (`data/game-catalog.json`) and queries Nintendo's official eShop **price API** (`api.ec.nintendo.com/v1/price`) to detect current sales. It returns a `Game` per cataloged title that is currently discounted: current price, original price, currency (`USD`), age rating (ESRB, from the catalog), genres (from the catalog), and a deal URL to the US store. Games that are not on sale are ignored.
 
 ```
 GameCollector
     |
-    +-- MockGameCollector   (sample data)
+    +-- MockGameCollector       (sample data)
     |
-    +-- DekuDealsCollector  (real deals feed)
+    +-- NintendoPriceCollector  (catalog + official Nintendo price API)
 ```
 
 ### Switching collectors
 
 The active collector is selected with the `GAME_COLLECTOR` environment variable (default `mock`):
 
-| Value  | Collector                                |
-| ------ | ---------------------------------------- |
-| `mock` | `MockGameCollector` — sample data, offline, default |
-| `deku` | `DekuDealsCollector` — real Switch deals from the configured source |
+| Value      | Collector                                |
+| ---------- | ---------------------------------------- |
+| `mock`     | `MockGameCollector` — sample data, offline, default |
+| `nintendo` | `NintendoPriceCollector` — real US deals via the Nintendo price API |
 
 ```bash
-npm run collect-games                         # mock (default)
-$env:GAME_COLLECTOR = "deku"; npm run collect-games   # real data
+npm run collect-games                             # mock (default)
+$env:GAME_COLLECTOR = "nintendo"; npm run collect-games   # real data
 ```
 
-### Region configuration
+### Game catalog and region
 
-The `deku` collector targets the **US** Nintendo eShop by default (`NINTENDO_REGION=US`). It produces US-focused deals:
+The `nintendo` collector targets the **US** Nintendo eShop only (`NINTENDO_REGION=US`). It derives prices and sale status from Nintendo's **price API**, and metadata (ESRB rating, genres) from the local catalog:
 
-- **Prices in USD**
-- **US (ESRB) age ratings** when the source provides them
+- **Prices in USD** (taken directly from the price API, `currency: "USD"`)
+- **US (ESRB) age ratings** and **genres** from `data/game-catalog.json`
 - **Deal URLs** pointing to the US eShop (`nintendo.com/us/store/products/…`)
 
-Two regions are supported via `NINTENDO_REGION`:
-
-| Value | Currency | Default deals feed    | Deal URL host          |
-| ----- | -------- | --------------------- | ---------------------- |
-| `US`  | `USD`    | `searching.nintendo.com` | `www.nintendo.com`   |
-| `EU`  | `EUR`    | `searching.nintendo-europe.com` | `www.nintendo-europe.com` |
+Only cataloged games currently on sale are reported; games that are not discounted are skipped.
 
 ```bash
-$env:GAME_COLLECTOR  = "deku"
+$env:GAME_COLLECTOR  = "nintendo"
 $env:NINTENDO_REGION = "US";  npm run collect-games   # US deals (USD, ESRB)
-$env:NINTENDO_REGION = "EU";  npm run collect-games   # EU deals (EUR, PEGI)
 ```
 
-`DEALS_SOURCE_URL` and `DEALS_CURRENCY` still override the source/currency for a given region when you need a custom feed.
+`GAME_CATALOG` points the collector at an alternate catalog file. `DEALS_CURRENCY` overrides the expected currency (default `USD`).
+
+### Maintaining the game catalog
+
+`data/game-catalog.json` is a JSON array of the US games you want to watch. Each entry has an `nsuid` (Nintendo's regional product id), a `title`, and optional `genres` / `esrbRating` metadata used to enrich the reported deal:
+
+```json
+{
+  "nsuid": "70010000000025",
+  "title": "The Legend of Zelda: Breath of the Wild",
+  "genres": ["Adventure", "Action", "Role-Playing"],
+  "esrbRating": "Everyone 10+"
+}
+```
+
+- **Add a game** — look up its US `nsuid` (e.g. via `www.nintendo.com/us/games/…` game pages or the game-guide search), then append an entry. The collector will start checking it on the next run.
+- **Remove a game** — delete its entry. It is no longer queried.
+- **Correct data** — the collector trusts the catalog file (trims titles/nsuids, drops entries missing either). Run `npm run validate-collector` after editing to confirm the file parses and every entry is valid.
+- **Automated discovery (future)** — the initial entries were sourced from Nintendo's public game-guide search index (`ncom_game_en_us`, nsuid/title rating/genres) and verified against the price API. This same index could one day be used to auto-populate or refresh the catalog.
 
 ### Collecting games locally
 
@@ -179,7 +191,7 @@ This builds the project, runs the selected collector, and prints the collected g
 npm run validate-collector
 ```
 
-Runs checks that fetch real data and confirm the collector returns games, every `Game` has the required fields, malformed source records are rejected, valid records are normalized correctly, and region configuration (`US`/`EU`) resolves correctly (currency, ratings, and deal URLs).
+Runs offline checks that confirm the default catalog loads valid entries, a game on sale maps to a correct `Game` (USD, original + current price, ESRB, deal URL), games that are **not** on sale are ignored, non-USD prices are rejected, malformed price data is rejected, and region configuration (`US` only) resolves correctly. It does not hit the network, so it is safe to run in CI.
 
 ## End-to-End Monitoring Pipeline
 
@@ -207,7 +219,7 @@ Daily Digest (build + render)
 HTML Email (provider)
 ```
 
-1. **Collect** — runs the selected `GameCollector` (`mock` or `deku`).
+1. **Collect** — runs the selected `GameCollector` (`mock` or `nintendo`).
 2. **Analyze** — family matcher, wishlist matcher, and deal scorer produce a `GameAnalysis` per game.
 3. **Filter** — only games worth reporting are kept. A game is included when it is free (if `notifyFreeGames`), matches a wishlist item (if `notifyWishlistMatches`), or its deal score reaches `minimumDealScore`.
 4. **Cooldown** — games already notified for the same price within `notificationCooldownDays` are skipped, and the report is capped at `maxGamesPerEmail` games (best-scoring first).
@@ -220,10 +232,10 @@ HTML Email (provider)
 $env:EMAIL_PROVIDER = "mock"; npm run monitor
 ```
 
-This collects games, analyzes them against the family profiles and wishlist, generates the HTML report, and captures it in the mock email provider (saved to `data/emails/` by default). Set `GAME_COLLECTOR=deku` to monitor real deals:
+This collects games, analyzes them against the family profiles and wishlist, generates the HTML report, and captures it in the mock email provider (saved to `data/emails/` by default). Set `GAME_COLLECTOR=nintendo` to monitor real deals:
 
 ```bash
-$env:GAME_COLLECTOR = "deku"; $env:EMAIL_PROVIDER = "mock"; npm run monitor
+$env:GAME_COLLECTOR = "nintendo"; $env:EMAIL_PROVIDER = "mock"; npm run monitor
 ```
 
 When no games are worth reporting and `sendEmptyDigest` is `false` (default), the email is **skipped** and a log line confirms it. For local testing, set `IGNORE_NOTIFICATION_HISTORY=true` to bypass cooldown filtering and keep the history file untouched:
@@ -297,8 +309,8 @@ Configure these under **Settings → Secrets and variables → Actions**. Secret
 | `SMTP_USER`        | Gmail address used for SMTP auth               | gmail mode                  |
 | `SMTP_PASSWORD`    | Gmail App Password                             | gmail mode                  |
 | `EMAIL_TO`         | Recipient address for notification emails      | gmail mode                  |
-| `GAME_COLLECTOR`   | `deku` or `mock`                               | scheduled runs              |
-| `DEALS_SOURCE_URL` | Deals JSON feed (optional, defaults to eShop)  | scheduled deku runs         |
+| `GAME_COLLECTOR`   | `nintendo` or `mock`                           | scheduled runs              |
+| `GAME_CATALOG`     | Game catalog path (optional, defaults to `data/game-catalog.json`) | scheduled nintendo runs |
 | `MIN_DEAL_SCORE`   | Report threshold (optional, default `80`)      | scheduled runs              |
 | `MAX_GAMES_PER_EMAIL` | Cap on games per email (optional)           | scheduled runs              |
 | `NOTIFY_FREE_GAMES` | Report free games (optional)                 | scheduled runs              |
@@ -531,8 +543,8 @@ defaults
 | Collector               | `GAME_COLLECTOR`            | —                             | `mock`        |
 | Deals per run           | `DEALS_LIMIT`               | —                             | `100`         |
 | eShop region            | `NINTENDO_REGION`           | —                             | `US`          |
-| Deals source URL        | `DEALS_SOURCE_URL`          | —                             | region feed   |
-| Deals currency          | `DEALS_CURRENCY`            | —                             | `USD` (US) / `EUR` (EU) |
+| Game catalog path       | `GAME_CATALOG`              | —                             | `data/game-catalog.json` |
+| Deals currency          | `DEALS_CURRENCY`            | —                             | `USD`         |
 
 `dailyDigest` and `sendEmptyDigest` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above.
 
@@ -608,7 +620,8 @@ cp .env.example .env   # then fill in values
 │   ├── collectors/    # Game data collection
 │   │   ├── game-collector.ts
 │   │   ├── mock-game-collector.ts
-│   │   ├── deku-deals-collector.ts
+│   │   ├── nintendo-price-collector.ts
+│   │   ├── region.ts
 │   │   ├── collector-factory.ts
 │   │   ├── validate-collector.ts
 │   │   └── collect-games.ts
@@ -636,6 +649,7 @@ cp .env.example .env   # then fill in values
 ├── data/              # Runtime data / cache + family/wishlist config + history + settings
 │   ├── family-profile.json
 │   ├── wishlist.json
+│   ├── game-catalog.json
 │   ├── notification-history.json
 │   └── settings.json
 ├── reports/           # Generated monitoring reports (markdown + html/, git-ignored)

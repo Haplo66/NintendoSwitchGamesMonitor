@@ -17,12 +17,12 @@ export interface NotificationSettings {
   dailyDigest: DailyDigestSettings;
 }
 
-export type NintendoRegion = 'US' | 'EU';
+export type NintendoRegion = 'US';
 
 export interface CollectorSettings {
   collectorKind: string;
   dealLimit: number;
-  dealsSourceUrl: string;
+  gameCatalogPath: string;
   dealsCurrency: string;
   nintendoRegion: NintendoRegion;
 }

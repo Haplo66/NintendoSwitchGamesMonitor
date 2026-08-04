@@ -16,6 +16,7 @@ data/*
 !data/wishlist.json
 !data/notification-history.json
 !data/settings.json
+!data/game-catalog.json
 
 # Generated monitoring reports
 reports/*

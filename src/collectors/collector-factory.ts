@@ -1,14 +1,14 @@
-import { DekuDealsCollector } from './deku-deals-collector';
 import { GameCollector } from './game-collector';
 import { MockGameCollector } from './mock-game-collector';
+import { NintendoPriceCollector, DEFAULT_GAME_CATALOG_PATH } from './nintendo-price-collector';
 import { NintendoRegion } from '../models/settings';
 
-export type GameCollectorKind = 'mock' | 'deku';
+export type GameCollectorKind = 'mock' | 'nintendo';
 
 export interface CollectorFactoryOptions {
-  sourceUrl?: string;
   currency?: string;
   region?: NintendoRegion;
+  catalogPath?: string;
 }
 
 export function createGameCollector(
@@ -18,11 +18,11 @@ export function createGameCollector(
   const selected = (kind ?? process.env.GAME_COLLECTOR ?? 'mock').toLowerCase();
 
   switch (selected) {
-    case 'deku':
-      return new DekuDealsCollector({
-        sourceUrl: options.sourceUrl,
+    case 'nintendo':
+      return new NintendoPriceCollector({
         currency: options.currency,
         region: options.region,
+        catalogPath: options.catalogPath,
       });
     case 'mock':
       return new MockGameCollector();
@@ -30,3 +30,5 @@ export function createGameCollector(
       throw new Error(`Unknown game collector: "${selected}"`);
   }
 }
+
+export { DEFAULT_GAME_CATALOG_PATH };

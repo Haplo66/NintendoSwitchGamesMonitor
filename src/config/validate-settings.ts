@@ -227,15 +227,16 @@ const checks: Check[] = [
     run: () => {
       assert.strictEqual(resolveCollectorSettings({}).collectorKind, 'mock');
       assert.strictEqual(resolveCollectorSettings({}).dealLimit, 100);
-      const deku = resolveCollectorSettings({
-        GAME_COLLECTOR: 'deku',
+      const nintendo = resolveCollectorSettings({
+        GAME_COLLECTOR: 'nintendo',
         DEALS_LIMIT: '50',
         DEALS_CURRENCY: 'USD',
       });
-      assert.strictEqual(deku.collectorKind, 'deku');
-      assert.strictEqual(deku.dealLimit, 50);
-      assert.strictEqual(deku.dealsCurrency, 'USD');
-      assert.ok(deku.dealsSourceUrl.length > 0, 'dealsSourceUrl is empty');
+      assert.strictEqual(nintendo.collectorKind, 'nintendo');
+      assert.strictEqual(nintendo.dealLimit, 50);
+      assert.strictEqual(nintendo.dealsCurrency, 'USD');
+      assert.strictEqual(nintendo.nintendoRegion, 'US');
+      assert.ok(nintendo.gameCatalogPath.length > 0, 'gameCatalogPath is empty');
     },
   },
   {

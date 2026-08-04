@@ -6,7 +6,7 @@ import * as fs from 'node:fs';
 import { resolveCollectorSettings } from '../config/app-config';
 import { defaultNotificationHistoryFile } from '../config/notification-history-store';
 import { createGameCollector } from '../collectors/collector-factory';
-import { DekuDealsCollector } from '../collectors/deku-deals-collector';
+import { NintendoPriceCollector } from '../collectors/nintendo-price-collector';
 import {
   DEFAULT_EMAIL_PROVIDER,
   createEmailProvider,
@@ -89,17 +89,17 @@ export async function validateDryRun(): Promise<void> {
     const historyAfterDryRun = readHistoryFile();
 
     process.env.EMAIL_PROVIDER = 'gmail';
-    process.env.GAME_COLLECTOR = 'deku';
+    process.env.GAME_COLLECTOR = 'nintendo';
 
     const checks: Check[] = [
       {
-        name: 'production configuration loads GAME_COLLECTOR=deku',
+        name: 'production configuration loads GAME_COLLECTOR=nintendo',
         run: () => {
-          const collector = resolveCollectorSettings({ GAME_COLLECTOR: 'deku' });
-          assert.strictEqual(collector.collectorKind, 'deku', 'GAME_COLLECTOR=deku must select the deku collector');
+          const collector = resolveCollectorSettings({ GAME_COLLECTOR: 'nintendo' });
+          assert.strictEqual(collector.collectorKind, 'nintendo', 'GAME_COLLECTOR=nintendo must select the nintendo collector');
           assert.ok(
-            createGameCollector('deku') instanceof DekuDealsCollector,
-            'createGameCollector("deku") must produce a DekuDealsCollector',
+            createGameCollector('nintendo') instanceof NintendoPriceCollector,
+            'createGameCollector("nintendo") must produce a NintendoPriceCollector',
           );
         },
       },

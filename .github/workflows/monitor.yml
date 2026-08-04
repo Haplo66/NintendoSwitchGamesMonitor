@@ -16,9 +16,9 @@ on:
       game_collector:
         description: 'Game collector'
         type: choice
-        default: deku
+        default: nintendo
         options:
-          - deku
+          - nintendo
           - mock
       dry_run:
         description: 'Dry run (full pipeline, no email sent, no history written)'
@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           EMAIL_PROVIDER="${{ inputs.email_provider || secrets.EMAIL_PROVIDER || 'gmail' }}"
-          GAME_COLLECTOR="${{ inputs.game_collector || secrets.GAME_COLLECTOR || 'deku' }}"
+          GAME_COLLECTOR="${{ inputs.game_collector || secrets.GAME_COLLECTOR || 'nintendo' }}"
           DRY_RUN="${{ inputs.dry_run }}"
           echo "EMAIL_PROVIDER=$EMAIL_PROVIDER" >> "$GITHUB_ENV"
           echo "GAME_COLLECTOR=$GAME_COLLECTOR" >> "$GITHUB_ENV"
@@ -70,8 +70,8 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           DRY_RUN: ${{ env.DRY_RUN }}
-          DEALS_SOURCE_URL: ${{ secrets.DEALS_SOURCE_URL }}
           DEALS_CURRENCY: ${{ secrets.DEALS_CURRENCY }}
+          GAME_CATALOG: ${{ secrets.GAME_CATALOG }}
           MIN_DEAL_SCORE: ${{ secrets.MIN_DEAL_SCORE }}
           MAX_GAMES_PER_EMAIL: ${{ secrets.MAX_GAMES_PER_EMAIL }}
           NOTIFY_FREE_GAMES: ${{ secrets.NOTIFY_FREE_GAMES }}

@@ -20,9 +20,9 @@ cp .env.example .env
 | `SMTP_USER` | Gmail address used for SMTP auth (and the `From` address) | `SMTP_USER=your-email@gmail.com` |
 | `SMTP_PASSWORD` | Gmail **App Password** (see below) | `SMTP_PASSWORD=xxxx xxxx xxxx xxxx` |
 | `EMAIL_TO` | Recipient of the daily digest | `EMAIL_TO=your-email@gmail.com` |
-| `GAME_COLLECTOR` | `deku` for real Switch deals, `mock` for sample data | `GAME_COLLECTOR=deku` |
+| `GAME_COLLECTOR` | `nintendo` for real US Switch deals, `mock` for sample data | `GAME_COLLECTOR=nintendo` |
 
-Other variables are optional (see `.env.example`): `SMTP_HOST`, `SMTP_PORT`, `DEALS_SOURCE_URL`, `DEALS_CURRENCY`, `DEALS_LIMIT`, `MIN_DEAL_SCORE`, `NOTIFICATION_COOLDOWN_DAYS`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`, `IGNORE_NOTIFICATION_HISTORY`, `FORCE_EMAIL`, `DRY_RUN`.
+Other variables are optional (see `.env.example`): `SMTP_HOST`, `SMTP_PORT`, `GAME_CATALOG`, `DEALS_CURRENCY`, `DEALS_LIMIT`, `MIN_DEAL_SCORE`, `NOTIFICATION_COOLDOWN_DAYS`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`, `IGNORE_NOTIFICATION_HISTORY`, `FORCE_EMAIL`, `DRY_RUN`.
 
 ## Gmail Production Setup
 
@@ -46,7 +46,7 @@ Keep the App Password only in `.env` (local) or GitHub secrets (CI). Never commi
 
 ## Collector Setup
 
-For real Nintendo Switch deals, set `GAME_COLLECTOR=deku`. The collector defaults to the **US** eShop (`NINTENDO_REGION=US`): prices in **USD**, US (ESRB) ratings, and deal links to `nintendo.com/us/store/products/…`. Set `NINTENDO_REGION=EU` for European deals (EUR, PEGI ratings, `nintendo-europe.com` links). The free Nintendo eShop deals feed is configured via `DEALS_SOURCE_URL` (defaults to the region's public sales feed). Use `GAME_COLLECTOR=mock` for offline sample data.
+For real Nintendo Switch deals, set `GAME_COLLECTOR=nintendo`. The collector targets the **US** eShop (`NINTENDO_REGION=US`): prices in **USD**, US (ESRB) ratings and genres from the local game catalog, and deal links to `nintendo.com/us/store/products/…`. It watches the games listed in `data/game-catalog.json` and queries Nintendo's official price API (`api.ec.nintendo.com/v1/price`) to detect current sales; games that are not discounted are ignored. Point `GAME_CATALOG` at another file to watch a different set of games. Use `GAME_COLLECTOR=mock` for offline sample data.
 
 ## GitHub Actions
 
@@ -56,9 +56,9 @@ The monitor runs automatically via `.github/workflows/monitor.yml` — no server
 
 A cron schedule runs the pipeline once per day (06:30 UTC). Scheduled runs use repository secrets:
 
-- `EMAIL_PROVIDER` / `GAME_COLLECTOR` default to `gmail` / `deku` in production.
+- `EMAIL_PROVIDER` / `GAME_COLLECTOR` default to `gmail` / `nintendo` in production.
 - Gmail secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_TO`.
-- Optional overrides: `DEALS_SOURCE_URL`, `DEALS_CURRENCY`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`.
+- Optional overrides: `GAME_CATALOG`, `DEALS_CURRENCY`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`.
 
 Configure them under **Settings → Secrets and variables → Actions**.
 
@@ -67,7 +67,7 @@ Configure them under **Settings → Secrets and variables → Actions**.
 Trigger a run anytime from the **Actions** tab. Manual dispatch lets you pick per run:
 
 - **Email provider** — `mock` (default, no credentials needed) or `gmail`.
-- **Game collector** — `deku` (default) or `mock`.
+- **Game collector** — `nintendo` (default) or `mock`.
 - **Dry run** — boolean toggle (default off).
 
 ### DRY_RUN option
@@ -86,4 +86,4 @@ Run through these before trusting the scheduled job:
 2. **DRY_RUN run succeeds** — `npm run monitor:dry` completes the full pipeline, prints the summary with `Email: not sent (DRY_RUN=true)`, and leaves `data/notification-history.json` untouched.
 3. **Live Gmail test succeeds** — `npm run monitor:test-email` with `EMAIL_PROVIDER=gmail` sends a real digest to the recipient inbox.
 4. **Notification history behaves correctly** — a normal `npm run monitor` records notified games; re-running does not notify the same game+price within the cooldown window.
-5. **Scheduled workflow verified** — trigger the workflow manually with `EMAIL_PROVIDER=gmail` and `GAME_COLLECTOR=deku`, confirm the run succeeds and the email arrives, then confirm the daily cron is enabled.
+5. **Scheduled workflow verified** — trigger the workflow manually with `EMAIL_PROVIDER=gmail` and `GAME_COLLECTOR=nintendo`, confirm the run succeeds and the email arrives, then confirm the daily cron is enabled.

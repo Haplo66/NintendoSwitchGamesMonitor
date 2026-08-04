@@ -156,15 +156,28 @@ Features:
 - README "Running Locally" section explaining normal / dry-run / test-email modes
 - GitHub Actions behavior unchanged
 
-> **Status: 🔄 In progress**
+> **Status: ✅ In progress**
 
-## v0.17 US eShop Localization
+## v0.17 US eShop Collector (predecessor)
 
-Features:
+Features (later replaced by v0.18):
 - Real collector defaults to **US** eShop (`NINTENDO_REGION=US`): USD prices, US (ESRB) ratings, deal links to `nintendo.com/us/store/products/…`
 - `NINTENDO_REGION` config supporting `US` (default) and `EU` (Europe feed, EUR/PEGI)
 - Region drives the default deals feed, currency, and deal URL host; `DEALS_SOURCE_URL` / `DEALS_CURRENCY` still override per-region
 - Collector validation extended with offline region checks (US loads USD/ESRB/US URLs, EU preserves EUR/PEGI/Europe URLs)
 - Validation scripts pinned to the mock collector for deterministic offline runs
 
-> **Status: 🔄 In progress**
+> **Status: ✅ Superseded**
+
+## v0.18 US Collector Replaced with Nintendo Price API
+
+Features:
+- `NintendoPriceCollector` replaces the deku collector: watches a curated US game catalog (`data/game-catalog.json`) and queries Nintendo's official price API (`api.ec.nintendo.com/v1/price`) for authoritative **USD** pricing and sale detection
+- Games are reported only while on sale (discount price present and below regular price); non-discounted games are ignored
+- US-only: `NINTENDO_REGION` accepts `US` only; EU feed, EUR currency, and Europe URLs removed
+- `GAME_COLLECTOR=nintendo` replaces `GAME_COLLECTOR=deku`; `GAME_CATALOG` replaces `DEALS_SOURCE_URL`
+- Initial catalog entries verified against the live price API (nsuid/title/ESRB/genres sourced from Nintendo's game-guide index)
+- Collector validation rewritten as offline fixture checks (parsing, USD enforcement, sale detection, no-sale and non-USD rejection); `npm run collect-games` exercises the live API
+- Docs updated (README, `.env.example`, PRODUCTION.md) including a "Maintaining the game catalog" section and the future automated-discovery path
+
+> **Status: ✅ In progress**
