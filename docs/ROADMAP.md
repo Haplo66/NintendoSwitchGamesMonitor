@@ -146,3 +146,14 @@ Features:
 - Updated docs (.env.example, README)
 
 > **Status: 🔄 In progress**
+
+## v0.16 Production Readiness & Local Runner
+
+Features:
+- `docs/PRODUCTION.md` — local configuration, Gmail App Password setup, deku collector, GitHub Actions (scheduled/manual/DRY_RUN/FORCE_EMAIL), and first-production validation checklist
+- Local runner `scripts/run-monitor.ts` — convenience wrapper that reuses the existing monitor pipeline (no duplicated logic)
+- Package scripts: `npm run monitor:dry` (sets `DRY_RUN=true`) and `npm run monitor:test-email` (sets `FORCE_EMAIL=true`)
+- README "Running Locally" section explaining normal / dry-run / test-email modes
+- GitHub Actions behavior unchanged
+
+> **Status: 🔄 In progress**

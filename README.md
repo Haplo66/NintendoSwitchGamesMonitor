@@ -519,6 +519,32 @@ npm run validate-settings
 
 Runs checks that confirm defaults apply when the file is missing, full and partial files load correctly (including partial `dailyDigest` blocks), malformed files and invalid values are rejected, and environment variables correctly override `settings.json`.
 
+## Running Locally
+
+Configure your `.env` file first (copy `.env.example` and fill in values), then use the convenience scripts below. They all call the same existing monitor pipeline — only the execution mode changes.
+
+| Command | Mode | What it does |
+| ------- | ---- | ------------ |
+| `npm run monitor` | Normal | Full pipeline: collect → analyze → build digest → send email (per `sendEmptyDigest`/cooldown rules) → record history. |
+| `npm run monitor:dry` | Dry run (`DRY_RUN=true`) | Full pipeline including HTML digest generation, but **no email is sent** and **notification history is not written**. |
+| `npm run monitor:test-email` | Test email (`FORCE_EMAIL=true`) | Sends the digest even with 0 new notifications (cooldown filtering still applies) and **never writes to history** — useful to verify Gmail delivery. |
+
+```bash
+npm run monitor            # normal daily execution
+npm run monitor:dry        # rehearsal: full run, no email, no history
+npm run monitor:test-email # force-send the digest, no history
+```
+
+The distinction in one line:
+
+- **Normal** delivers real emails and records them to `data/notification-history.json`.
+- **Dry run** does everything up to delivery and then stops — safe to run anytime.
+- **Test email** forces a delivery so you can confirm Gmail works, without polluting history.
+
+For fully offline testing set `EMAIL_PROVIDER=mock` (in `.env` or inline): the digest is captured locally instead of emailed.
+
+See [docs/PRODUCTION.md](docs/PRODUCTION.md) for the full production-readiness walkthrough.
+
 ## Getting Started
 
 ```bash
@@ -542,6 +568,8 @@ cp .env.example .env   # then fill in values
 | `npm run validate-collector` | Build and validate the game collector against real data |
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |
 | `npm run monitor`       | Build and run the full monitor pipeline (collect → analyze → email) |
+| `npm run monitor:dry`   | Build and run the monitor in dry-run mode (`DRY_RUN=true`: no email sent, no history written) |
+| `npm run monitor:test-email` | Build and run the monitor in test-email mode (`FORCE_EMAIL=true`: always send the digest, no history written) |
 | `npm run validate-force-email` | Build and validate FORCE_EMAIL test-mode behavior (send empty digest, history untouched) |
 | `npm run validate-dry-run` | Build and validate DRY_RUN test-mode behavior (full pipeline + HTML generated, no email sent, history untouched) |
 | `npm run report`        | Build, run the pipeline with mock email, and write a markdown + HTML report |
@@ -577,6 +605,7 @@ cp .env.example .env   # then fill in values
 │   ├── config/        # Central config (app-config) + loaders + validators + history/settings
 │   ├── pipeline/      # End-to-end monitor run (collect → analyze → email)
 │   ├── reports/       # Monitoring report generation (markdown + HTML)
+│   ├── scripts/       # Local runner convenience (run-monitor: normal / dry / test-email)
 │   ├── models/        # Shared domain types (Game, GameDeal, NotificationSettings, ...)
 │   └── main.ts        # Service entry point
 ├── data/              # Runtime data / cache + family/wishlist config + history + settings

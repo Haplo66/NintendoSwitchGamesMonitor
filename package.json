@@ -20,6 +20,8 @@
     "analyze-games": "npm run build && node dist/analyzer/analyze-games.js",
     "validate-collector": "npm run build && node dist/collectors/validate-collector.js",
     "monitor": "npm run build && node dist/pipeline/monitor-run.js",
+    "monitor:dry": "npm run build && node dist/scripts/run-monitor.js dry",
+    "monitor:test-email": "npm run build && node dist/scripts/run-monitor.js test-email",
     "validate-dry-run": "npm run build && node dist/pipeline/validate-dry-run.js",
     "validate-force-email": "npm run build && node dist/pipeline/validate-force-email.js",
     "report": "npm run build && node dist/reports/generate-report.js",
