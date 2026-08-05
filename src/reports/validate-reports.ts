@@ -147,6 +147,14 @@ function sampleResult(): MonitorResult {
       ],
     },
     monitoredTitles: ['Mario Kart 8 Deluxe', 'Fortnite', 'Super Mario Odyssey', 'Fall Guys', 'Chess', 'Stardew Valley', "Luigi's Mansion 3"],
+    wishlistGames: [
+      makeGame({
+        id: 'game-7',
+        title: "Luigi's Mansion 3",
+        currentPrice: 59.99,
+        originalPrice: 59.99,
+      }),
+    ],
   };
 }
 
@@ -169,6 +177,7 @@ function emptyResult(): MonitorResult {
     dealHistory: { entries: [] },
     wishlist: { items: [] },
     monitoredTitles: [],
+    wishlistGames: [],
   };
 }
 
@@ -214,6 +223,10 @@ const checks: Check[] = [
       );
       assert.ok(markdown.includes('**Current price:** EUR 37.00'), 'Wishlist watch current price missing');
       assert.ok(markdown.includes('**Target price:** EUR 35.99'), 'Wishlist watch target price missing');
+      assert.ok(
+        markdown.includes("**Current price:** EUR 59.99"),
+        'Full-price wishlist game must still show its current price',
+      );
     },
   },
   {
@@ -313,6 +326,7 @@ const checks: Check[] = [
       assert.strictEqual(data.digest.wishlistWatch[0].status, 'on-sale');
       assert.strictEqual(data.digest.wishlistWatch[1].status, 'not-monitored');
       assert.strictEqual(data.digest.wishlistWatch[2].status, 'full-price');
+      assert.strictEqual(data.digest.wishlistWatch[2].currentPrice, 59.99);
       assert.strictEqual(data.digest.stillOnSale.length, 1);
       assert.strictEqual(data.digest.stillOnSale[0].title, 'Chess');
       assert.strictEqual(data.digest.wishlistAlerts.length, 1);

@@ -96,4 +96,13 @@ export class MockGameCollector implements GameCollector {
   monitoredTitles(): string[] {
     return this.games.map((game) => game.title);
   }
+
+  collectWishlistPrices(titles: string[]): Promise<Game[]> {
+    const wanted = new Set(titles.map((title) => title.trim().toLowerCase()));
+    return Promise.resolve(
+      this.games
+        .filter((game) => wanted.has(game.title.trim().toLowerCase()))
+        .map((game) => ({ ...game })),
+    );
+  }
 }

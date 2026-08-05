@@ -1,4 +1,5 @@
 import { calculateDiscountPercent } from '../analyzer/deal-score';
+import { matchGameToWishlist } from '../analyzer/wishlist-matcher';
 import { DEFAULT_DAILY_DIGEST_SETTINGS } from '../config/settings-loader';
 import {
   DailyDigest,
@@ -106,21 +107,38 @@ function buildWishlistWatch(result: MonitorResult): DigestWishlistWatch[] {
   const analysisByTitle = new Map(
     result.analyses.map((analysis) => [titleKey(analysis.game.title), analysis]),
   );
-  const monitoredTitles = new Set(result.monitoredTitles.map((title) => titleKey(title)));
+  const wishlistGameByTitle = new Map(
+    result.wishlistGames.map((game) => [titleKey(game.title), game]),
+  );
+  const monitoredTitles = new Set(result.monitoredTitles.map((key) => titleKey(key)));
 
   return result.wishlist.items.map((item): DigestWishlistWatch => {
-    const analysis = analysisByTitle.get(titleKey(item.gameTitle));
-    if (!analysis) {
-      const monitored = monitoredTitles.has(titleKey(item.gameTitle));
+    const key = titleKey(item.gameTitle);
+    const analysis = analysisByTitle.get(key);
+    const game = analysis?.game ?? wishlistGameByTitle.get(key);
+
+    if (!game) {
+      const monitored = monitoredTitles.has(key);
       return {
         title: item.gameTitle,
         status: monitored ? 'full-price' : 'not-monitored',
         targetPrice: item.targetPrice,
       };
     }
-    const game = analysis.game;
+
     const onSale = isOnSale(game);
-    const targetReached = analysis.wishlistMatch?.priceTargetReached ?? false;
+    const discountPercent = calculateDiscountPercent(game);
+
+    // Reuse the analyzed wishlist match when available (on-sale games);
+    // otherwise compute target pricing from the full-price game we fetched
+    // just for Wishlist Watch.
+    const match = analysis?.wishlistMatch ?? matchGameToWishlist(
+      game,
+      { items: [item] },
+      result.defaultWishlistDiscountPercent,
+    );
+    const targetReached = match?.priceTargetReached ?? false;
+
     let status: WishlistWatchStatus;
     if (targetReached) {
       status = 'target-reached';
@@ -129,14 +147,15 @@ function buildWishlistWatch(result: MonitorResult): DigestWishlistWatch[] {
     } else {
       status = 'full-price';
     }
+
     return {
       title: item.gameTitle,
       status,
       currentPrice: game.currentPrice,
       originalPrice: game.originalPrice,
-      discountPercent: calculateDiscountPercent(game),
-      targetPrice: analysis.wishlistMatch?.effectiveTargetPrice ?? item.targetPrice,
-      targetPriceOrigin: analysis.wishlistMatch?.targetPriceOrigin,
+      discountPercent,
+      targetPrice: match?.effectiveTargetPrice ?? item.targetPrice,
+      targetPriceOrigin: match?.targetPriceOrigin,
       storeUrl: resolveStoreUrl(game),
     };
   });

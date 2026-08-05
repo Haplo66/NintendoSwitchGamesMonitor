@@ -218,9 +218,9 @@ function renderWishlistWatchCard(item: DigestWishlistWatch, currency: string): s
   const meta = wishlistStatusMeta(item.status);
   let details = `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">`;
   if (item.currentPrice !== undefined) {
-    details += `Current: <strong>${formatMoney(currency, item.currentPrice)}</strong>`;
+    details += `Current Price: <strong>${formatMoney(currency, item.currentPrice)}</strong>`;
     if (item.originalPrice !== undefined && item.originalPrice > item.currentPrice) {
-      details += ` <span style="color:${COLORS.muted}; text-decoration:line-through; font-size:12px;">${formatMoney(currency, item.originalPrice)}</span>`;
+      details += ` <span style="color:${COLORS.muted}; text-decoration:line-through; font-size:12px;">Regular: ${formatMoney(currency, item.originalPrice)}</span>`;
     }
     if (item.discountPercent !== undefined && item.discountPercent > 0) {
       details += ` ${badge(`-${item.discountPercent}%`, COLORS.discount)}`;

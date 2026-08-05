@@ -159,12 +159,63 @@ export function mapPriceToGame(
   };
 }
 
+/**
+ * Maps a price entry to a Game for a catalog entry regardless of sale status.
+ * Unlike {@link mapPriceToGame}, this returns full-price (and free) titles so
+ * the digest can always show what a monitored wishlist game costs today. When
+ * a discount is present and cheaper than the regular price, the discount price
+ * becomes the current price; otherwise the regular price is used.
+ */
+export function mapWishlistPriceToGame(
+  entry: CatalogGame,
+  price: PriceEntry,
+  currency: string,
+  expectedCurrency: string = 'USD',
+): Game | null {
+  const priceCurrency = price.regular_price?.currency;
+  if (!priceCurrency || priceCurrency !== expectedCurrency) {
+    return null;
+  }
+  const regularPrice = parseMoneyToNumber(price.regular_price);
+  const discountPrice = parseMoneyToNumber(price.discount_price);
+  const currentPrice =
+    discountPrice !== undefined && regularPrice !== undefined && discountPrice < regularPrice
+      ? discountPrice
+      : (regularPrice ?? discountPrice);
+  if (currentPrice === undefined) {
+    return null;
+  }
+  return {
+    id: `nintendo-price-${entry.nsuid}`,
+    title: entry.title,
+    platform: 'Nintendo Switch',
+    currentPrice,
+    originalPrice: regularPrice,
+    currency: expectedCurrency,
+    ageRating: entry.esrbRating,
+    genres: entry.genres ?? [],
+    storeUrl: buildStoreUrl(entry),
+    source: 'nintendo-price',
+  };
+}
+
+export function normalizeGameTitle(title: string): string {
+  return title.trim().toLowerCase();
+}
+
 export class NintendoPriceCollector implements GameCollector {
   private readonly currency: string;
   private readonly region: NintendoRegion;
   private readonly platform: NintendoPlatform;
   private readonly catalogPath: string;
   private readonly priceApiUrl: string;
+  /**
+   * Prices fetched so far during this collector instance's run, keyed by nsuid.
+   * `collectGames` fills it while discovering deals; `collectWishlistPrices`
+   * reuses it so wishlist price lookups never re-request nsuids that were
+   * already fetched for the run.
+   */
+  private readonly priceCache = new Map<string, PriceEntry>();
 
   constructor(options: NintendoPriceCollectorOptions = {}) {
     this.region = options.region ?? resolveNintendoRegion(process.env);
@@ -244,6 +295,7 @@ export class NintendoPriceCollector implements GameCollector {
           continue;
         }
         byNsuid.set(String(price.title_id), price);
+        this.priceCache.set(String(price.title_id), price);
       }
       for (const entry of batch) {
         const price = byNsuid.get(entry.nsuid);
@@ -260,5 +312,39 @@ export class NintendoPriceCollector implements GameCollector {
       }
     }
     return games.slice(0, limit);
+  }
+
+  async collectWishlistPrices(titles: string[]): Promise<Game[]> {
+    if (titles.length === 0) {
+      return [];
+    }
+    const wanted = new Set(titles.map(normalizeGameTitle));
+    const catalog = this.filterCatalogByPlatform(loadGameCatalog(this.catalogPath));
+    const targets = catalog.filter((entry) => wanted.has(normalizeGameTitle(entry.title)));
+    const missingNsuids = targets
+      .filter((entry) => !this.priceCache.has(entry.nsuid))
+      .map((entry) => entry.nsuid);
+    for (let start = 0; start < missingNsuids.length; start += PRICE_BATCH_SIZE) {
+      const batch = missingNsuids.slice(start, start + PRICE_BATCH_SIZE);
+      const prices = await this.fetchPrices(batch);
+      for (const price of prices) {
+        if (price.title_id === undefined || price.title_id === null) {
+          continue;
+        }
+        this.priceCache.set(String(price.title_id), price);
+      }
+    }
+    const games: Game[] = [];
+    for (const entry of targets) {
+      const price = this.priceCache.get(entry.nsuid);
+      if (!price) {
+        continue;
+      }
+      const game = mapWishlistPriceToGame(entry, price, this.currency, 'USD');
+      if (game) {
+        games.push(game);
+      }
+    }
+    return games;
   }
 }

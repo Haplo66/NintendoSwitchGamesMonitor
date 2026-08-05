@@ -168,6 +168,23 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     }),
   );
 
+  // Always-on wishlist price tracking: fetch the current price for monitored
+  // wishlist games that are NOT already present in the deal results (i.e.
+  // full-price ones). The collector reuses prices it already fetched for the
+  // run and only requests the missing nsuids, so no duplicate API calls.
+  const analyzedTitles = new Set(
+    analyses.map((analysis) => analysis.game.title.trim().toLowerCase()),
+  );
+  const missingWishlistTitles = wishlist.items
+    .filter((item) => !analyzedTitles.has(item.gameTitle.trim().toLowerCase()))
+    .map((item) => item.gameTitle);
+  const wishlistGames = await collector.collectWishlistPrices(missingWishlistTitles);
+  if (wishlistGames.length > 0) {
+    console.log(
+      `Checked current prices for ${wishlistGames.length} wishlist game(s) outside the deal results.`,
+    );
+  }
+
   console.log(
     `${reported.length} of ${analyses.length} game(s) meet the reporting threshold (score >= ${minDealScore}, free, or on wishlist):`,
   );
@@ -228,6 +245,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     dealHistory: updatedHistory,
     wishlist: config.wishlist,
     monitoredTitles: collector.monitoredTitles(),
+    wishlistGames,
   };
 
   const digest = buildDailyDigest(result, {

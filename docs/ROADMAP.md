@@ -242,4 +242,17 @@ Features:
 - **Validation** — new `npm run validate-analyzer` suite covers: Shooter excluded (both label directions), Horror excluded + variants, preferred/excluded conflict, multiple profiles (blocked for one, matched for another), missing genre metadata, no family bonus for blocked profiles, and real-catalog checks that DOOM + sniper games are not recommended to any profile while LEGO and platform games remain recommended; `npm test` aggregates the suite
 - Collector and digest layout unchanged (out of scope for this task)
 
+> **Status: ✅ Complete**
+
+## v0.23 Always-On Wishlist Price Tracking (v0.23.0)
+
+Features:
+- **Wishlist Watch shows today's price for every monitored game** — the digest now always renders a current price (and, when discounted, the regular price + 🔥 discount %) for every monitored wishlist item, instead of showing full-price games without any price
+- **No duplicate API requests** — `NintendoPriceCollector` keeps a per-run price cache; `collectWishlistPrices()` reuses prices already fetched during deal discovery and requests only the missing nsuids (in the same 20-per-batch pattern), so Wishlist Watch adds at most one extra batched request for full-price wishlist games
+- **`GameCollector.collectWishlistPrices(titles)`** — new collector method returning a `Game` for every requested title it monitors regardless of sale status (current price = discount price when on sale, otherwise the regular price); `MockGameCollector` implements it over its sample games
+- **Pipeline wiring** — `monitor-run.ts` collects wishlist prices only for monitored wishlist titles absent from the deal results, and stores them on the new `MonitorResult.wishlistGames` field; scoring, family matching, notification logic, and digest layout are unchanged
+- **Wording** — email wishlist card labels "Current Price:" and "Regular:" (the struck-through regular price only appears when discounted); statuses and ordering are unchanged (Wishlist Watch still second, right after Today's Summary)
+- **Validation** — new `npm run validate-wishlist-price` suite covers full-price/on-sale/target-reached/not-monitored display, that every monitored item exposes a current price, that the collector reuses cached prices (no duplicate requests) and fetches only missing nsuids, and email section ordering; `npm test` aggregates the suite
+- Collector, analyzer, scoring, and notification logic unchanged (out of scope for this task)
+
 > **Status: 🔄 In progress**

@@ -46,7 +46,7 @@ The notification email is a **daily digest** written for a busy parent. It opens
 
 1. **Header** — Nintendo red banner with the app name, formatted date, and the collector used.
 2. **Today's Summary** — a quick stats bar: new deals today, wishlist games on sale, still-active deals, the biggest discount, and games checked.
-3. **Wishlist Watch** — every game on the family wishlist and its current status: 🔥 **On Sale**, 🎯 **Target Price Reached**, ⚪ **Full Price** (monitored but not currently discounted), or ⚪ **Not Currently Tracked** (not part of the monitored catalog, so no price tracking). Each non-tracked game shows *"Add this game to the monitored catalog to enable price tracking."* It always renders, so an empty wishlist is shown explicitly.
+3. **Wishlist Watch** — every game on the family wishlist with today's price and its current status: 🔥 **On Sale**, 🎯 **Target Price Reached**, ⚪ **Full Price** (monitored but not currently discounted — its regular price is still shown), or ⚪ **Not Currently Tracked** (not part of the monitored catalog, so no price tracking). Each monitored game shows **Current Price:** (with a struck-through **Regular:** price and 🔥 discount % when on sale) and its target. Each non-tracked game shows *"Add this game to the monitored catalog to enable price tracking."* It always renders, so an empty wishlist is shown explicitly.
 4. **Still On Sale** — deals the family has already been notified about that are *still* discounted (and not re-reported today), with how long each has been on sale (`First reported <date> · N days on sale`). Hidden when there are no still-active tracked deals.
 5. **Wishlist Alerts** — games on the family wishlist whose price target was reached (or any discount, when enabled). Each alert shows current/original price, discount %, the target and where it came from (`Configured target` vs `Auto target (N% discount)`), and a store link.
 6. **Best Deals** — the highest-scoring non-wishlist deals, each with price, discount badge, deal score, and why it's recommended.
@@ -637,6 +637,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-dry-run` | Build and validate DRY_RUN test-mode behavior (full pipeline + HTML generated, no email sent, history untouched) |
 | `npm run report`        | Build, run the pipeline with mock email, and write a markdown + HTML report |
 | `npm run validate-reports` | Build and validate report generation (markdown + HTML) |
+| `npm run validate-wishlist-price` | Build and validate always-on Wishlist Watch pricing (coverage, no duplicate API requests, section order) |
 
 ## Project Structure
 
@@ -667,6 +668,7 @@ cp .env.example .env   # then fill in values
 │   │   ├── gmail-provider.ts
 │   │   ├── mock-email-provider.ts
 │   │   ├── email-validation.ts
+│   │   ├── validate-wishlist-price.ts
 │   │   └── test-email.ts
 │   ├── config/        # Central config (app-config) + loaders + validators + history/settings
 │   ├── pipeline/      # End-to-end monitor run (collect → analyze → email)

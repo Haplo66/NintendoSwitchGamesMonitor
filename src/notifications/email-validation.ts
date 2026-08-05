@@ -37,6 +37,7 @@ function buildSampleDigest(): DailyDigest {
         title: 'Mario Kart 8 Deluxe',
         status: 'target-reached',
         currentPrice: 39.99,
+        originalPrice: 59.99,
         targetPrice: 44.99,
         discountPercent: 33,
         storeUrl: 'https://www.nintendo.com/store/products/mario-kart-8-deluxe/?ref=test',
@@ -44,6 +45,15 @@ function buildSampleDigest(): DailyDigest {
       {
         title: 'Super Mario RPG',
         status: 'not-monitored',
+      },
+      {
+        title: "Luigi's Mansion 3",
+        status: 'full-price',
+        currentPrice: 59.99,
+        originalPrice: 59.99,
+        discountPercent: 0,
+        targetPrice: 44.99,
+        storeUrl: 'https://www.nintendo.com/store/products/luigis-mansion-3/',
       },
     ],
     wishlistAlerts: [
@@ -207,6 +217,10 @@ export async function validateEmailRendering(): Promise<void> {
         assert.ok(html.includes('Not currently tracked'), 'Not tracked badge missing');
         assert.ok(html.includes('Mario Kart 8'), 'Wishlist watch game missing');
         assert.ok(html.includes('Super Mario RPG'), 'Not monitored game missing');
+        assert.ok(html.includes('Luigi&#39;s Mansion 3'), 'Full-price monitored game missing');
+        assert.ok(html.includes('Current Price:'), 'Current Price label missing');
+        assert.ok(html.includes('Regular:'), 'Regular Price label missing');
+        assert.ok(html.includes('Full Price'), 'Full Price badge missing');
         assert.ok(
           html.includes('Add this game to the monitored catalog to enable price tracking'),
           'Not tracked hint missing',
