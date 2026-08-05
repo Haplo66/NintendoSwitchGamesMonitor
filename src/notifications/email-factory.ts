@@ -1,13 +1,19 @@
+import { EmailProviderKind } from '../models/settings';
 import { EmailProvider } from './email-provider';
 import { GmailProvider } from './gmail-provider';
 import { MockEmailProvider } from './mock-email-provider';
 
-export type EmailProviderKind = 'gmail' | 'mock';
+export { EmailProviderKind };
 
 export const DEFAULT_EMAIL_PROVIDER: EmailProviderKind = 'gmail';
 
 export function resolveEmailProviderKind(kind?: EmailProviderKind | string): EmailProviderKind {
-  return (kind ?? process.env.EMAIL_PROVIDER ?? DEFAULT_EMAIL_PROVIDER).toLowerCase() as EmailProviderKind;
+  const raw = kind ?? process.env.EMAIL_PROVIDER ?? DEFAULT_EMAIL_PROVIDER;
+  const provider = raw.trim().toLowerCase() as EmailProviderKind;
+  if (provider !== 'gmail' && provider !== 'mock') {
+    throw new Error(`Unknown email provider: "${raw}"`);
+  }
+  return provider;
 }
 
 export function createEmailProvider(kind?: EmailProviderKind | string): EmailProvider {

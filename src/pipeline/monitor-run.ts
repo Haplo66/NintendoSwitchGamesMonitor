@@ -117,6 +117,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const config = loadAppConfig();
 
   const collectorKind = options.collectorKind ?? config.collector.collectorKind;
+  const emailProviderKind = options.emailProviderKind ?? config.preferences.emailProvider;
   const minDealScore = options.minDealScore ?? config.notification.minimumDealScore;
   const dealLimit = options.dealLimit ?? config.collector.dealLimit;
   const maxGamesPerEmail = options.maxGamesPerEmail ?? config.notification.maxGamesPerEmail;
@@ -124,8 +125,8 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const ignoreNotificationHistory =
     options.ignoreNotificationHistory ??
     process.env.IGNORE_NOTIFICATION_HISTORY === 'true';
-  const forceEmail = options.forceEmail ?? process.env.FORCE_EMAIL === 'true';
-  const dryRun = options.dryRun ?? process.env.DRY_RUN === 'true';
+  const forceEmail = options.forceEmail ?? config.preferences.forceEmail;
+  const dryRun = options.dryRun ?? config.preferences.dryRun;
 
   console.log('');
   console.log('Monitor configuration:');
@@ -133,13 +134,13 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   console.log(`  Region: ${config.collector.nintendoRegion}`);
   console.log(`  Platform: ${config.collector.platform}`);
   console.log(`  Game catalog: ${config.collector.gameCatalogPath}`);
-  console.log(`  Email: ${options.emailProviderKind ?? process.env.EMAIL_PROVIDER ?? 'gmail'}`);
+  console.log(`  Email: ${emailProviderKind}`);
   console.log(`  Minimum score: ${minDealScore}`);
   console.log(`  Cooldown: ${cooldownDays} days`);
+  console.log(`  Dry run: ${dryRun ? 'enabled' : 'disabled'}`);
+  console.log(`  Force email: ${forceEmail ? 'enabled' : 'disabled'}`);
   console.log(`  Test mode: ${ignoreNotificationHistory || forceEmail || dryRun ? 'enabled' : 'disabled'}`);
   if (ignoreNotificationHistory) console.log('    IGNORE_NOTIFICATION_HISTORY is active');
-  if (forceEmail) console.log('    FORCE_EMAIL is active');
-  if (dryRun) console.log('    DRY_RUN is active');
 
   const collector: GameCollector = createGameCollector(collectorKind, {
     currency: config.collector.dealsCurrency,
@@ -276,7 +277,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   );
   const emailSent = decision.send && !dryRun;
   if (emailSent) {
-    const provider: EmailProvider = createEmailProvider(options.emailProviderKind);
+    const provider: EmailProvider = createEmailProvider(emailProviderKind);
     await provider.sendEmail({
       subject: `🎮 Nintendo Switch Daily Digest — ${toEmail.length} game(s) worth checking`,
       html,

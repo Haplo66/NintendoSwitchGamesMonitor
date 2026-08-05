@@ -112,6 +112,8 @@ This builds the project, generates a sample `DailyDigest`, renders it to HTML, a
 | `FORCE_EMAIL` | Test mode: always send the digest email (even with 0 new notifications) and never write to history (`true`/`false`, default: `false`) |
 | `DRY_RUN` | Test mode: run the full pipeline (collect, analyze, generate the HTML digest/report) but send no email and never write to history (`true`/`false`, default: `false`) |
 
+> **Note:** `EMAIL_PROVIDER`, `NINTENDO_PLATFORM`, `DRY_RUN`, `FORCE_EMAIL`, and `LOG_LEVEL` are **user preferences** — configure them in `data/settings.json` (see [User preferences](#user-preferences--datasettingsjson)). The environment variables below are honored for CI/temporary overrides only, and take precedence over `data/settings.json`.
+
 Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
 
 ## Game Collection
@@ -543,9 +545,31 @@ User-editable notification preferences live in `data/settings.json`:
 
 A missing settings file falls back to the defaults; a malformed file or invalid values fail with a clear error.
 
+### User preferences — `data/settings.json`
+
+Application/user preferences (not secrets) also live in `data/settings.json`:
+
+```json
+{
+  "platform": "switch1",
+  "emailProvider": "gmail",
+  "dryRun": false,
+  "forceEmail": false,
+  "logLevel": "info"
+}
+```
+
+- `platform` — console platform that filters the catalog before analysis: `switch1`, `switch2`, or `both` (default `switch1`).
+- `emailProvider` — how the digest is delivered: `gmail` (real SMTP) or `mock` (local capture, no credentials) (default `gmail`).
+- `dryRun` — when `true`, run the full pipeline (collect → analyze → generate the HTML digest/report) but send **no email** and write **no notification history** (default `false`).
+- `forceEmail` — when `true`, always send the digest (even with 0 new notifications) and never write history (default `false`).
+- `logLevel` — logging verbosity: `debug`, `info`, `warn`, `error`, or `silent` (default `info`).
+
+These are **user configuration**, not secrets — keep them out of `.env`. Set an environment variable only to override them for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `DRY_RUN`, `FORCE_EMAIL`, `LOG_LEVEL`).
+
 ### Resolution priority
 
-Environment variables override `settings.json`, which overrides built-in defaults:
+Environment variables override `settings.json` (user configuration), which overrides built-in defaults:
 
 ```
 Environment variables
@@ -569,19 +593,24 @@ defaults
 | Collector               | `GAME_COLLECTOR`            | —                             | `mock`        |
 | Deals per run           | `DEALS_LIMIT`               | —                             | `100`         |
 | eShop region            | `NINTENDO_REGION`           | —                             | `US`          |
-| Console platform        | `NINTENDO_PLATFORM`         | —                             | `switch1`     |
+| Console platform        | `NINTENDO_PLATFORM`         | `platform`                    | `switch1`     |
+| Email provider          | `EMAIL_PROVIDER`            | `emailProvider`               | `gmail`       |
+| Dry run                 | `DRY_RUN`                   | `dryRun`                      | `false`       |
+| Force email             | `FORCE_EMAIL`               | `forceEmail`                  | `false`       |
+| Log level               | `LOG_LEVEL`                 | `logLevel`                    | `info`        |
 | Game catalog path       | `GAME_CATALOG`              | —                             | `data/game-catalog.json` |
 | Deals currency          | `DEALS_CURRENCY`            | —                             | `USD`         |
 
-`dailyDigest`, `sendEmptyDigest`, and `blacklistedGames` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above.
+`dailyDigest`, `sendEmptyDigest`, and `blacklistedGames` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above. The user preferences (`platform`, `emailProvider`, `dryRun`, `forceEmail`, `logLevel`) are configured in `data/settings.json` and overridable by their environment variables for CI or temporary runs.
 
 ### Validating settings
 
 ```bash
 npm run validate-settings
+npm run validate-preferences
 ```
 
-Runs checks that confirm defaults apply when the file is missing, full and partial files load correctly (including partial `dailyDigest` blocks), malformed files and invalid values are rejected (including a malformed `blacklistedGames` array), and environment variables correctly override `settings.json`.
+`validate-settings` checks that defaults apply when the file is missing, full and partial files load correctly (including partial `dailyDigest` blocks), malformed files and invalid values are rejected (including a malformed `blacklistedGames` array), and environment variables correctly override `settings.json`. `validate-preferences` checks the user-preference fields specifically: settings values load, environment overrides settings, defaults apply when missing, and invalid values are rejected.
 
 ## Running Locally
 
@@ -590,8 +619,8 @@ Configure your `.env` file first (copy `.env.example` and fill in values), then 
 | Command | Mode | What it does |
 | ------- | ---- | ------------ |
 | `npm run monitor` | Normal | Full pipeline: collect → analyze → build digest → send email (per `sendEmptyDigest`/cooldown rules) → record history. |
-| `npm run monitor:dry` | Dry run (`DRY_RUN=true`) | Full pipeline including HTML digest generation, but **no email is sent** and **notification history is not written**. |
-| `npm run monitor:test-email` | Test email (`FORCE_EMAIL=true`) | Sends the digest even with 0 new notifications (cooldown filtering still applies) and **never writes to history** — useful to verify Gmail delivery. |
+| `npm run monitor:dry` | Dry run | Full pipeline including HTML digest generation, but **no email is sent** and **notification history is not written**. |
+| `npm run monitor:test-email` | Test email | Sends the digest even with 0 new notifications (cooldown filtering still applies) and **never writes to history** — useful to verify Gmail delivery. |
 
 ```bash
 npm run monitor            # normal daily execution
@@ -605,7 +634,7 @@ The distinction in one line:
 - **Dry run** does everything up to delivery and then stops — safe to run anytime.
 - **Test email** forces a delivery so you can confirm Gmail works, without polluting history.
 
-For fully offline testing set `EMAIL_PROVIDER=mock` (in `.env` or inline): the digest is captured locally instead of emailed.
+For fully offline testing set `EMAIL_PROVIDER=mock` (in `.env` or inline): the digest is captured locally instead of emailed. Dry-run and force-email are user preferences in `data/settings.json`; the `monitor:dry` / `monitor:test-email` scripts simply set the matching environment override for that run.
 
 See [docs/PRODUCTION.md](docs/PRODUCTION.md) for the full production-readiness walkthrough.
 
@@ -628,6 +657,7 @@ cp .env.example .env   # then fill in values
 | `npm run collect-games`  | Build and collect sample games via the mock collector |
 | `npm run validate-config` | Build and validate family profiles + wishlist config |
 | `npm run validate-settings` | Build and validate notification preferences + env overrides |
+| `npm run validate-preferences` | Build and validate user preferences (platform, email provider, dry/force run, log level) |
 | `npm run analyze-games`   | Build and analyze mock games vs profiles + wishlist |
 | `npm run validate-collector` | Build and validate the game collector against real data |
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |

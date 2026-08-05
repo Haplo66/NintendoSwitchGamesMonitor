@@ -1,10 +1,11 @@
-import { CollectorSettings, FamilyProfile, NotificationSettings, Wishlist } from '../models';
+import { AppPreferences, CollectorSettings, FamilyProfile, NintendoPlatform, NotificationSettings, Wishlist } from '../models';
 import { REGION_PROFILES, resolveNintendoRegion } from '../collectors/region';
 import { DEFAULT_GAME_CATALOG_PATH } from '../collectors/nintendo-price-collector';
 import { DEFAULT_NINTENDO_PLATFORM, resolveNintendoPlatform } from '../collectors/platform';
 import { loadFamilyProfiles } from './family-profiles-loader';
 import { parseEnvNumber } from './settings-loader';
 import { resolveNotificationSettings } from './settings-loader';
+import { loadAppPreferences } from './preferences';
 import { loadWishlist } from './wishlist-loader';
 
 export interface AppConfig {
@@ -12,6 +13,7 @@ export interface AppConfig {
   collector: CollectorSettings;
   familyProfiles: FamilyProfile[];
   wishlist: Wishlist;
+  preferences: AppPreferences;
 }
 
 export interface LoadAppConfigOptions {
@@ -29,7 +31,10 @@ export const DEFAULT_COLLECTOR_SETTINGS: CollectorSettings = {
   platform: DEFAULT_NINTENDO_PLATFORM,
 };
 
-export function resolveCollectorSettings(env: NodeJS.ProcessEnv = process.env): CollectorSettings {
+export function resolveCollectorSettings(
+  env: NodeJS.ProcessEnv = process.env,
+  platform?: NintendoPlatform,
+): CollectorSettings {
   const nintendoRegion = resolveNintendoRegion(env);
   const regionProfile = REGION_PROFILES[nintendoRegion];
   return {
@@ -40,18 +45,20 @@ export function resolveCollectorSettings(env: NodeJS.ProcessEnv = process.env): 
     gameCatalogPath: env.GAME_CATALOG?.trim() || DEFAULT_GAME_CATALOG_PATH,
     dealsCurrency: env.DEALS_CURRENCY?.trim() || regionProfile.currency,
     nintendoRegion,
-    platform: resolveNintendoPlatform(env),
+    platform: platform ?? resolveNintendoPlatform(env),
   };
 }
 
 export function loadAppConfig(options: LoadAppConfigOptions = {}): AppConfig {
+  const preferences = loadAppPreferences(process.env, options.settingsFile);
   const notification = resolveNotificationSettings(process.env);
   return {
     notification,
-    collector: resolveCollectorSettings(process.env),
+    collector: resolveCollectorSettings(process.env, preferences.platform),
     familyProfiles: loadFamilyProfiles(options.familyProfileFile),
     wishlist: loadWishlist(options.wishlistFile, {
       defaultNotifyOnAnyDiscount: notification.defaultNotifyOnAnyDiscount,
     }),
+    preferences,
   };
 }

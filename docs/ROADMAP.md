@@ -268,4 +268,16 @@ Features:
 - **Validation** — new `npm run validate-blacklist` suite covers removal, case-insensitivity, normalized-title matching, non-blacklisted games unchanged, exclusion from analysis, no notifications (even when wishlisted), the wishlist exception, and absence from every digest section; `npm test` aggregates the suite
 - Collector, scoring, family matching, and email layout unchanged (out of scope for this task)
 
+> **Status: ✅ Complete**
+
+## v0.25 User Preferences Moved From Environment To Settings (v0.25.0)
+
+Features:
+- **User preferences leave `.env`** — `platform`, `emailProvider`, `dryRun`, `forceEmail`, and `logLevel` are now configured in `data/settings.json` instead of `.env`; `NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `DRY_RUN`, `FORCE_EMAIL`, and `LOG_LEVEL` were removed from `.env.example` (which now keeps only secrets and environment-specific values)
+- **Clear precedence** — environment variable > `data/settings.json` > built-in default, so GitHub Actions / CI can still override any user preference per run; `.env` / GitHub secrets continue to work as overrides
+- **New preferences resolver** — `src/config/preferences.ts` loads the five preference keys from `data/settings.json` (sharing the file with notification settings), validates them, and merges env overrides; `AppConfig` now exposes `preferences`, and the collector's `platform` comes from the resolved preference
+- **Runtime logging** — startup now prints the resolved values: `Dry run: enabled/disabled` and `Force email: enabled/disabled` (alongside Collector/Region/Platform/Email/score/cooldown), so the effective configuration is visible each run
+- **Validation** — new `npm run validate-preferences` suite covers: settings values load, partial merge with defaults, env overrides settings, env normalization, invalid values rejected, and that app config exposes preferences (collector platform matches); `npm test` aggregates the suite, and the existing dry-run/force-email/production suites still pass with env overrides
+- Collector, analyzer, digest layout, and notification behavior unchanged (out of scope for this task)
+
 > **Status: 🔄 In progress**

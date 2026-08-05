@@ -13,5 +13,10 @@
     "showStatistics": true,
     "showPriceWatch": true
   },
-  "blacklistedGames": []
+  "blacklistedGames": ["fortnite"],
+  "platform": "switch1",
+  "emailProvider": "gmail",
+  "dryRun": false,
+  "forceEmail": false,
+  "logLevel": "info"
 }

@@ -17,6 +17,7 @@
     "generate-catalog": "npm run build && node dist/collectors/generate-catalog.js",
     "validate-config": "npm run build && node dist/config/validate-config.js",
     "validate-settings": "npm run build && node dist/config/validate-settings.js",
+    "validate-preferences": "npm run build && node dist/config/validate-preferences.js",
     "validate-history": "npm run build && node dist/config/validate-history.js",
     "analyze-games": "npm run build && node dist/analyzer/analyze-games.js",
     "validate-analyzer": "npm run build && node dist/analyzer/validate-analyzer.js",
@@ -31,7 +32,7 @@
     "validate-wishlist-price": "npm run build && node dist/notifications/validate-wishlist-price.js",
     "validate-blacklist": "npm run build && node dist/pipeline/validate-blacklist.js",
     "validate-production": "npm run build && node dist/config/validate-production.js",
-    "test": "npm run build && npm run validate-analyzer && npm run validate-collector && npm run validate-config && npm run validate-settings && npm run validate-history && npm run validate-dry-run && npm run validate-force-email && npm run validate-reports && npm run validate-email && npm run validate-wishlist-price && npm run validate-blacklist && npm run validate-production"
+    "test": "npm run build && npm run validate-analyzer && npm run validate-collector && npm run validate-config && npm run validate-settings && npm run validate-preferences && npm run validate-history && npm run validate-dry-run && npm run validate-force-email && npm run validate-reports && npm run validate-email && npm run validate-wishlist-price && npm run validate-blacklist && npm run validate-production"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
