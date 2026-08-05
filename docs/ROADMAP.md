@@ -230,4 +230,16 @@ Features:
 - Docs updated (README catalog maintenance + generation + Wishlist Watch, PRODUCTION.md, ROADMAP)
 - Analyzer, scoring, digest layout, and notification logic unchanged (out of scope for this task)
 
+> **Status: ✅ Complete**
+
+## v0.22 Excluded Genre Filtering (v0.22.0)
+
+Features:
+- **Root cause fixed — genre vocabulary mismatch** — Nintendo's store tags shooter games as "Shooting" (and RPGs as "Role playing"), while family profiles exclude "Shooter" / prefer "RPG", so exact-string matching never fired the hard exclusion filter and games like DOOM slipped through as "recommended"
+- **Normalized genre matching** — `family-matcher.ts` gains `normalizeGenre()` which folds variant labels onto one canonical family (Shooting/Shooter/FPS/First-Person Shooter → Shooter; Horror/Survival Horror → Horror; Role playing/RPG → Role-Playing) before comparing against profile `excludedGenres` and `preferredGenres`; unknown labels pass through after case/whitespace folding
+- **Excluded genres are a hard filter** — when a game matches any excluded genre for a profile, that profile is blocked (`matched: false`), the exclusion takes precedence over preferred genres (the preferred reason is suppressed), and the blocked profile contributes no family-match bonus to the deal score; the digest already only recommends profiles with `matched: true`
+- **Missing genre metadata** — games with no genre data cannot be blocked by genre (documented + tested); the three clearly-shooter catalog entries that lacked genres (Call of Sniper Combat - WW2, Sniper Dan, The GhostX: Sniper Simulator) were given an accurate `Shooting` genre so they are now excluded
+- **Validation** — new `npm run validate-analyzer` suite covers: Shooter excluded (both label directions), Horror excluded + variants, preferred/excluded conflict, multiple profiles (blocked for one, matched for another), missing genre metadata, no family bonus for blocked profiles, and real-catalog checks that DOOM + sniper games are not recommended to any profile while LEGO and platform games remain recommended; `npm test` aggregates the suite
+- Collector and digest layout unchanged (out of scope for this task)
+
 > **Status: 🔄 In progress**

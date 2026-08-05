@@ -264,6 +264,9 @@
     "platforms": [
       "switch1"
     ],
+    "genres": [
+      "Shooting"
+    ],
     "esrbRating": "Teen"
   },
   {
@@ -2743,6 +2746,9 @@
     "platforms": [
       "switch1"
     ],
+    "genres": [
+      "Shooting"
+    ],
     "esrbRating": "Everyone 10+"
   },
   {
@@ -3354,6 +3360,9 @@
     "slug": "the-ghostx-sniper-simulator-tactical-shooting-and-eliminator-switch",
     "platforms": [
       "switch1"
+    ],
+    "genres": [
+      "Shooting"
     ],
     "esrbRating": "Teen"
   },
