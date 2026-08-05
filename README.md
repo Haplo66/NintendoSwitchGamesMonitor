@@ -521,7 +521,8 @@ User-editable notification preferences live in `data/settings.json`:
     "maxWishlistAlerts": 10,
     "showStatistics": true,
     "showPriceWatch": true
-  }
+  },
+  "blacklistedGames": []
 }
 ```
 
@@ -538,6 +539,7 @@ User-editable notification preferences live in `data/settings.json`:
   - `maxWishlistAlerts` — how many wishlist alerts (and price-watch items) to show (whole number, default `10`).
   - `showStatistics` — whether to render the **Monitoring Statistics** section (boolean, default `true`).
   - `showPriceWatch` — whether to render the **Price Watch** section (boolean, default `true`).
+- `blacklistedGames` — titles of games to permanently hide from the daily digest. Use this for shovelware, inappropriate games, or titles the family is not interested in. Matching is **exact and case-insensitive** on the normalized title (surrounding whitespace is ignored, so `"Carrot Smash"`, `"carrot smash"`, and `" Carrot Smash "` all match the same entry), and it is applied **after collection and before analysis**: blacklisted games never appear in deal analysis, **Best Deals**, **Recommended For Your Family**, or notifications, and they do not affect the **Games Checked** statistic. If a blacklisted game is also on the wishlist it stays visible in **Wishlist Watch** with today's price/status, but is still excluded from recommendations and general deals. An empty array (the default) hides nothing.
 
 A missing settings file falls back to the defaults; a malformed file or invalid values fail with a clear error.
 
@@ -571,7 +573,7 @@ defaults
 | Game catalog path       | `GAME_CATALOG`              | —                             | `data/game-catalog.json` |
 | Deals currency          | `DEALS_CURRENCY`            | —                             | `USD`         |
 
-`dailyDigest` and `sendEmptyDigest` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above.
+`dailyDigest`, `sendEmptyDigest`, and `blacklistedGames` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above.
 
 ### Validating settings
 
@@ -579,7 +581,7 @@ defaults
 npm run validate-settings
 ```
 
-Runs checks that confirm defaults apply when the file is missing, full and partial files load correctly (including partial `dailyDigest` blocks), malformed files and invalid values are rejected, and environment variables correctly override `settings.json`.
+Runs checks that confirm defaults apply when the file is missing, full and partial files load correctly (including partial `dailyDigest` blocks), malformed files and invalid values are rejected (including a malformed `blacklistedGames` array), and environment variables correctly override `settings.json`.
 
 ## Running Locally
 
@@ -638,6 +640,7 @@ cp .env.example .env   # then fill in values
 | `npm run report`        | Build, run the pipeline with mock email, and write a markdown + HTML report |
 | `npm run validate-reports` | Build and validate report generation (markdown + HTML) |
 | `npm run validate-wishlist-price` | Build and validate always-on Wishlist Watch pricing (coverage, no duplicate API requests, section order) |
+| `npm run validate-blacklist` | Build and validate the game blacklist (removal, matching, wishlist exception, no notifications) |
 
 ## Project Structure
 

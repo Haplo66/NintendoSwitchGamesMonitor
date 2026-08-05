@@ -21,6 +21,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   defaultNotifyOnAnyDiscount: false,
   sendEmptyDigest: false,
   dailyDigest: { ...DEFAULT_DAILY_DIGEST_SETTINGS },
+  blacklistedGames: [],
 };
 
 export function defaultSettingsFile(): string {
@@ -71,6 +72,15 @@ export function validateNotificationSettings(settings: unknown): string[] {
   checkRange('defaultWishlistDiscountPercent', 1, 99, true);
   checkBoolean('defaultNotifyOnAnyDiscount');
   checkBoolean('sendEmptyDigest');
+
+  if (value.blacklistedGames !== undefined) {
+    if (
+      !Array.isArray(value.blacklistedGames) ||
+      !value.blacklistedGames.every((entry) => typeof entry === 'string' && entry.trim() !== '')
+    ) {
+      errors.push('blacklistedGames must be an array of non-empty strings');
+    }
+  }
 
   const digest = value.dailyDigest;
   if (digest !== undefined) {
@@ -197,6 +207,7 @@ export function resolveNotificationSettings(
       base.defaultNotifyOnAnyDiscount,
     sendEmptyDigest: base.sendEmptyDigest,
     dailyDigest: { ...base.dailyDigest },
+    blacklistedGames: [...base.blacklistedGames],
   };
 
   const errors = validateNotificationSettings(settings);

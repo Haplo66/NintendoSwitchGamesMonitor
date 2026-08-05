@@ -4,6 +4,7 @@ import { analyzeGamesWith } from '../analyzer/analyze';
 import { calculateDiscountPercent } from '../analyzer/deal-score';
 import { createGameCollector } from '../collectors/collector-factory';
 import { GameCollector } from '../collectors/game-collector';
+import { filterBlacklistedGames } from '../config/blacklist';
 import { loadAppConfig } from '../config/app-config';
 import {
   filterNotifiableGames,
@@ -149,6 +150,17 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const games = await collector.collectGames({ limit: dealLimit });
   console.log(`Collected ${games.length} game(s) using \"${collectorKind}\" collector.`);
 
+  // Blacklist filtering: applied right after collection and before analysis so
+  // hidden games never reach deal analysis, Best Deals, recommendations,
+  // Wishlist Watch, or notification generation. The "games checked" statistic
+  // uses the full collection count, so blacklisting does not skew it.
+  const checkedCount = games.length;
+  const analyzedGames = filterBlacklistedGames(games, config.notification.blacklistedGames);
+  const blacklistedCount = checkedCount - analyzedGames.length;
+  if (blacklistedCount > 0) {
+    console.log(`Excluded ${blacklistedCount} blacklisted game(s) from analysis.`);
+  }
+
   const profiles = config.familyProfiles;
   const wishlist = config.wishlist;
   console.log(
@@ -156,7 +168,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   );
 
   const analyses = analyzeGamesWith(
-    games,
+    analyzedGames,
     profiles,
     wishlist,
     config.notification.defaultWishlistDiscountPercent,
@@ -220,7 +232,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
 
   const updatedHistory = reconcileDealHistory(
     history,
-    games,
+    analyzedGames,
     toEmail.map((analysis) => analysis.game),
     new Date(),
   );
@@ -234,7 +246,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     minDealScore,
     defaultWishlistDiscountPercent: config.notification.defaultWishlistDiscountPercent,
     executionTimeMs: Date.now() - startedAt,
-    analyzedCount: analyses.length,
+    analyzedCount: checkedCount,
     potentialMatchCount: reported.length,
     reportedCount: toEmail.length,
     skippedByCooldownCount: skippedByCooldown,

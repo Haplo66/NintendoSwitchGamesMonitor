@@ -50,6 +50,18 @@ For real Nintendo Switch deals, set `GAME_COLLECTOR=nintendo`. The collector tar
 
 To refresh the catalog, run `npm run generate-catalog` (regenerates `data/game-catalog.json` from the store sitemap and product pages, targeting 300 entries; `CATALOG_TARGET` / `CATALOG_OUT` override) and review the git diff before committing. Run `npm run validate-collector` to confirm the result passes structural validation (no duplicate nsuids/slugs, required fields present, valid platforms, well-formed URLs).
 
+### Hiding games from the digest (blacklist)
+
+Some titles are never worth showing — shovelware, inappropriate games, or anything the family just is not interested in. Add their exact titles to `blacklistedGames` in `data/settings.json`:
+
+```json
+{
+  "blacklistedGames": ["Carrot Smash", "Example Game"]
+}
+```
+
+Matching is **exact and case-insensitive** on the normalized title (trimmed + lowercased), so `"carrot smash"` or `" Carrot Smash "` match the same entry. The filter runs **after collection and before analysis**: blacklisted games are excluded from deal analysis, **Best Deals**, **Recommended For Your Family**, and notifications, and they do not change the **Games Checked** statistic. If you put a blacklisted game on the wishlist it stays visible in **Wishlist Watch** with today's price/status, but it is still never recommended or shown as a general deal. The collector and the price API are untouched — hiding is purely a display-side filter. Run `npm run validate-blacklist` to confirm the behavior.
+
 ## GitHub Actions
 
 The monitor runs automatically via `.github/workflows/monitor.yml` — no server to maintain.

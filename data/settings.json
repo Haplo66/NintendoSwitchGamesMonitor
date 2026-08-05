@@ -12,5 +12,6 @@
     "maxWishlistAlerts": 10,
     "showStatistics": true,
     "showPriceWatch": true
-  }
+  },
+  "blacklistedGames": []
 }

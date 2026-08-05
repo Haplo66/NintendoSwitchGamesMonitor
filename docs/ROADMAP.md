@@ -255,4 +255,17 @@ Features:
 - **Validation** — new `npm run validate-wishlist-price` suite covers full-price/on-sale/target-reached/not-monitored display, that every monitored item exposes a current price, that the collector reuses cached prices (no duplicate requests) and fetches only missing nsuids, and email section ordering; `npm test` aggregates the suite
 - Collector, analyzer, scoring, and notification logic unchanged (out of scope for this task)
 
+> **Status: ✅ Complete**
+
+## v0.24 User Game Blacklist (v0.24.0)
+
+Features:
+- **Permanently hide unwanted games** — `blacklistedGames` in `data/settings.json` hides shovelware, inappropriate games, and titles the family is not interested in from the daily digest
+- **Matching behavior** — exact + case-insensitive match on the normalized title (trimmed + lowercased), so `"Carrot Smash"`, `"carrot smash"`, and `" Carrot Smash "` all match the same entry; an empty array (default) hides nothing
+- **Filtering position** — applied right after collection and before analysis (`Collector → Catalog validation → Blacklist filtering → Analyzer → Digest`), so hidden games never reach deal analysis, **Best Deals**, **Recommended For Your Family**, or notification generation; the **Games Checked** statistic still uses the full collection count and collector behavior is untouched
+- **Wishlist exception** — a blacklisted game explicitly added to the wishlist stays visible in **Wishlist Watch** with today's price/status (via the existing wishlist-price tracking), but is never recommended or shown as a general deal
+- **History** — blacklisted games are not tracked as on-sale in notification history (reconciliation runs on the post-filter list)
+- **Validation** — new `npm run validate-blacklist` suite covers removal, case-insensitivity, normalized-title matching, non-blacklisted games unchanged, exclusion from analysis, no notifications (even when wishlisted), the wishlist exception, and absence from every digest section; `npm test` aggregates the suite
+- Collector, scoring, family matching, and email layout unchanged (out of scope for this task)
+
 > **Status: 🔄 In progress**
