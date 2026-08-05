@@ -12,6 +12,7 @@ import {
   DigestWishlistAlert,
   DigestWishlistWatch,
   Game,
+  GameAnalysis,
   MonitorResult,
   WishlistWatchStatus,
 } from '../models';
@@ -165,6 +166,18 @@ function isOnSale(game: Game): boolean {
   return game.originalPrice !== undefined && game.originalPrice > game.currentPrice;
 }
 
+function isRecommendationEligible(analysis: GameAnalysis, result: MonitorResult): boolean {
+  if (analysis.game.currentPrice === 0) {
+    return true;
+  }
+  if (isOnSale(analysis.game)) {
+    return true;
+  }
+  return result.dealHistory.entries.some(
+    (entry) => titleKey(entry.gameTitle) === titleKey(analysis.game.title) && entry.currentlyOnSale,
+  );
+}
+
 export function buildDailyDigest(
   result: MonitorResult,
   options: BuildDailyDigestOptions = {},
@@ -252,6 +265,9 @@ export function buildDailyDigest(
 
   const recommendationMap = new Map<string, DigestFamilyRecommendation>();
   for (const analysis of result.reportedAnalyses) {
+    if (!isRecommendationEligible(analysis, result)) {
+      continue;
+    }
     for (const match of analysis.familyMatches) {
       if (!match.matched) {
         continue;
@@ -261,7 +277,14 @@ export function buildDailyDigest(
         recommendation = { profileName: match.profileName, games: [] };
         recommendationMap.set(match.profileName, recommendation);
       }
-      recommendation.games.push({ title: analysis.game.title, reasons: match.reasons });
+      recommendation.games.push({
+        title: analysis.game.title,
+        reasons: match.reasons,
+        currentPrice: analysis.game.currentPrice,
+        originalPrice: analysis.game.originalPrice,
+        discountPercent: calculateDiscountPercent(analysis.game),
+        isFree: analysis.game.currentPrice === 0,
+      });
     }
   }
   const recommendations = [...recommendationMap.values()];

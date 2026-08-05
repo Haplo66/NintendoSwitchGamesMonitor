@@ -281,3 +281,12 @@ Features:
 - Collector, analyzer, digest layout, and notification behavior unchanged (out of scope for this task)
 
 > **Status: 🔄 In progress**
+
+## v0.26 Recommendations Restricted To Relevant Deals (v0.26.0)
+
+Features:
+- **Deal-focused family recommendations** — **Recommended For Your Family** now only shows actionable games: currently discounted, free, or active historical deals still on sale. Full-price catalog games (even ones that match a family profile, and even wishlist ones) are no longer recommended; they remain visible in **Wishlist Watch** only (`⚪ Full Price`)
+- **Price status on recommendations** — every recommended game shows its price status (e.g. `🔥 -90%` + current price, or `🆓 Free to download`), so a recommendation in a deal alert reads as something worth checking today; `DigestRecommendationGame` carries `currentPrice`, `originalPrice`, `discountPercent`, and `isFree`, rendered in both the email and markdown report
+- **Eligibility** — a game is recommendable when it is free, discounted (`originalPrice > currentPrice`), or tracked as `currentlyOnSale` in deal history; the filter lives in `daily-digest-builder.ts`
+- **Validation** — new `npm run validate-recommendations` suite covers: discounted family match appears, full-price family match excluded, full-price wishlist game excluded (but kept in Wishlist Watch), active historical deal remains visible, free games remain visible, and that recommended games expose + render price status; `npm test` aggregates the suite
+- Collector, catalog generation, and blacklist unchanged (out of scope for this task)

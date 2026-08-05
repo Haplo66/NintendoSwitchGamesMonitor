@@ -22,7 +22,7 @@ export function composeDigestSections(digest: DailyDigest): string {
     renderWishlistAlertsSection(digest.wishlistAlerts, digest.currency, digest) +
     renderBestDealsSection(digest.bestDeals, digest.currency) +
     renderFreeGamesSection(digest.freeGames) +
-    renderRecommendedSection(digest.recommendations) +
+    renderRecommendedSection(digest.recommendations, digest.currency) +
     renderPriceWatchSection(digest.priceWatch, digest.currency) +
     (digest.statistics ? renderStatisticsSection(digest.statistics) : '')
   );

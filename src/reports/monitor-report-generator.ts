@@ -190,8 +190,14 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
       out.push(`### ${recommendation.profileName}`);
       out.push('');
       for (const game of recommendation.games) {
+        const status = game.isFree
+          ? '🆓 Free to download'
+          : game.discountPercent > 0
+            ? `🔥 -${game.discountPercent}% (${formatAmount(digest.currency, game.currentPrice)})`
+            : '⚪ Full Price';
         const reason = game.reasons.length > 0 ? ` — ${game.reasons.join(', ')}` : '';
         out.push(`- ✓ ${game.title}${reason}`);
+        out.push(`  ${status}`);
       }
       out.push('');
     }

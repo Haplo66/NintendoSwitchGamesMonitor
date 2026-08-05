@@ -110,8 +110,22 @@ function buildSampleDigest(): DailyDigest {
       {
         profileName: 'Alex (Kid)',
         games: [
-          { title: 'Mario Kart 8 Deluxe', reasons: ['Racing', 'Platformer', 'Age appropriate'] },
-          { title: 'Super Mario Odyssey', reasons: ['Adventure', 'Platformer', 'Age appropriate'] },
+          {
+            title: 'Mario Kart 8 Deluxe',
+            reasons: ['Racing', 'Platformer', 'Age appropriate'],
+            currentPrice: 39.99,
+            originalPrice: 59.99,
+            discountPercent: 33,
+            isFree: false,
+          },
+          {
+            title: 'Super Mario Odyssey',
+            reasons: ['Adventure', 'Platformer', 'Age appropriate'],
+            currentPrice: 41.99,
+            originalPrice: 59.99,
+            discountPercent: 30,
+            isFree: false,
+          },
         ],
       },
       {
@@ -120,6 +134,10 @@ function buildSampleDigest(): DailyDigest {
           {
             title: 'The Legend of Zelda: Breath of the Wild',
             reasons: ['Action', 'Adventure', 'Age appropriate'],
+            currentPrice: 39.99,
+            originalPrice: 59.99,
+            discountPercent: 33,
+            isFree: false,
           },
         ],
       },

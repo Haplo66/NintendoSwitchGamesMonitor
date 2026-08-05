@@ -62,6 +62,10 @@ export interface DigestFreeGame {
 export interface DigestRecommendationGame {
   title: string;
   reasons: string[];
+  currentPrice: number;
+  originalPrice?: number;
+  discountPercent: number;
+  isFree: boolean;
 }
 
 export interface DigestFamilyRecommendation {

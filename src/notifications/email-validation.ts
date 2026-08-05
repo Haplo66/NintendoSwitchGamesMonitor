@@ -93,7 +93,14 @@ function buildSampleDigest(): DailyDigest {
       {
         profileName: 'Alex (Kid)',
         games: [
-          { title: 'Mario Kart 8 Deluxe', reasons: ['Racing', 'Age appropriate'] },
+          {
+            title: 'Mario Kart 8 Deluxe',
+            reasons: ['Racing', 'Age appropriate'],
+            currentPrice: 39.99,
+            originalPrice: 59.99,
+            discountPercent: 33,
+            isFree: false,
+          },
         ],
       },
     ],

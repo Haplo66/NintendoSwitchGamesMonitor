@@ -51,7 +51,7 @@ The notification email is a **daily digest** written for a busy parent. It opens
 5. **Wishlist Alerts** — games on the family wishlist whose price target was reached (or any discount, when enabled). Each alert shows current/original price, discount %, the target and where it came from (`Configured target` vs `Auto target (N% discount)`), and a store link.
 6. **Best Deals** — the highest-scoring non-wishlist deals, each with price, discount badge, deal score, and why it's recommended.
 7. **Free Games** — free-to-download games, nothing to buy.
-8. **Recommended For Your Family** — one short list per family profile showing which featured games fit each child.
+8. **Recommended For Your Family** — one short list per family profile showing which matching games are worth checking **today**. Only actionable games are recommended: currently discounted, free, or active deals still on sale. Each recommended game shows its price status (e.g. 🔥 **-90%** with the current price, or 🆓 **Free to download**). Full-price catalog games are never recommended, even if they match a profile or sit on the wishlist — those stay in **Wishlist Watch** (⚪ Full Price) instead.
 9. **Price Watch** (optional) — wishlist items currently above their target but within ~10% of it, so you can see which deals are about to happen.
 10. **Monitoring Statistics** (optional) — games checked/reported/skipped, the collector, and execution time.
 11. **Footer** — a muted "generated automatically" note.
@@ -671,6 +671,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-reports` | Build and validate report generation (markdown + HTML) |
 | `npm run validate-wishlist-price` | Build and validate always-on Wishlist Watch pricing (coverage, no duplicate API requests, section order) |
 | `npm run validate-blacklist` | Build and validate the game blacklist (removal, matching, wishlist exception, no notifications) |
+| `npm run validate-recommendations` | Build and validate deal-focused family recommendations (discounted/free/active deals included, full-price excluded, price status rendered) |
 
 ## Project Structure
 

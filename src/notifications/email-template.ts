@@ -3,6 +3,7 @@ import {
   DigestBestDeal,
   DigestFamilyRecommendation,
   DigestPriceWatchItem,
+  DigestRecommendationGame,
   DigestStatistics,
   DigestStillOnSale,
   DigestSummary,
@@ -339,12 +340,38 @@ export function renderFreeGamesSection(freeGames: FreeGame[]): string {
   return sectionHeader('🆓', 'Free Games', COLORS.free) + cards;
 }
 
-function renderRecommendationProfile(recommendation: DigestFamilyRecommendation): string {
+function recommendationPriceStatus(game: DigestRecommendationGame, currency: string): string {
+  if (game.isFree) {
+    return (
+      `<div style="font-family:${FONT}; font-size:13px; font-weight:bold; color:${COLORS.free};">` +
+      `🆓 Free to download</div>`
+    );
+  }
+  if (game.originalPrice !== undefined && game.originalPrice > game.currentPrice) {
+    const originalHtml =
+      `<span style="font-family:${FONT}; font-size:12px; color:${COLORS.muted};` +
+      ` text-decoration:line-through; margin-right:6px;">${formatMoney(currency, game.originalPrice)}</span>`;
+    const price =
+      `<span style="font-family:${FONT}; font-size:14px; font-weight:bold;` +
+      ` color:${COLORS.accent};">${formatMoney(currency, game.currentPrice)}</span>`;
+    return (
+      `<div style="margin-top:4px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">` +
+      `🔥 ${badge(`-${game.discountPercent}%`, COLORS.discount)} ${originalHtml}${price}</div>`
+    );
+  }
+  return (
+    `<div style="margin-top:4px; font-family:${FONT}; font-size:13px; color:${COLORS.muted};">` +
+    `⚪ Full Price</div>`
+  );
+}
+
+function renderRecommendationProfile(recommendation: DigestFamilyRecommendation, currency: string): string {
   const games = recommendation.games
     .map(
       (game) =>
         `<li style="font-family:${FONT}; font-size:14px; color:${COLORS.text}; padding:6px 0;">` +
         `<span style="color:${COLORS.success}; font-weight:bold;">✓</span> <strong>${escapeHtml(game.title)}</strong>` +
+        recommendationPriceStatus(game, currency) +
         (game.reasons.length > 0
           ? `<div style="font-size:12px; color:${COLORS.muted}; margin-top:2px;">Reason: ${game.reasons
               .map((reason) => escapeHtml(reason))
@@ -363,11 +390,16 @@ function renderRecommendationProfile(recommendation: DigestFamilyRecommendation)
   );
 }
 
-export function renderRecommendedSection(recommendations: DigestFamilyRecommendation[]): string {
+export function renderRecommendedSection(
+  recommendations: DigestFamilyRecommendation[],
+  currency: string,
+): string {
   if (recommendations.length === 0) {
     return '';
   }
-  const blocks = recommendations.map(renderRecommendationProfile).join('');
+  const blocks = recommendations
+    .map((recommendation) => renderRecommendationProfile(recommendation, currency))
+    .join('');
   return sectionHeader('⭐', 'Recommended For Your Family', COLORS.free) + blocks;
 }
 
