@@ -17,6 +17,7 @@ import {
 } from './nintendo-price-collector';
 import { normalizeNintendoPlatform, resolveNintendoPlatform } from './platform';
 import { resolveNintendoRegion } from './region';
+import { validateCatalogEntries } from './catalog-validation';
 
 interface Check {
   name: string;
@@ -117,6 +118,84 @@ export async function validateCollector(): Promise<void> {
             `entry store URL is malformed for ${entry.title}`,
           );
         }
+      },
+    },
+    {
+      name: 'the default game catalog passes structural validation',
+      run: () => {
+        const catalog = loadGameCatalog();
+        const errors = validateCatalogEntries(catalog);
+        assert.deepStrictEqual(errors, [], `Catalog has structural problems:\n- ${errors.join('\n- ')}`);
+      },
+    },
+    {
+      name: 'the default game catalog contains at least 200 games',
+      run: () => {
+        const catalog = loadGameCatalog();
+        assert.ok(
+          catalog.length >= 200,
+          `Default catalog has only ${catalog.length} game(s); expected at least 200`,
+        );
+      },
+    },
+    {
+      name: 'catalog validation detects duplicate nsuids',
+      run: () => {
+        const errors = validateCatalogEntries([
+          { nsuid: '70010000000025', title: 'A', slug: 'a-switch', platforms: ['switch1'] },
+          { nsuid: '70010000000025', title: 'B', slug: 'b-switch', platforms: ['switch1'] },
+        ]);
+        assert.ok(errors.some((error) => error.includes('Duplicate nsuid')), 'duplicate nsuid not detected');
+      },
+    },
+    {
+      name: 'catalog validation detects duplicate slugs',
+      run: () => {
+        const errors = validateCatalogEntries([
+          { nsuid: '70010000000025', title: 'A', slug: 'a-switch', platforms: ['switch1'] },
+          { nsuid: '70010000000026', title: 'B', slug: 'A-SWITCH', platforms: ['switch1'] },
+        ]);
+        assert.ok(errors.some((error) => error.includes('Duplicate slug')), 'duplicate slug not detected');
+      },
+    },
+    {
+      name: 'catalog validation detects missing required fields',
+      run: () => {
+        const errors = validateCatalogEntries([
+          { nsuid: '', title: 'No nsuid', slug: 'a-switch', platforms: ['switch1'] },
+          { nsuid: '70010000000025', title: '', slug: 'b-switch', platforms: ['switch1'] },
+          { nsuid: '70010000000026', title: 'No slug', slug: '', platforms: ['switch1'] },
+        ]);
+        assert.ok(errors.some((error) => error.includes('missing its nsuid')), 'missing nsuid not detected');
+        assert.ok(errors.some((error) => error.includes('missing its title')), 'missing title not detected');
+        assert.ok(errors.some((error) => error.includes('missing its slug')), 'missing slug not detected');
+      },
+    },
+    {
+      name: 'catalog validation detects invalid platform values',
+      run: () => {
+        const errors = validateCatalogEntries([
+          { nsuid: '70010000000025', title: 'Bad platform', slug: 'a-switch', platforms: ['xbox' as 'switch1'] },
+          { nsuid: '70010000000026', title: 'No platforms', slug: 'b-switch', platforms: [] },
+        ]);
+        assert.ok(
+          errors.some((error) => error.includes('invalid platform "xbox"')),
+          'invalid platform not detected',
+        );
+        assert.ok(errors.some((error) => error.includes('has no platforms')), 'empty platforms not detected');
+      },
+    },
+    {
+      name: 'catalog validation detects invalid URLs',
+      run: () => {
+        const errors = validateCatalogEntries([
+          { nsuid: '70010000000025', title: 'Bad slug chars', slug: 'Bad Slug!', platforms: ['switch1'] },
+          { nsuid: '70010000000026', title: 'Upper case slug', slug: 'Mario-Switch', platforms: ['switch1'] },
+        ]);
+        assert.ok(
+          errors.some((error) => error.includes('invalid store URL')),
+          'invalid URL not detected',
+        );
       },
     },
     {

@@ -178,6 +178,12 @@ export class NintendoPriceCollector implements GameCollector {
     return catalog.filter((entry) => gameOnPlatform(entry.platforms, this.platform));
   }
 
+  monitoredTitles(): string[] {
+    return this.filterCatalogByPlatform(loadGameCatalog(this.catalogPath)).map(
+      (entry) => entry.title,
+    );
+  }
+
   private async fetchPrices(nsuids: string[]): Promise<PriceEntry[]> {
     const url = new URL(this.priceApiUrl);
     url.searchParams.set('country', 'US');

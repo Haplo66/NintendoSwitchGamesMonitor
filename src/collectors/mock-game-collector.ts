@@ -92,4 +92,8 @@ export class MockGameCollector implements GameCollector {
     }
     return games.map((game) => ({ ...game }));
   }
+
+  monitoredTitles(): string[] {
+    return this.games.map((game) => game.title);
+  }
 }

@@ -143,8 +143,10 @@ function sampleResult(): MonitorResult {
       items: [
         { gameTitle: 'Stardew Valley', targetPrice: 35.99, notifyOnAnyDiscount: false },
         { gameTitle: 'Super Mario RPG', notifyOnAnyDiscount: false },
+        { gameTitle: "Luigi's Mansion 3", targetPrice: 44.99, notifyOnAnyDiscount: false },
       ],
     },
+    monitoredTitles: ['Mario Kart 8 Deluxe', 'Fortnite', 'Super Mario Odyssey', 'Fall Guys', 'Chess', 'Stardew Valley', "Luigi's Mansion 3"],
   };
 }
 
@@ -166,6 +168,7 @@ function emptyResult(): MonitorResult {
     skippedByScoreAnalyses: [],
     dealHistory: { entries: [] },
     wishlist: { items: [] },
+    monitoredTitles: [],
   };
 }
 
@@ -200,7 +203,15 @@ const checks: Check[] = [
     run: () => {
       assert.ok(markdown.includes("## 👀 Wishlist Watch"), 'Wishlist Watch section missing');
       assert.ok(markdown.includes('🔥 On Sale — Stardew Valley'), 'On Sale status missing');
-      assert.ok(markdown.includes('❓ Not Currently Monitored — Super Mario RPG'), 'Not monitored status missing');
+      assert.ok(markdown.includes('⚪ Not currently tracked — Super Mario RPG'), 'Not tracked status missing');
+      assert.ok(
+        markdown.includes('Add this game to the monitored catalog'),
+        'Not tracked hint missing',
+      );
+      assert.ok(
+        markdown.includes("⚪ Full Price — Luigi's Mansion 3"),
+        'Monitored full-price status missing',
+      );
       assert.ok(markdown.includes('**Current price:** EUR 37.00'), 'Wishlist watch current price missing');
       assert.ok(markdown.includes('**Target price:** EUR 35.99'), 'Wishlist watch target price missing');
     },
@@ -298,9 +309,10 @@ const checks: Check[] = [
       const data = buildMonitorReportData(sampleResult());
       assert.strictEqual(data.digest.summary.gamesChecked, 6);
       assert.strictEqual(data.digest.summary.newDeals, 3);
-      assert.strictEqual(data.digest.wishlistWatch.length, 2);
+      assert.strictEqual(data.digest.wishlistWatch.length, 3);
       assert.strictEqual(data.digest.wishlistWatch[0].status, 'on-sale');
       assert.strictEqual(data.digest.wishlistWatch[1].status, 'not-monitored');
+      assert.strictEqual(data.digest.wishlistWatch[2].status, 'full-price');
       assert.strictEqual(data.digest.stillOnSale.length, 1);
       assert.strictEqual(data.digest.stillOnSale[0].title, 'Chess');
       assert.strictEqual(data.digest.wishlistAlerts.length, 1);

@@ -46,7 +46,7 @@ The notification email is a **daily digest** written for a busy parent. It opens
 
 1. **Header** — Nintendo red banner with the app name, formatted date, and the collector used.
 2. **Today's Summary** — a quick stats bar: new deals today, wishlist games on sale, still-active deals, the biggest discount, and games checked.
-3. **Wishlist Watch** — every game on the family wishlist and its current status: 🔥 **On Sale**, 🎯 **Target Price Reached**, ⚪ **Full Price**, or ❓ **Not Currently Monitored** (not present in today's collected games). It always renders, so an empty wishlist is shown explicitly.
+3. **Wishlist Watch** — every game on the family wishlist and its current status: 🔥 **On Sale**, 🎯 **Target Price Reached**, ⚪ **Full Price** (monitored but not currently discounted), or ⚪ **Not Currently Tracked** (not part of the monitored catalog, so no price tracking). Each non-tracked game shows *"Add this game to the monitored catalog to enable price tracking."* It always renders, so an empty wishlist is shown explicitly.
 4. **Still On Sale** — deals the family has already been notified about that are *still* discounted (and not re-reported today), with how long each has been on sale (`First reported <date> · N days on sale`). Hidden when there are no still-active tracked deals.
 5. **Wishlist Alerts** — games on the family wishlist whose price target was reached (or any discount, when enabled). Each alert shows current/original price, discount %, the target and where it came from (`Configured target` vs `Auto target (N% discount)`), and a store link.
 6. **Best Deals** — the highest-scoring non-wishlist deals, each with price, discount badge, deal score, and why it's recommended.
@@ -180,12 +180,24 @@ $env:NINTENDO_PLATFORM = "both";  npm run collect-games      # all cataloged pla
 }
 ```
 
-- **Add a game** — look up its US `nsuid` (e.g. via `www.nintendo.com/us/games/…` game pages or the game-guide search) and its store `slug` (the path segment of `nintendo.com/us/store/products/<slug>/`; confirm the page resolves), then append an entry. The collector will start checking it on the next run.
+- **Generate the catalog** — `npm run generate-catalog` builds the project and regenerates the catalog automatically (details below). The committed catalog currently holds **300 games**, every one with an ESRB rating and a resolvable US store page.
+- **Add a game manually** — look up its US `nsuid` (e.g. via `www.nintendo.com/us/games/…` game pages or the game-guide search) and its store `slug` (the path segment of `nintendo.com/us/store/products/<slug>/`; confirm the page resolves), then append an entry. The collector will start checking it on the next run.
 - **Remove a game** — delete its entry. It is no longer queried.
 - **Link quality** — the collector never derives URLs from the title; it uses the catalog `slug` verbatim, so every store link is canonical and resolvable. An entry missing a `slug` is dropped.
 - **Platforms** — list every console the title runs on (`switch1`, `switch2`). A game the selected `NINTENDO_PLATFORM` does not include is not collected. `both` collects every entry.
 - **Correct data** — the collector trusts the catalog file (trims titles/nsuids/slugs, drops entries missing any of them, and defaults missing `platforms` to `switch1`). Run `npm run validate-collector` after editing to confirm the file parses and every entry is valid.
-- **Automated discovery (future)** — the initial entries were sourced from Nintendo's public game-guide search index (`ncom_game_en_us`, nsuid/title rating/genres) and verified against the price API. This same index could one day be used to auto-populate or refresh the catalog.
+- **Validation** — `npm run validate-collector` also enforces structural rules on the whole catalog: no duplicate `nsuid`s, no duplicate (case-insensitive) `slug`s, no missing required fields, only valid platform values (`switch1` / `switch2`), and every entry produces a well-formed US store URL.
+
+### Automatically generating the catalog
+
+`npm run generate-catalog` rebuilds `data/game-catalog.json` from Nintendo's public US store sitemap and product pages:
+
+1. **Sitemap** — `nintendo.com/us/store/sitemap.xml` lists every US store product; game slugs (those ending in `-switch` / `-switch-2`) become candidates. Non-game products (DLC, expansion passes, bundles, amiibo, hardware, memberships, …) are excluded by slug markers.
+2. **Prioritized selection** — curated seed titles (the flagship Nintendo/Pokémon/indie canon) are fetched first, followed by family-keyword matches (mario, zelda, kirby, pokemon, …) in priority order, so flagship titles are never crowded out by alphabetical filler. The run targets 300 entries by default (`CATALOG_TARGET` overrides).
+3. **Metadata extraction** — each product page embeds `__NEXT_DATA__`; the generator reads the embedded Apollo state to pull the title (normalized to plain ASCII), ESRB rating, and genres, and derives the platform from the slug suffix. Entries whose `nsuid` does not start with `7001` (DLC / demos / add-ons) and per-language legacy re-releases are skipped.
+4. **Validation & write** — the result is validated (duplicates, required fields, platforms, URLs) and written as a sorted-by-title JSON array. The collector and the monitor never run the generator — the checked-in catalog file is what production uses, so regeneration is a maintenance action you review in git before committing.
+
+To preview a smaller/larger run: `$env:CATALOG_TARGET = "200"; npm run generate-catalog`. To write elsewhere: `$env:CATALOG_OUT = "data/my-catalog.json"; npm run generate-catalog`.
 
 ### Collecting games locally
 
@@ -617,6 +629,7 @@ cp .env.example .env   # then fill in values
 | `npm run analyze-games`   | Build and analyze mock games vs profiles + wishlist |
 | `npm run validate-collector` | Build and validate the game collector against real data |
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |
+| `npm run generate-catalog`   | Build and regenerate the US game catalog from the Nintendo store sitemap + product pages |
 | `npm run monitor`       | Build and run the full monitor pipeline (collect → analyze → email) |
 | `npm run monitor:dry`   | Build and run the monitor in dry-run mode (`DRY_RUN=true`: no email sent, no history written) |
 | `npm run monitor:test-email` | Build and run the monitor in test-email mode (`FORCE_EMAIL=true`: always send the digest, no history written) |
@@ -636,6 +649,8 @@ cp .env.example .env   # then fill in values
 │   │   ├── nintendo-price-collector.ts
 │   │   ├── region.ts
 │   │   ├── collector-factory.ts
+│   │   ├── generate-catalog.ts
+│   │   ├── catalog-validation.ts
 │   │   ├── validate-collector.ts
 │   │   └── collect-games.ts
 │   ├── analyzer/      # Analysis: family/wishlist matching + deal scoring

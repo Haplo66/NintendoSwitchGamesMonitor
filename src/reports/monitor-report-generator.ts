@@ -41,7 +41,7 @@ function statusMeta(stats: string): string {
     case 'full-price':
       return '⚪ Full Price';
     case 'not-monitored':
-      return '❓ Not Currently Monitored';
+      return '⚪ Not currently tracked';
     default:
       return stats;
   }
@@ -93,6 +93,10 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
       }
       if (item.discountPercent !== undefined && item.discountPercent > 0) {
         out.push(`- **Discount:** ${item.discountPercent}%`);
+      }
+      if (item.status === 'not-monitored') {
+        out.push('');
+        out.push('_Add this game to the monitored catalog to enable price tracking._');
       }
       if (item.storeUrl) {
         out.push('');

@@ -210,7 +210,7 @@ export function wishlistStatusMeta(status: DigestWishlistWatch['status']): {
     case 'full-price':
       return { label: '⚪ Full Price', color: COLORS.muted };
     case 'not-monitored':
-      return { label: '❓ Not Currently Monitored', color: COLORS.muted };
+      return { label: '⚪ Not currently tracked', color: COLORS.muted };
   }
 }
 
@@ -228,6 +228,9 @@ function renderWishlistWatchCard(item: DigestWishlistWatch, currency: string): s
   }
   if (item.targetPrice !== undefined) {
     details += `${item.currentPrice !== undefined ? ' · ' : ''}Target: <strong>${formatMoney(currency, item.targetPrice)}</strong>`;
+  }
+  if (item.status === 'not-monitored') {
+    details += `<div style="margin-top:6px; font-size:12px; color:${COLORS.muted};">Add this game to the monitored catalog to enable price tracking.</div>`;
   }
   details += '</div>';
   return card(

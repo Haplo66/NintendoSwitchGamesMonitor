@@ -216,4 +216,18 @@ Features:
 - Docs updated (README digest layout + persistent deal tracking, PRODUCTION.md, ROADMAP)
 - Collector, Nintendo price API, scoring, and family matching are unchanged (out of scope for this task)
 
-> **Status: ✅ In progress**
+> **Status: ✅ Complete**
+
+## v0.21 Expanded US Game Catalog & Catalog Validation
+
+Features:
+- **Automated catalog generation** — `npm run generate-catalog` (`src/collectors/generate-catalog.ts`) rebuilds `data/game-catalog.json` from the public US store sitemap (`nintendo.com/us/store/sitemap.xml`) and product-page `__NEXT_DATA__` data, with no manual entry authoring
+- **Expanded catalog** — the committed catalog grows from 11 to **300 games**, every one carrying an ESRB rating, 282 with genres, and covering both Switch 1 (271) and Switch 2 (29) titles; flagship Nintendo/Pokémon/indie titles are guaranteed by a curated seed list + family-keyword priority ordering (not alphabetical, which previously starved later families)
+- **Quality filtering** — non-game products are excluded by slug markers (DLC/expansion passes/bundles/amiibo/hardware/memberships), `nsuid` prefix (`7001` = standalone software; `7003/7005/7007` = demos/add-ons), and per-language legacy re-releases; titles are normalized to plain ASCII (smart punctuation folded) so wishlist matching is not tripped up by curly apostrophes/accents
+- **Catalog validation** — new `src/collectors/catalog-validation.ts` + `validate-collector` checks enforce no duplicate `nsuid`s, no duplicate (case-insensitive) `slug`s, no missing required fields, valid platform values only, well-formed US store URLs, and a minimum catalog size (≥200); the generator validates its own output before writing
+- **Wishlist Watch messaging** — statuses updated to ⚪ **Full Price** (monitored, not discounted) vs ⚪ **Not Currently Tracked** (not in the monitored catalog, with an *"Add this game to the monitored catalog to enable price tracking."* hint), backed by `monitoredTitles` on `MonitorResult` / `GameCollector` so real collectors distinguish in-catalog from untracked titles
+- **Performance** — the 300-game catalog is fetched in 15 batched price-API requests (~4s), well under budget
+- Docs updated (README catalog maintenance + generation + Wishlist Watch, PRODUCTION.md, ROADMAP)
+- Analyzer, scoring, digest layout, and notification logic unchanged (out of scope for this task)
+
+> **Status: 🔄 In progress**

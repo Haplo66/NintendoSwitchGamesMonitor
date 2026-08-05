@@ -227,6 +227,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     skippedByScoreAnalyses,
     dealHistory: updatedHistory,
     wishlist: config.wishlist,
+    monitoredTitles: collector.monitoredTitles(),
   };
 
   const digest = buildDailyDigest(result, {

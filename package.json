@@ -14,6 +14,7 @@
     "test-email": "npm run build && node dist/notifications/test-email.js",
     "validate-email": "npm run build && node dist/notifications/email-validation.js",
     "collect-games": "npm run build && node dist/collectors/collect-games.js",
+    "generate-catalog": "npm run build && node dist/collectors/generate-catalog.js",
     "validate-config": "npm run build && node dist/config/validate-config.js",
     "validate-settings": "npm run build && node dist/config/validate-settings.js",
     "validate-history": "npm run build && node dist/config/validate-history.js",

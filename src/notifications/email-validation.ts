@@ -204,9 +204,13 @@ export async function validateEmailRendering(): Promise<void> {
       run: () => {
         assert.ok(html.includes('Wishlist Watch'), 'Wishlist Watch header missing');
         assert.ok(html.includes('Target Price Reached'), 'Target Reached badge missing');
-        assert.ok(html.includes('Not Currently Monitored'), 'Not monitored badge missing');
+        assert.ok(html.includes('Not currently tracked'), 'Not tracked badge missing');
         assert.ok(html.includes('Mario Kart 8'), 'Wishlist watch game missing');
         assert.ok(html.includes('Super Mario RPG'), 'Not monitored game missing');
+        assert.ok(
+          html.includes('Add this game to the monitored catalog to enable price tracking'),
+          'Not tracked hint missing',
+        );
       },
     },
     {

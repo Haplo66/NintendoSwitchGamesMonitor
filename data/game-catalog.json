@@ -1,90 +1,3723 @@
 [
   {
-    "nsuid": "70010000000025",
-    "title": "The Legend of Zelda: Breath of the Wild",
-    "slug": "the-legend-of-zelda-breath-of-the-wild-switch",
-    "platforms": ["switch1"],
-    "genres": ["Adventure", "Action", "Role-Playing"],
-    "esrbRating": "Everyone 10+"
+    "nsuid": "70010000039588",
+    "title": "2in1 - Application Driver and Serial Killer / Sniper",
+    "slug": "2in1-application-driver-and-serial-killer-sniper-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
   },
   {
-    "nsuid": "70010000000153",
-    "title": "Mario Kart 8 Deluxe",
-    "slug": "mario-kart-8-deluxe-switch",
-    "platforms": ["switch1"],
-    "genres": ["Racing", "Multiplayer"],
+    "nsuid": "70010000089018",
+    "title": "A Guide to Personal Finance: How to Manage Your Money",
+    "slug": "a-guide-to-personal-finance-how-to-manage-your-money-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Application"
+    ],
     "esrbRating": "Everyone"
   },
   {
-    "nsuid": "70010000001130",
-    "title": "Super Mario Odyssey",
-    "slug": "super-mario-odyssey-switch",
-    "platforms": ["switch1"],
-    "genres": ["Platformer", "Action"],
-    "esrbRating": "Everyone 10+"
+    "nsuid": "70010000003813",
+    "title": "A Hat in Time",
+    "slug": "a-hat-in-time-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Teen"
   },
   {
     "nsuid": "70010000027619",
     "title": "Animal Crossing: New Horizons",
     "slug": "animal-crossing-new-horizons-switch",
-    "platforms": ["switch1"],
-    "genres": ["Simulation"],
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Simulation"
+    ],
     "esrbRating": "Everyone"
   },
   {
-    "nsuid": "70010000012332",
-    "title": "Super Smash Bros. Ultimate",
-    "slug": "super-smash-bros-ultimate-switch",
-    "platforms": ["switch1"],
-    "genres": ["Action", "Fighting", "Multiplayer"],
+    "nsuid": "70010000034736",
+    "title": "Animal Crossing: New Horizons Island Transfer Tool",
+    "slug": "animal-crossing-new-horizons-island-transfer-tool-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Application"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000096410",
+    "title": "Animal Quest: The Battle for Green Hollow",
+    "slug": "animal-quest-the-battle-for-green-hollow-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Narrative adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000010531",
+    "title": "Arcade Archives DONKEY KONG",
+    "slug": "arcade-archives-donkey-kong-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000016852",
+    "title": "Arcade Archives DONKEY KONG 3",
+    "slug": "arcade-archives-donkey-kong-3-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000014814",
+    "title": "Arcade Archives DONKEY KONG JR.",
+    "slug": "arcade-archives-donkey-kong-jr-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000000917",
+    "title": "Arcade Archives Mario Bros.",
+    "slug": "arcade-archives-mario-bros-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000062449",
+    "title": "Arcade Archives TETRIS THE ABSOLUTE THE GRAND MASTER 2 PLUS",
+    "slug": "arcade-archives-tetris-the-absolute-the-grand-master-2-plus-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000047787",
+    "title": "Arcade Archives TETRIS THE GRAND MASTER",
+    "slug": "arcade-archives-tetris-the-grand-master-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000003432",
+    "title": "Arcade Archives VS. SUPER MARIO BROS.",
+    "slug": "arcade-archives-vs-super-mario-bros-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000018695",
+    "title": "ASTRAL CHAIN",
+    "slug": "astral-chain-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000071247",
+    "title": "ASTROSMASH",
+    "slug": "astrosmash-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000001107",
+    "title": "Bayonetta 2",
+    "slug": "bayonetta-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000046400",
+    "title": "Bayonetta 3",
+    "slug": "bayonetta-3-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000041278",
+    "title": "Best Sniper Legacy: Dino Hunt & Shooter 3D",
+    "slug": "best-sniper-legacy-dino-hunt-and-shooter-3d-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000053408",
+    "title": "Best Sniper: Shooting Hunter",
+    "slug": "best-sniper-shooting-hunter-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000111465",
+    "title": "Blitz Smash Ultimate",
+    "slug": "blitz-smash-ultimate-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000021364",
+    "title": "Cadence of Hyrule: Crypt of the NecroDancer Featuring The Legend of Zelda",
+    "slug": "cadence-of-hyrule-crypt-of-the-necrodancer-featuring-the-legend-of-zelda-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000070346",
+    "title": "Call of Sniper Combat - WW2",
+    "slug": "call-of-sniper-combat-ww2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000002722",
+    "title": "Captain Toad: Treasure Tracker",
+    "slug": "captain-toad-treasure-tracker-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000118111",
+    "title": "Carrot Smash",
+    "slug": "carrot-smash-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000006442",
+    "title": "Celeste",
+    "slug": "celeste-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000029716",
+    "title": "Clubhouse Games: 51 Worldwide Classics",
+    "slug": "clubhouse-games-51-worldwide-classics-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Party",
+      "Puzzle",
+      "Racing",
+      "Tabletop"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000101589",
+    "title": "Console Archives SONIC WINGS Special",
+    "slug": "console-archives-sonic-wings-special-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000029035",
+    "title": "Crash Bandicoot 4: It's About Time",
+    "slug": "crash-bandicoot-4-its-about-time-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000002090",
+    "title": "Crash Bandicoot N. Sane Trilogy",
+    "slug": "crash-bandicoot-n-sane-trilogy-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000016330",
+    "title": "Cuphead",
+    "slug": "cuphead-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000008122",
+    "title": "DARK SOULS: REMASTERED",
+    "slug": "dark-souls-remastered-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000007706",
+    "title": "Dead Cells",
+    "slug": "dead-cells-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000012305",
+    "title": "Diablo III: Eternal Collection",
+    "slug": "diablo-iii-eternal-collection-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000096809",
+    "title": "Donkey Kong Bananza",
+    "slug": "donkey-kong-bananza-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000084604",
+    "title": "Donkey Kong Country Returns HD",
+    "slug": "donkey-kong-country-returns-hd-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000001339",
+    "title": "Donkey Kong Country: Tropical Freeze",
+    "slug": "donkey-kong-country-tropical-freeze-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000001367",
+    "title": "DOOM",
+    "slug": "doom-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000018023",
+    "title": "DOOM Eternal",
+    "slug": "doom-eternal-70010000018023-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Shooting",
+      "Strategy"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000009167",
+    "title": "DRAGON QUEST BUILDERS 2",
+    "slug": "dragon-quest-builders-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000021451",
+    "title": "DRAGON QUEST XI S: Echoes of an Elusive Age - Definitive Edition",
+    "slug": "dragon-quest-xi-s-echoes-of-an-elusive-age-definitive-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000120626",
+    "title": "Drone Simulator SMASH ZOMBIES",
+    "slug": "drone-simulator-smash-zombies-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000079029",
+    "title": "DungeonSmash - Medieval Dungeons",
+    "slug": "dungeonsmash-medieval-dungeons-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000093320",
+    "title": "Fate/hollow ataraxia REMASTERED",
+    "slug": "fate-hollow-ataraxia-remastered-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Narrative adventure"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000058802",
+    "title": "Fire Emblem Engage",
+    "slug": "fire-emblem-engage-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing",
+      "Strategy"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000000600",
+    "title": "Fire Emblem Warriors",
+    "slug": "fire-emblem-warriors-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Strategy"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000050778",
+    "title": "Fire Emblem Warriors: Three Hopes",
+    "slug": "fire-emblem-warriors-three-hopes-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Strategy"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000126929",
+    "title": "Fire Emblem: Fortune's Weave",
+    "slug": "fire-emblem-fortunes-weave-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000007606",
+    "title": "Fire Emblem: Three Houses",
+    "slug": "fire-emblem-three-houses-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing",
+      "Strategy"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000089073",
+    "title": "Fitness Boxing 3: Your Personal Trainer",
+    "slug": "fitness-boxing-3-your-personal-trainer-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Sports",
+      "Training"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000047671",
+    "title": "FurryFury: Smash & Roll",
+    "slug": "furryfury-smash-and-roll-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000106404",
+    "title": "Garden of the Greek Gods: Zeus, Poseidon & Hades Love Story",
+    "slug": "garden-of-the-greek-gods-zeus-poseidon-and-hades-love-story-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Narrative adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000003446",
+    "title": "Gem Smashers",
+    "slug": "gem-smashers-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Pinball"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000050519",
+    "title": "Geometric Sniper",
+    "slug": "geometric-sniper-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Adventure",
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000053557",
+    "title": "Geometric Sniper - Blood in Paris",
+    "slug": "geometric-sniper-blood-in-paris-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000070905",
+    "title": "Geometric Sniper Z",
+    "slug": "geometric-sniper-z-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000000776",
+    "title": "Golf Story",
+    "slug": "golf-story-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing",
+      "Sports"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000014006",
+    "title": "GRIS",
+    "slug": "gris-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000033131",
+    "title": "Hades",
+    "slug": "hades-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000060675",
+    "title": "Hades II",
+    "slug": "hades-ii-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000118362",
+    "title": "Hades Uprising",
+    "slug": "hades-uprising-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000117571",
+    "title": "Hello, Mario!",
+    "slug": "hello-mario-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Simulation"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000122923",
+    "title": "Hello, Yoshi!",
+    "slug": "hello-yoshi-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Simulation"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000001764",
+    "title": "Hollow",
+    "slug": "hollow-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000048425",
+    "title": "Hollow 2",
+    "slug": "hollow-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000082457",
+    "title": "Hollow Cocoon",
+    "slug": "hollow-cocoon-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000003208",
+    "title": "Hollow Knight",
+    "slug": "hollow-knight-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000020840",
+    "title": "Hollow Knight: Silksong",
+    "slug": "hollow-knight-silksong-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000083953",
+    "title": "Hollow Police Emblem: The Visual Novel",
+    "slug": "hollow-police-emblem-the-visual-novel-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Narrative adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000059981",
+    "title": "Hollow World: Dark Knight",
+    "slug": "hollow-world-dark-knight-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000124097",
+    "title": "Hunter Desert Simulator: Sniper Rifle",
+    "slug": "hunter-desert-simulator-sniper-rifle-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000067109",
+    "title": "Johnny Trigger: Sniper",
+    "slug": "johnny-trigger-sniper-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000103775",
+    "title": "Kirby Air Riders",
+    "slug": "kirby-air-riders-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Action",
+      "Party",
+      "Racing"
+    ],
     "esrbRating": "Everyone 10+"
   },
   {
     "nsuid": "70010000046405",
     "title": "Kirby and the Forgotten Land",
     "slug": "kirby-and-the-forgotten-land-switch",
-    "platforms": ["switch1"],
-    "genres": ["Platformer", "Action"],
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000034635",
+    "title": "Kirby Fighters 2",
+    "slug": "kirby-fighters-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Fighting"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000002365",
+    "title": "Kirby Star Allies",
+    "slug": "kirby-star-allies-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000056620",
+    "title": "Kirby's Dream Buffet",
+    "slug": "kirbys-dream-buffet-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Racing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000058797",
+    "title": "Kirby's Return to Dream Land Deluxe",
+    "slug": "kirbys-return-to-dream-land-deluxe-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000057725",
+    "title": "Kraken Smash: Volleyball",
+    "slug": "kraken-smash-volleyball-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Sports"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000107875",
+    "title": "Learn to Play - Pumpkin Smash!",
+    "slug": "learn-to-play-pumpkin-smash-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000099705",
+    "title": "LEGO Batman: Legacy of the Dark Knight",
+    "slug": "lego-batman-legacy-of-the-dark-knight-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000046171",
+    "title": "LEGO Brawls",
+    "slug": "lego-brawls-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Fighting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000052111",
+    "title": "LEGO Bricktales",
+    "slug": "lego-bricktales-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000040359",
+    "title": "LEGO Builder's Journey",
+    "slug": "lego-builders-journey-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Adventure",
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000000187",
+    "title": "LEGO CITY Undercover",
+    "slug": "lego-city-undercover-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000007661",
+    "title": "LEGO DC Super-Villains",
+    "slug": "lego-dc-super-villains-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000013536",
+    "title": "LEGO Harry Potter Collection",
+    "slug": "lego-harry-potter-collection-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000065644",
+    "title": "LEGO Horizon Adventures",
+    "slug": "lego-horizon-adventures-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000020489",
+    "title": "LEGO Jurassic World",
+    "slug": "lego-jurassic-world-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000025461",
+    "title": "LEGO Marvel Super Heroes",
+    "slug": "lego-marvel-super-heroes-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000000730",
+    "title": "LEGO Marvel Super Heroes 2",
+    "slug": "lego-marvel-super-heroes-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000001532",
+    "title": "LEGO NINJAGO Movie Video Game",
+    "slug": "lego-ninjago-movie-video-game-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000096454",
+    "title": "LEGO Party!",
+    "slug": "lego-party-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000018041",
+    "title": "LEGO Star Wars: The Skywalker Saga",
+    "slug": "lego-star-wars-the-skywalker-saga-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000002381",
+    "title": "LEGO The Incredibles",
+    "slug": "lego-the-incredibles-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000082982",
+    "title": "LEGO Voyagers",
+    "slug": "lego-voyagers-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000105065",
+    "title": "LEGO Voyagers",
+    "slug": "lego-voyagers-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000105248",
+    "title": "LEGO Voyagers Friend's Pass",
+    "slug": "lego-voyagers-friends-pass-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000105247",
+    "title": "LEGO Voyagers Friend's Pass",
+    "slug": "lego-voyagers-friends-pass-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000001075",
+    "title": "LEGO Worlds",
+    "slug": "lego-worlds-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000125385",
+    "title": "Legolast Tiny Builder",
+    "slug": "legolast-tiny-builder-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Simulation"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000036531",
+    "title": "Lily of the Hollow - Resurrection",
+    "slug": "lily-of-the-hollow-resurrection-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Narrative adventure"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000005802",
+    "title": "LIMBO",
+    "slug": "limbo-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Puzzle"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000072954",
+    "title": "Luigi's Mansion 2 HD",
+    "slug": "luigis-mansion-2-hd-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000001620",
+    "title": "Luigi's Mansion 3",
+    "slug": "luigis-mansion-3-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000084613",
+    "title": "Mario & Luigi: Brothership",
+    "slug": "mario-and-luigi-brothership-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000000819",
+    "title": "Mario + Rabbids Kingdom Battle",
+    "slug": "mario-plus-rabbids-kingdom-battle-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Adventure",
+      "Strategy"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000035797",
+    "title": "MARIO + RABBIDS SPARKS OF HOPE",
+    "slug": "mario-plus-rabbids-sparks-of-hope-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Adventure",
+      "Strategy"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000038622",
+    "title": "Mario Golf: Super Rush",
+    "slug": "mario-golf-super-rush-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party",
+      "Sports"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000000153",
+    "title": "Mario Kart 8 Deluxe",
+    "slug": "mario-kart-8-deluxe-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Party",
+      "Racing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000012352",
+    "title": "Mario Kart Live: Home Circuit",
+    "slug": "mario-kart-live-home-circuit-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Racing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000095431",
+    "title": "Mario Kart World",
+    "slug": "mario-kart-world-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Party",
+      "Racing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000042934",
+    "title": "Mario Party Superstars",
+    "slug": "mario-party-superstars-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party",
+      "Tabletop"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000049936",
+    "title": "Mario Strikers: Battle League",
+    "slug": "mario-strikers-battle-league-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Sports"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000003889",
+    "title": "Mario Tennis Aces",
+    "slug": "mario-tennis-aces-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Party",
+      "Sports"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000105869",
+    "title": "Mario Tennis Fever",
+    "slug": "mario-tennis-fever-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Party",
+      "Sports"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000072191",
+    "title": "Mario vs. Donkey Kong",
+    "slug": "mario-vs-donkey-kong-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000041980",
+    "title": "MARIOZZA COPS",
+    "slug": "mariozza-cops-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000114150",
+    "title": "Megabonk Smash",
+    "slug": "megabonk-smash-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
     "esrbRating": "Everyone 10+"
   },
   {
     "nsuid": "70010000042924",
     "title": "Metroid Dread",
     "slug": "metroid-dread-switch",
-    "platforms": ["switch1"],
-    "genres": ["Action", "Adventure"],
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Shooting"
+    ],
     "esrbRating": "Teen"
   },
   {
-    "nsuid": "70010000003208",
-    "title": "Hollow Knight",
-    "slug": "hollow-knight-switch",
-    "platforms": ["switch1"],
-    "genres": ["Action", "Adventure", "Platformer", "Indie"],
-    "esrbRating": "Everyone 10+"
-  },
-  {
-    "nsuid": "70010000006442",
-    "title": "Celeste",
-    "slug": "celeste-switch",
-    "platforms": ["switch1"],
-    "genres": ["Indie", "Platformer"],
-    "esrbRating": "Everyone 10+"
-  },
-  {
-    "nsuid": "70010000033131",
-    "title": "Hades",
-    "slug": "hades-switch",
-    "platforms": ["switch1"],
-    "genres": ["Action", "Adventure", "Role-Playing", "Indie"],
+    "nsuid": "70010000084766",
+    "title": "Metroid Prime 4: Beyond",
+    "slug": "metroid-prime-4-beyond-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Shooting"
+    ],
     "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000063709",
+    "title": "Metroid Prime Remastered",
+    "slug": "metroid-prime-remastered-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000038617",
+    "title": "Miitopia",
+    "slug": "miitopia-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000081412",
+    "title": "Mina the Hollower",
+    "slug": "mina-the-hollower-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000000964",
+    "title": "Minecraft",
+    "slug": "minecraft-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Simulation"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000021401",
+    "title": "Minecraft Dungeons",
+    "slug": "minecraft-dungeons-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000067526",
+    "title": "Minecraft Dungeons II",
+    "slug": "minecraft-dungeons-ii-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000110905",
+    "title": "Minecraft Dungeons II",
+    "slug": "minecraft-dungeons-ii-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000033696",
+    "title": "Minecraft Legends",
+    "slug": "minecraft-legends-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Strategy"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000000311",
+    "title": "Minecraft: Nintendo Switch Edition",
+    "slug": "minecraft-nintendo-switch-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000004642",
+    "title": "Monster Hunter Generations Ultimate",
+    "slug": "monster-hunter-generations-ultimate-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000029016",
+    "title": "Monster Hunter Rise",
+    "slug": "monster-hunter-rise-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000076857",
+    "title": "Monster Hunter Stories",
+    "slug": "monster-hunter-stories-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000028503",
+    "title": "Monster Hunter Stories 2: Wings of Ruin",
+    "slug": "monster-hunter-stories-2-wings-of-ruin-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000097756",
+    "title": "Monster Hunter Stories 3: Twisted Reflection",
+    "slug": "monster-hunter-stories-3-twisted-reflection-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000043674",
+    "title": "Moonshades: a classic dungeon crawler RPG",
+    "slug": "moonshades-a-classic-dungeon-crawler-rpg-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000037989",
+    "title": "New Pokemon Snap",
+    "slug": "new-pokemon-snap-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000006411",
+    "title": "New Super Mario Bros. U Deluxe",
+    "slug": "new-super-mario-bros-u-deluxe-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000045182",
+    "title": "NieR:Automata The End of YoRHa Edition",
+    "slug": "nier-automata-the-end-of-yorha-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing",
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000004982",
+    "title": "Nightmare Boy: The New Horizons of Reigns of Dreams, a Metroidvania journey with little rusty nightmares, the empire of knight final boss",
+    "slug": "nightmare-boy-the-new-horizons-of-reigns-of-dreams-a-metroidvania-journey-with-little-rusty-nightmares-the-empire-of-knight-final-boss-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000064255",
+    "title": "Ninja Smasher!",
+    "slug": "ninja-smasher-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000049931",
+    "title": "Nintendo Switch Sports",
+    "slug": "nintendo-switch-sports-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party",
+      "Sports"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000001618",
+    "title": "Octopath Traveler",
+    "slug": "octopath-traveler-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000108543",
+    "title": "Octopath Traveler",
+    "slug": "octopath-traveler-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000096471",
+    "title": "OCTOPATH TRAVELER 0",
+    "slug": "octopath-traveler-0-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000097827",
+    "title": "OCTOPATH TRAVELER 0",
+    "slug": "octopath-traveler-0-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000108548",
+    "title": "OCTOPATH TRAVELER II",
+    "slug": "octopath-traveler-ii-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000058128",
+    "title": "OCTOPATH TRAVELER II",
+    "slug": "octopath-traveler-ii-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000115410",
+    "title": "Office Brawl - Room Smash",
+    "slug": "office-brawl-room-smash-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000006415",
+    "title": "OKAMI HD",
+    "slug": "okami-hd-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000018710",
+    "title": "Ori and the Blind Forest: Definitive Edition",
+    "slug": "ori-and-the-blind-forest-definitive-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000034725",
+    "title": "Ori and the Will of the Wisps",
+    "slug": "ori-and-the-will-of-the-wisps-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000000883",
+    "title": "Overcooked Special Edition",
+    "slug": "overcooked-special-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000003402",
+    "title": "Overcooked! 2",
+    "slug": "overcooked-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000029237",
+    "title": "Overcooked! All You Can Eat",
+    "slug": "overcooked-all-you-can-eat-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000029726",
+    "title": "Paper Mario: The Origami King",
+    "slug": "paper-mario-the-origami-king-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000072957",
+    "title": "Paper Mario: The Thousand-Year Door",
+    "slug": "paper-mario-the-thousand-year-door-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000060324",
+    "title": "Persona 3 Portable",
+    "slug": "persona-3-portable-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000100149",
+    "title": "Persona 3 Reload",
+    "slug": "persona-3-reload-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000101030",
+    "title": "Persona 3 Reload: Digital Artbook",
+    "slug": "persona-3-reload-digital-artbook-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000101035",
+    "title": "Persona 3 Reload: Digital Soundtrack",
+    "slug": "persona-3-reload-digital-soundtrack-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000047451",
+    "title": "Persona 4 Arena Ultimax",
+    "slug": "persona-4-arena-ultimax-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Fighting",
+      "Narrative adventure"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000060320",
+    "title": "Persona 4 Golden",
+    "slug": "persona-4-golden-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000043147",
+    "title": "Persona 5 Royal",
+    "slug": "persona-5-royal-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000065750",
+    "title": "Pickleball Smash",
+    "slug": "pickleball-smash-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Party",
+      "Sports"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000068669",
+    "title": "Pikmin 1",
+    "slug": "pikmin-1-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Strategy"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000068673",
+    "title": "Pikmin 2",
+    "slug": "pikmin-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Strategy"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000005302",
+    "title": "Pikmin 3 Deluxe",
+    "slug": "pikmin-3-deluxe-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Strategy"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000005308",
+    "title": "Pikmin 4",
+    "slug": "pikmin-4-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Strategy"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000039950",
+    "title": "Pokemon Brilliant Diamond",
+    "slug": "pokemon-brilliant-diamond-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000032445",
+    "title": "Pokemon Cafe ReMix",
+    "slug": "pokemon-cafe-remix-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000004519",
+    "title": "Pokemon Champions",
+    "slug": "pokemon-champions-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Strategy"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000102052",
+    "title": "Pokemon Friends",
+    "slug": "pokemon-friends-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000028523",
+    "title": "Pokemon HOME",
+    "slug": "pokemon-home-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Application"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000039945",
+    "title": "Pokemon Legends: Arceus",
+    "slug": "pokemon-legends-arceus-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000094234",
+    "title": "Pokemon Legends: Z-A",
+    "slug": "pokemon-legends-z-a-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000012523",
+    "title": "Pokemon Mystery Dungeon: Rescue Team DX",
+    "slug": "pokemon-mystery-dungeon-rescue-team-dx-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000107421",
+    "title": "Pokemon Pokopia",
+    "slug": "pokemon-pokopia-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Simulation"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000003482",
+    "title": "Pokemon Quest",
+    "slug": "pokemon-quest-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing",
+      "Strategy"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000053966",
+    "title": "Pokemon Scarlet",
+    "slug": "pokemon-scarlet-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000004492",
+    "title": "Pokemon Shield",
+    "slug": "pokemon-shield-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing",
+      "Simulation"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000039955",
+    "title": "Pokemon Shining Pearl",
+    "slug": "pokemon-shining-pearl-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000004496",
+    "title": "Pokemon Sword",
+    "slug": "pokemon-sword-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing",
+      "Simulation"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000043292",
+    "title": "Pokemon UNITE",
+    "slug": "pokemon-unite-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Strategy"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000053971",
+    "title": "Pokemon Violet",
+    "slug": "pokemon-violet-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000122028",
+    "title": "Pokemon Waves",
+    "slug": "pokemon-waves-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Rating Pending"
+  },
+  {
+    "nsuid": "70010000122035",
+    "title": "Pokemon Winds",
+    "slug": "pokemon-winds-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Rating Pending"
+  },
+  {
+    "nsuid": "70010000000450",
+    "title": "Pokemon: Let's Go, Eevee!",
+    "slug": "pokemon-lets-go-eevee-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing",
+      "Simulation"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000000447",
+    "title": "Pokemon: Let's Go, Pikachu!",
+    "slug": "pokemon-lets-go-pikachu-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing",
+      "Simulation"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000001132",
+    "title": "Pokken Tournament DX",
+    "slug": "pokken-tournament-dx-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Fighting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000005022",
+    "title": "Princess Peach: Showtime!",
+    "slug": "princess-peach-showtime-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000029372",
+    "title": "Puyo Puyo Tetris 2",
+    "slug": "puyo-puyo-tetris-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000095330",
+    "title": "Puyo Puyo Tetris 2S",
+    "slug": "puyo-puyo-tetris-2s-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Action",
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000000113",
+    "title": "Puyo PuyoTetris",
+    "slug": "puyo-puyo-tetris-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000001017",
+    "title": "Rayman Legends Definitive Edition",
+    "slug": "rayman-legends-definitive-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000010209",
+    "title": "SEGA AGES Sonic The Hedgehog",
+    "slug": "sega-ages-sonic-the-hedgehog-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000019974",
+    "title": "SEGA AGES Sonic The Hedgehog 2",
+    "slug": "sega-ages-sonic-the-hedgehog-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000051927",
+    "title": "Shovel Knight Dig",
+    "slug": "shovel-knight-dig-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000027069",
+    "title": "Shovel Knight Showdown",
+    "slug": "shovel-knight-showdown-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Fighting"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000027060",
+    "title": "Shovel Knight: King of Cards",
+    "slug": "shovel-knight-king-of-cards-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure",
+      "Tabletop"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000029168",
+    "title": "Shovel Knight: Shovel of Hope",
+    "slug": "shovel-knight-shovel-of-hope-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000000120",
+    "title": "Shovel Knight: Specter of Torment",
+    "slug": "shovel-knight-specter-of-torment-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000000121",
+    "title": "Shovel Knight: Treasure Trove",
+    "slug": "shovel-knight-treasure-trove-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000028209",
+    "title": "Ski Sniper",
+    "slug": "ski-sniper-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000012389",
+    "title": "Slay the Spire",
+    "slug": "slay-the-spire-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing",
+      "Strategy",
+      "Tabletop"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000073555",
+    "title": "Smash Balls",
+    "slug": "smash-balls-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000118873",
+    "title": "Smash Balls 2",
+    "slug": "smash-balls-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000032970",
+    "title": "Smash Boats",
+    "slug": "smash-boats-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000036394",
+    "title": "Smash Club: Streets of Shmeenis",
+    "slug": "smash-club-streets-of-shmeenis-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000117518",
+    "title": "Smash it Wild",
+    "slug": "smash-it-wild-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Strategy"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000067359",
+    "title": "Smash Out",
+    "slug": "smash-out-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000115292",
+    "title": "Smash Out 2",
+    "slug": "smash-out-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000015501",
+    "title": "Smash Reversi",
+    "slug": "smash-reversi-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Tabletop"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000024095",
+    "title": "Smash Rush",
+    "slug": "smash-rush-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000049840",
+    "title": "Smash Star",
+    "slug": "smash-star-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000015142",
+    "title": "SMASHING THE BATTLE",
+    "slug": "smashing-the-battle-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000042613",
+    "title": "SMASHING THE BATTLE GHOST SOUL",
+    "slug": "smashing-the-battle-ghost-soul-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000042104",
+    "title": "Smashroom",
+    "slug": "smashroom-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000102158",
+    "title": "Smashy Cannon",
+    "slug": "smashy-cannon-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000045391",
+    "title": "Smashy Road: Wanted 2",
+    "slug": "smashy-road-wanted-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000027597",
+    "title": "Sniper",
+    "slug": "sniper-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000073752",
+    "title": "Sniper - Elite Shooter Squad",
+    "slug": "sniper-elite-shooter-squad-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000122899",
+    "title": "Sniper Dan",
+    "slug": "sniper-dan-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000012328",
+    "title": "Sniper Elite 3 Ultimate Edition",
+    "slug": "sniper-elite-3-ultimate-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000027850",
+    "title": "Sniper Elite 4",
+    "slug": "sniper-elite-4-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000008266",
+    "title": "Sniper Elite V2 Remastered",
+    "slug": "sniper-elite-v2-remastered-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000089731",
+    "title": "Sniper Jarhead",
+    "slug": "sniper-jarhead-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000076756",
+    "title": "Sniper Rescue",
+    "slug": "sniper-rescue-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000093101",
+    "title": "Sniper Scope: Realistic Tactical Shooter",
+    "slug": "sniper-scope-realistic-tactical-shooter-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000061205",
+    "title": "Sniper Strike 3D - Secret elite mission warfare \"GHOST SQUAD\"",
+    "slug": "sniper-strike-3d-secret-elite-mission-warfare-ghost-squad-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000106007",
+    "title": "SNIPER WARRIOR ELITE",
+    "slug": "sniper-warrior-elite-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000000142",
+    "title": "Snipperclips - Cut it out, together!",
+    "slug": "snipperclips-cut-it-out-together-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party",
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000028905",
+    "title": "Sonic Colors: Ultimate",
+    "slug": "sonic-colors-ultimate-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000001539",
+    "title": "SONIC FORCES",
+    "slug": "sonic-forces-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000040331",
+    "title": "Sonic Frontiers",
+    "slug": "sonic-frontiers-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000108238",
+    "title": "Sonic Frontiers - Definitive Edition",
+    "slug": "sonic-frontiers-definitive-edition-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000118311",
+    "title": "Sonic Frontiers - Definitive Edition: Digital Art Book with Mini Digital Soundtrack",
+    "slug": "sonic-frontiers-definitive-edition-digital-art-book-with-mini-digital-soundtrack-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000000809",
+    "title": "Sonic Mania",
+    "slug": "sonic-mania-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000045649",
+    "title": "Sonic Origins",
+    "slug": "sonic-origins-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000053195",
+    "title": "Sonic Racing: CrossWorlds",
+    "slug": "sonic-racing-crossworlds-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Racing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000100277",
+    "title": "Sonic Racing: CrossWorlds - Open Network Test",
+    "slug": "sonic-racing-crossworlds-open-network-test-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Racing",
+      "Sports"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000069430",
+    "title": "SONIC SUPERSTARS",
+    "slug": "sonic-superstars-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000106843",
+    "title": "Sonic Wings Reunion",
+    "slug": "sonic-wings-reunion-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000069536",
+    "title": "SONIC X SHADOW GENERATIONS",
+    "slug": "sonic-x-shadow-generations-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000095220",
+    "title": "SONIC X SHADOW GENERATIONS",
+    "slug": "sonic-x-shadow-generations-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000000529",
+    "title": "Splatoon 2",
+    "slug": "splatoon-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000046395",
+    "title": "Splatoon 3",
+    "slug": "splatoon-3-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000122824",
+    "title": "Splatoon Raiders",
+    "slug": "splatoon-raiders-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000019384",
+    "title": "Spyro Reignited Trilogy",
+    "slug": "spyro-reignited-trilogy-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
   },
   {
     "nsuid": "70010000001801",
     "title": "Stardew Valley",
     "slug": "stardew-valley-switch",
-    "platforms": ["switch1"],
-    "genres": ["Indie", "Simulation", "Role-Playing"],
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Simulation"
+    ],
     "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000022951",
+    "title": "Super Kirby Clash",
+    "slug": "super-kirby-clash-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000034439",
+    "title": "Super Mario 3D World + Bowser's Fury",
+    "slug": "super-mario-3d-world-plus-bowsers-fury-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000068688",
+    "title": "Super Mario Bros. Wonder",
+    "slug": "super-mario-bros-wonder-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000104187",
+    "title": "Super Mario Galaxy",
+    "slug": "super-mario-galaxy-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000104192",
+    "title": "Super Mario Galaxy 2",
+    "slug": "super-mario-galaxy-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000018694",
+    "title": "Super Mario Maker 2",
+    "slug": "super-mario-maker-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000001130",
+    "title": "Super Mario Odyssey",
+    "slug": "super-mario-odyssey-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000014158",
+    "title": "Super Mario Party",
+    "slug": "super-mario-party-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party",
+      "Tabletop"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000084608",
+    "title": "Super Mario Party Jamboree",
+    "slug": "super-mario-party-jamboree-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party",
+      "Tabletop"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000068683",
+    "title": "Super Mario RPG",
+    "slug": "super-mario-rpg-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000012332",
+    "title": "Super Smash Bros. Ultimate",
+    "slug": "super-smash-bros-ultimate-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Fighting",
+      "Party"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000042829",
+    "title": "Supersonic Tank Cats",
+    "slug": "supersonic-tank-cats-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Racing"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000017127",
+    "title": "SWORD ART ONLINE: Hollow Realization Deluxe Edition",
+    "slug": "sword-art-online-hollow-realization-deluxe-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000005062",
+    "title": "Team Sonic Racing",
+    "slug": "team-sonic-racing-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Racing"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000001702",
+    "title": "Terraria",
+    "slug": "terraria-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000018547",
+    "title": "Tetris 99",
+    "slug": "tetris-99-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000038380",
+    "title": "Tetris Effect: Connected",
+    "slug": "tetris-effect-connected-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000085242",
+    "title": "Tetris Forever",
+    "slug": "tetris-forever-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000123794",
+    "title": "TETRIS THE GRAND MASTER 4 -ABSOLUTE EYE-",
+    "slug": "tetris-the-grand-master-4-absolute-eye-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Puzzle"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000097168",
+    "title": "The Edge of Allegoria",
+    "slug": "the-edge-of-allegoria-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000001369",
+    "title": "The Elder Scrolls V: Skyrim",
+    "slug": "the-elder-scrolls-v-skyrim-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000071552",
+    "title": "The GhostX : Sniper Simulator (Tactical Shooting & Eliminator)",
+    "slug": "the-ghostx-sniper-simulator-tactical-shooting-and-eliminator-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000107059",
+    "title": "The Hollow Lighthouse",
+    "slug": "the-hollow-lighthouse-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Adventure"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000000025",
+    "title": "The Legend of Zelda: Breath of the Wild",
+    "slug": "the-legend-of-zelda-breath-of-the-wild-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000084618",
+    "title": "The Legend of Zelda: Echoes of Wisdom",
+    "slug": "the-legend-of-zelda-echoes-of-wisdom-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000020033",
+    "title": "The Legend of Zelda: Link's Awakening",
+    "slug": "the-legend-of-zelda-links-awakening-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000130792",
+    "title": "The Legend of Zelda: Ocarina of Time",
+    "slug": "the-legend-of-zelda-ocarina-of-time-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000038612",
+    "title": "The Legend of Zelda: Skyward Sword HD",
+    "slug": "the-legend-of-zelda-skyward-sword-hd-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000063714",
+    "title": "The Legend of Zelda: Tears of the Kingdom",
+    "slug": "the-legend-of-zelda-tears-of-the-kingdom-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000013359",
+    "title": "The LEGO Movie 2 Videogame",
+    "slug": "the-lego-movie-2-videogame-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000003459",
+    "title": "The Men of Yoshiwara: Kikuya",
+    "slug": "the-men-of-yoshiwara-kikuya-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Narrative adventure"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000003466",
+    "title": "The Men of Yoshiwara: Ohgiya",
+    "slug": "the-men-of-yoshiwara-ohgiya-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Narrative adventure"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000020983",
+    "title": "The Witcher 3: Wild Hunt - Complete Edition",
+    "slug": "the-witcher-3-wild-hunt-complete-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Mature"
+  },
+  {
+    "nsuid": "70010000004724",
+    "title": "Toast Time: Smash Up!",
+    "slug": "toast-time-smash-up-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000046322",
+    "title": "TRIANGLE STRATEGY",
+    "slug": "triangle-strategy-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing",
+      "Strategy"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000009921",
+    "title": "Undertale",
+    "slug": "undertale-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Role playing"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000042929",
+    "title": "WarioWare: Get It Together!",
+    "slug": "warioware-get-it-together-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000068678",
+    "title": "WarioWare: Move It!",
+    "slug": "warioware-move-it-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Party"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000000707",
+    "title": "Xenoblade Chronicles 2",
+    "slug": "xenoblade-chronicles-2-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000014081",
+    "title": "Xenoblade Chronicles 2: Torna ~ The Golden Country",
+    "slug": "xenoblade-chronicles-2-torna-the-golden-country-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000053336",
+    "title": "Xenoblade Chronicles 3",
+    "slug": "xenoblade-chronicles-3-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000029711",
+    "title": "Xenoblade Chronicles Definitive Edition",
+    "slug": "xenoblade-chronicles-definitive-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000088832",
+    "title": "Xenoblade Chronicles X: Definitive Edition",
+    "slug": "xenoblade-chronicles-x-definitive-edition-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Role playing"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000130289",
+    "title": "Xenoblade Genesis",
+    "slug": "xenoblade-genesis-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "esrbRating": "Rating Pending"
+  },
+  {
+    "nsuid": "70010000003267",
+    "title": "Yooka-Laylee",
+    "slug": "yooka-laylee-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000018416",
+    "title": "Yooka-Laylee and the Impossible Lair",
+    "slug": "yooka-laylee-and-the-impossible-lair-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000098659",
+    "title": "Yooka-Replaylee",
+    "slug": "yooka-replaylee-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone 10+"
+  },
+  {
+    "nsuid": "70010000119859",
+    "title": "Yoshi and the Mysterious Book",
+    "slug": "yoshi-and-the-mysterious-book-switch-2",
+    "platforms": [
+      "switch2"
+    ],
+    "genres": [
+      "Action",
+      "Adventure"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000000734",
+    "title": "Yoshi's Crafted World",
+    "slug": "yoshis-crafted-world-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action"
+    ],
+    "esrbRating": "Everyone"
+  },
+  {
+    "nsuid": "70010000057562",
+    "title": "Zombie Dead Smasher - World Simulator Kill Strike Gun Shooter 3D Poly Games 2023",
+    "slug": "zombie-dead-smasher-world-simulator-kill-strike-gun-shooter-3d-poly-games-2023-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
+  },
+  {
+    "nsuid": "70010000070335",
+    "title": "Zombie Sniper Shooter - Stickman War",
+    "slug": "zombie-sniper-shooter-stickman-war-switch",
+    "platforms": [
+      "switch1"
+    ],
+    "genres": [
+      "Action",
+      "Shooting"
+    ],
+    "esrbRating": "Teen"
   }
 ]

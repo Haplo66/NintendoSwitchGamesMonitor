@@ -106,13 +106,15 @@ function buildWishlistWatch(result: MonitorResult): DigestWishlistWatch[] {
   const analysisByTitle = new Map(
     result.analyses.map((analysis) => [titleKey(analysis.game.title), analysis]),
   );
+  const monitoredTitles = new Set(result.monitoredTitles.map((title) => titleKey(title)));
 
   return result.wishlist.items.map((item): DigestWishlistWatch => {
     const analysis = analysisByTitle.get(titleKey(item.gameTitle));
     if (!analysis) {
+      const monitored = monitoredTitles.has(titleKey(item.gameTitle));
       return {
         title: item.gameTitle,
-        status: 'not-monitored',
+        status: monitored ? 'full-price' : 'not-monitored',
         targetPrice: item.targetPrice,
       };
     }

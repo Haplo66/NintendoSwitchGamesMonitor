@@ -19,4 +19,5 @@ export interface MonitorResult {
   skippedByScoreAnalyses: GameAnalysis[];
   dealHistory: DealHistory;
   wishlist: Wishlist;
+  monitoredTitles: string[];
 }
