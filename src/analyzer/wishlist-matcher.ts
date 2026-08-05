@@ -1,10 +1,11 @@
 import { DEFAULT_NOTIFICATION_SETTINGS } from '../config/settings-loader';
+import { matchTitleToCandidates } from '../matching/title-matcher';
 import { Game, Wishlist, WishlistMatchResult, WishlistItem } from '../models';
 
 function titlesMatch(gameTitle: string, wishTitle: string): boolean {
-  const game = gameTitle.toLowerCase().trim();
-  const wish = wishTitle.toLowerCase().trim();
-  return game === wish || game.includes(wish) || wish.includes(game);
+  // The wishlist title is the query; the (usually longer) game title is the
+  // candidate. Ambiguity is resolved by the caller before reaching here.
+  return matchTitleToCandidates(wishTitle, [gameTitle]).matched;
 }
 
 export function computeWishlistTargetPrice(

@@ -3,6 +3,8 @@ import 'dotenv/config';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import { loadWishlist } from '../config/wishlist-loader';
+import { matchTitlesToCandidates, TitleMatch } from '../matching/title-matcher';
 import { GamePlatform } from './platform';
 import { DEFAULT_GAME_CATALOG_PATH } from './nintendo-price-collector';
 import { validateCatalogEntries } from './catalog-validation';
@@ -406,6 +408,55 @@ async function mapWithConcurrency<T, R>(
 export interface GenerateCatalogOptions {
   target?: number;
   outPath?: string;
+  wishlistFile?: string;
+}
+
+export interface OrderCatalogOutput {
+  entries: GeneratedCatalogEntry[];
+  resolutions: TitleMatch[];
+  missingWishlistTitles: string[];
+}
+
+/**
+ * Orders collected entries for the final catalog so that games resolving the
+ * user's wishlist come first (in wishlist order, deduplicated by nsuid), and
+ * the remaining capacity is filled with the rest of the entries sorted by
+ * title. Wishlist titles that resolve to nothing are reported so the user can
+ * see which games could not be tracked.
+ */
+export function orderCatalogForOutput(
+  entries: GeneratedCatalogEntry[],
+  wishlistTitles: string[],
+  target: number,
+): OrderCatalogOutput {
+  const byTitle = new Map(entries.map((entry) => [entry.title, entry]));
+  const titles = entries.map((entry) => entry.title);
+  const resolutions = matchTitlesToCandidates(wishlistTitles, titles);
+
+  const prioritized: GeneratedCatalogEntry[] = [];
+  const seenNsuids = new Set<string>();
+  const missingWishlistTitles: string[] = [];
+  wishlistTitles.forEach((title, index) => {
+    const match = resolutions[index];
+    if (match.matched && match.matchedTitle) {
+      const entry = byTitle.get(match.matchedTitle);
+      if (entry && !seenNsuids.has(entry.nsuid)) {
+        seenNsuids.add(entry.nsuid);
+        prioritized.push(entry);
+      }
+    } else {
+      missingWishlistTitles.push(title);
+    }
+  });
+
+  const remaining = entries
+    .filter((entry) => !seenNsuids.has(entry.nsuid))
+    .sort((a, b) => a.title.localeCompare(b.title, 'en'));
+  const output = [
+    ...prioritized,
+    ...remaining.slice(0, Math.max(0, target - prioritized.length)),
+  ];
+  return { entries: output, resolutions, missingWishlistTitles };
 }
 
 export async function generateCatalog(options: GenerateCatalogOptions = {}): Promise<void> {
@@ -414,6 +465,17 @@ export async function generateCatalog(options: GenerateCatalogOptions = {}): Pro
     process.cwd(),
     options.outPath ?? process.env.CATALOG_OUT ?? DEFAULT_GAME_CATALOG_PATH,
   );
+
+  // Wishlist games have priority: collect a slightly larger pool so there is
+  // slack to guarantee every resolvable wishlist game lands in the catalog.
+  let wishlistTitles: string[] = [];
+  try {
+    const wishlist = loadWishlist(options.wishlistFile);
+    wishlistTitles = wishlist.items.map((item) => item.gameTitle);
+  } catch (error) {
+    console.warn(`  Skipping wishlist prioritization (${(error as Error).message}).`);
+  }
+  const poolTarget = target + wishlistTitles.length + 16;
 
   console.log('Fetching the Nintendo US store sitemap...');
   const candidates = await fetchSitemapSlugs();
@@ -470,7 +532,7 @@ export async function generateCatalog(options: GenerateCatalogOptions = {}): Pro
   let seen = 0;
 
   async function processSlug(slug: string): Promise<void> {
-    if (byNsuid.size >= target) {
+    if (byNsuid.size >= poolTarget) {
       return;
     }
     seen += 1;
@@ -488,20 +550,23 @@ export async function generateCatalog(options: GenerateCatalogOptions = {}): Pro
       }
       byNsuid.set(entry.nsuid, entry);
       bySlug.set(entry.slug.toLowerCase(), entry);
-      if (byNsuid.size % 25 === 0 || byNsuid.size === target) {
-        console.log(`  ${byNsuid.size}/${target} games collected...`);
+      if (byNsuid.size % 25 === 0 || byNsuid.size === poolTarget) {
+        console.log(`  ${byNsuid.size}/${poolTarget} games collected...`);
       }
     } catch (error) {
       failures.push(slug);
     }
   }
 
-  const limited = ordered.slice(0, target * 3);
+  const limited = ordered.slice(0, poolTarget * 3);
   await mapWithConcurrency(limited, REQUEST_CONCURRENCY, processSlug);
 
-  const entries = [...byNsuid.values()].sort((a, b) =>
-    a.title.localeCompare(b.title, 'en'),
+  const orderedEntries = orderCatalogForOutput(
+    [...byNsuid.values()],
+    wishlistTitles,
+    target,
   );
+  const entries = orderedEntries.entries;
 
   const errors = validateCatalogEntries(entries);
   if (errors.length > 0) {
@@ -523,6 +588,13 @@ export async function generateCatalog(options: GenerateCatalogOptions = {}): Pro
   console.log(`  - with ESRB rating: ${withEsrb}/${entries.length}`);
   console.log(`  - with genres: ${withGenres}/${entries.length}`);
   console.log(`  - Switch 1: ${switch1} · Switch 2: ${switch2}`);
+  if (wishlistTitles.length > 0) {
+    const resolved = wishlistTitles.length - orderedEntries.missingWishlistTitles.length;
+    console.log(`  - wishlist games prioritized: ${resolved}/${wishlistTitles.length}`);
+    if (orderedEntries.missingWishlistTitles.length > 0) {
+      console.log(`    unresolved: ${orderedEntries.missingWishlistTitles.join(', ')}`);
+    }
+  }
   console.log(`  - failures (skipped): ${failures.length}`);
   if (failures.length > 0) {
     console.log(`    e.g. ${failures.slice(0, 8).join(', ')}`);

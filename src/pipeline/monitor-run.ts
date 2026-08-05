@@ -13,6 +13,7 @@ import {
   saveDealHistory,
 } from '../config/notification-history-store';
 import { DealHistory, Game, GameAnalysis, MonitorResult } from '../models';
+import { matchTitlesToCandidates } from '../matching/title-matcher';
 import { buildDailyDigest } from '../notifications/daily-digest-builder';
 import { createEmailProvider } from '../notifications/email-factory';
 import { EmailProvider } from '../notifications/email-provider';
@@ -182,14 +183,16 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   );
 
   // Always-on wishlist price tracking: fetch the current price for monitored
-  // wishlist games that are NOT already present in the deal results (i.e.
-  // full-price ones). The collector reuses prices it already fetched for the
-  // run and only requests the missing nsuids, so no duplicate API calls.
-  const analyzedTitles = new Set(
-    analyses.map((analysis) => analysis.game.title.trim().toLowerCase()),
+  // wishlist games that do NOT resolve to a game already analyzed this run
+  // (i.e. full-price ones). The collector reuses prices it already fetched for
+  // the run and only requests the missing nsuids, so no duplicate API calls.
+  const analyzedTitles = analyses.map((analysis) => analysis.game.title);
+  const wishlistResolutions = matchTitlesToCandidates(
+    wishlist.items.map((item) => item.gameTitle),
+    analyzedTitles,
   );
   const missingWishlistTitles = wishlist.items
-    .filter((item) => !analyzedTitles.has(item.gameTitle.trim().toLowerCase()))
+    .filter((item, index) => !wishlistResolutions[index].matched)
     .map((item) => item.gameTitle);
   const wishlistGames = await collector.collectWishlistPrices(missingWishlistTitles);
   if (wishlistGames.length > 0) {

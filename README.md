@@ -199,6 +199,8 @@ $env:NINTENDO_PLATFORM = "both";  npm run collect-games      # all cataloged pla
 3. **Metadata extraction** — each product page embeds `__NEXT_DATA__`; the generator reads the embedded Apollo state to pull the title (normalized to plain ASCII), ESRB rating, and genres, and derives the platform from the slug suffix. Entries whose `nsuid` does not start with `7001` (DLC / demos / add-ons) and per-language legacy re-releases are skipped.
 4. **Validation & write** — the result is validated (duplicates, required fields, platforms, URLs) and written as a sorted-by-title JSON array. The collector and the monitor never run the generator — the checked-in catalog file is what production uses, so regeneration is a maintenance action you review in git before committing.
 
+**Wishlist priority** — when `data/wishlist.json` exists, the generator reads it first and places the **resolved wishlist games at the top** of the generated catalog (deduped by nsuid), so the exact games your family wants to watch are never starved out by alphabetical filler. Each wishlist title is resolved against the collected entries with the same conservative fuzzy matcher the analyzer uses (`"Super Smash Bros"` → `"Super Smash Bros. Ultimate"`); unresolved or ambiguous titles are reported in the run output and not injected into the catalog. A missing/unreadable wishlist file is skipped with a warning, and generation proceeds without priority ordering.
+
 To preview a smaller/larger run: `$env:CATALOG_TARGET = "200"; npm run generate-catalog`. To write elsewhere: `$env:CATALOG_OUT = "data/my-catalog.json"; npm run generate-catalog`.
 
 ### Collecting games locally
@@ -463,6 +465,8 @@ The service is family-aware: games are matched against who lives in the househol
 
 Once a collected game's title matches a wishlist item and its price is at or below the effective target price (or any discount applies), it becomes a notification candidate.
 
+**Title matching is conservative fuzzy** — wishlist titles are matched against the current run's analyzed games (and the game catalog, when collecting wishlist prices) using `src/matching/title-matcher.ts`. Titles are normalized (lowercase, accents stripped, ™/®/© and smart punctuation folded, non-alphanumerics collapsed to spaces), then compared as `exact` (identical) or as a contiguous token run found in **exactly one** candidate (`"Super Smash Bros"` → `"Super Smash Bros. Ultimate"`). If several candidates contain the run the title is **ambiguous** and matches nothing (`"Mario"` never resolves to Mario Kart/Party/Super Mario), and a single generic word like `"Deluxe"` never matches on its own.
+
 ### Game blacklist
 
 `data/blacklist.json` lists titles to permanently hide from the daily digest — shovelware, inappropriate games, or anything the family is not interested in. Each entry is either a simple title string or an object with a `title` and an optional `reason`:
@@ -688,6 +692,7 @@ cp .env.example .env   # then fill in values
 | `npm run report`        | Build, run the pipeline with mock email, and write a markdown + HTML report |
 | `npm run validate-reports` | Build and validate report generation (markdown + HTML) |
 | `npm run validate-wishlist-price` | Build and validate always-on Wishlist Watch pricing (coverage, no duplicate API requests, section order) |
+| `npm run validate-title-match` | Build and validate conservative fuzzy title matching (exact/normalized/ambiguous cases, analyzer + catalog + collector + digest integration) |
 | `npm run validate-blacklist` | Build and validate the game blacklist (removal, matching, wishlist exception, no notifications) |
 | `npm run validate-blacklist-loader` | Build and validate the blacklist file loader (object/string entries, invalid entries, duplicates, normalization, filtering) |
 | `npm run validate-recommendations` | Build and validate deal-focused family recommendations (discounted/free/active deals included, full-price excluded, price status rendered) |
@@ -712,6 +717,10 @@ cp .env.example .env   # then fill in values
 │   │   ├── wishlist-matcher.ts
 │   │   ├── deal-score.ts
 │   │   └── analyze-games.ts
+│   ├── matching/       # Title normalization + conservative fuzzy matching
+│   │   ├── title-matcher.ts
+│   │   ├── wishlist-resolver.ts
+│   │   └── validate-title-match.ts
 │   ├── notifications/ # Email system: digest builder, templates, renderer, providers
 │   │   ├── daily-digest-builder.ts
 │   │   ├── email-template.ts

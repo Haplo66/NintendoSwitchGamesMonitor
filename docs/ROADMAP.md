@@ -304,3 +304,16 @@ Features:
 - Blacklist behavior (filtering position, wishlist exception, history handling) and everything else unchanged (out of scope for this task)
 
 > **Status: ✅ Complete**
+
+## v0.28 Wishlist-Driven Catalog Tracking & Smart Matching (v0.28.0)
+
+Features:
+- **Conservative fuzzy title matching** — new `src/matching/title-matcher.ts` normalizes titles (lowercase, accent stripping via NFD, ™/®/© removal, smart-quote/dash folding, non-alphanumerics → space, whitespace collapse) and resolves a query to candidates as `exact` (normalized equality), `high` (contiguous ordered token run found in exactly one candidate), `ambiguous` (multiple candidates), or `none` (no match / single generic token like "Deluxe"). Broad franchise names are deliberately rejected — "Mario" never resolves to Mario Kart/Party/Super Mario, while "Super Smash Bros" resolves to "Super Smash Bros. Ultimate" and "Zelda" to Breath of the Wild when unique
+- **Wishlist matching upgraded** — `analyze.ts` pre-resolves every wishlist item against the current run's analyzed titles (via `src/matching/wishlist-resolver.ts`), so a fuzzy wishlist title like "Super Smash Bros" matches the Ultimate deal and triggers wishlist notifications/target-price checks; ambiguous titles match nothing
+- **Wishlist priority during catalog generation** — `generate-catalog.ts` gains `orderCatalogForOutput()`, which resolves the wishlist file (short title → catalog entry, skipped with a warning if the file is unreadable), places resolved wishlist games first (deduped by nsuid), reports unmatched titles (`missingWishlistTitles`), and fills the remainder alphabetically; `poolTarget` is bumped by the wishlist size + 16 so priority games are not starved out
+- **Wishlist Watch shows real prices** — `buildWishlistWatch` resolves each wishlist item against the deduped monitored games and shows the resolved game's price/status instead of "Not currently tracked"; genuinely unmatched/ambiguous titles keep the existing fallback message
+- **Collector & monitor consistency** — `NintendoPriceCollector.collectWishlistPrices` and `MockGameCollector` resolve short titles against the catalog/analyzed titles before fetching; `monitor-run` reports `missingWishlistTitles` via the matcher instead of exact set membership
+- **Validation** — new `npm run validate-title-match` suite (22 checks) covers exact/fuzzy/normalization cases, ambiguity rejection, generic-token and partial-word rejection, analyzer + catalog-priority + collector + digest integration, and real-catalog checks (Smash unique, Mario ambiguous); `npm test` aggregates the suite
+- Recommendation scoring, family matching, blacklist behavior, and notification cooldown logic unchanged (out of scope for this task)
+
+> **Status: ✅ Complete**

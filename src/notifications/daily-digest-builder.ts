@@ -1,6 +1,7 @@
 import { calculateDiscountPercent } from '../analyzer/deal-score';
 import { matchGameToWishlist } from '../analyzer/wishlist-matcher';
 import { DEFAULT_DAILY_DIGEST_SETTINGS } from '../config/settings-loader';
+import { matchTitleToCandidates, matchTitlesToCandidates } from '../matching/title-matcher';
 import {
   DailyDigest,
   DigestBestDeal,
@@ -105,21 +106,36 @@ function buildStillOnSale(result: MonitorResult): DigestStillOnSale[] {
 }
 
 function buildWishlistWatch(result: MonitorResult): DigestWishlistWatch[] {
+  // Combine deal-result games and wishlist-price games into one candidate set,
+  // deduplicated by title, then resolve every wishlist item against it with the
+  // conservative matcher. A wishlist title like "Super Smash Bros" therefore
+  // matches the catalog game "Super Smash Bros. Ultimate" and shows its price,
+  // while an ambiguous or unknown title stays "Not currently tracked".
+  const candidateGames = [
+    ...result.analyses.map((analysis) => analysis.game),
+    ...result.wishlistGames,
+  ].filter(
+    (game, index, all) =>
+      all.findIndex((other) => titleKey(other.title) === titleKey(game.title)) === index,
+  );
+  const gameByTitle = new Map(candidateGames.map((game) => [titleKey(game.title), game]));
   const analysisByTitle = new Map(
     result.analyses.map((analysis) => [titleKey(analysis.game.title), analysis]),
   );
-  const wishlistGameByTitle = new Map(
-    result.wishlistGames.map((game) => [titleKey(game.title), game]),
+  const matches = matchTitlesToCandidates(
+    result.wishlist.items.map((item) => item.gameTitle),
+    candidateGames.map((game) => game.title),
   );
-  const monitoredTitles = new Set(result.monitoredTitles.map((key) => titleKey(key)));
 
-  return result.wishlist.items.map((item): DigestWishlistWatch => {
-    const key = titleKey(item.gameTitle);
-    const analysis = analysisByTitle.get(key);
-    const game = analysis?.game ?? wishlistGameByTitle.get(key);
+  return result.wishlist.items.map((item, index) => {
+    const match = matches[index];
+    const game =
+      match.matched && match.matchedTitle
+        ? gameByTitle.get(titleKey(match.matchedTitle))
+        : undefined;
 
     if (!game) {
-      const monitored = monitoredTitles.has(key);
+      const monitored = matchTitleToCandidates(item.gameTitle, result.monitoredTitles).matched;
       return {
         title: item.gameTitle,
         status: monitored ? 'full-price' : 'not-monitored',
@@ -127,18 +143,22 @@ function buildWishlistWatch(result: MonitorResult): DigestWishlistWatch[] {
       };
     }
 
+    const analysis =
+      match.matchedTitle !== undefined ? analysisByTitle.get(titleKey(match.matchedTitle)) : undefined;
     const onSale = isOnSale(game);
     const discountPercent = calculateDiscountPercent(game);
 
     // Reuse the analyzed wishlist match when available (on-sale games);
     // otherwise compute target pricing from the full-price game we fetched
     // just for Wishlist Watch.
-    const match = analysis?.wishlistMatch ?? matchGameToWishlist(
-      game,
-      { items: [item] },
-      result.defaultWishlistDiscountPercent,
-    );
-    const targetReached = match?.priceTargetReached ?? false;
+    const wishlistMatch =
+      analysis?.wishlistMatch ??
+      matchGameToWishlist(
+        game,
+        { items: [item] },
+        result.defaultWishlistDiscountPercent,
+      );
+    const targetReached = wishlistMatch?.priceTargetReached ?? false;
 
     let status: WishlistWatchStatus;
     if (targetReached) {
@@ -155,8 +175,8 @@ function buildWishlistWatch(result: MonitorResult): DigestWishlistWatch[] {
       currentPrice: game.currentPrice,
       originalPrice: game.originalPrice,
       discountPercent,
-      targetPrice: match?.effectiveTargetPrice ?? item.targetPrice,
-      targetPriceOrigin: match?.targetPriceOrigin,
+      targetPrice: wishlistMatch?.effectiveTargetPrice ?? item.targetPrice,
+      targetPriceOrigin: wishlistMatch?.targetPriceOrigin,
       storeUrl: resolveStoreUrl(game),
     };
   });

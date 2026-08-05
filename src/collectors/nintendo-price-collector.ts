@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 
 import { Game } from '../models';
+import { matchTitlesToCandidates } from '../matching/title-matcher';
 import { NintendoPlatform, NintendoRegion } from '../models/settings';
 import { CollectGamesOptions, GameCollector } from './game-collector';
 import { CollectorError } from './collector-error';
@@ -318,9 +319,29 @@ export class NintendoPriceCollector implements GameCollector {
     if (titles.length === 0) {
       return [];
     }
-    const wanted = new Set(titles.map(normalizeGameTitle));
     const catalog = this.filterCatalogByPlatform(loadGameCatalog(this.catalogPath));
-    const targets = catalog.filter((entry) => wanted.has(normalizeGameTitle(entry.title)));
+    // Resolve each requested title against the catalog with the conservative
+    // matcher, so a short wishlist title like "Super Smash Bros" finds the
+    // catalog entry "Super Smash Bros. Ultimate". Ambiguous titles resolve to
+    // nothing and are left untracked.
+    const matches = matchTitlesToCandidates(
+      titles,
+      catalog.map((entry) => entry.title),
+    );
+    const entryByTitle = new Map(catalog.map((entry) => [entry.title, entry]));
+    const targets: CatalogGame[] = [];
+    const seenNsuids = new Set<string>();
+    titles.forEach((title, index) => {
+      const match = matches[index];
+      if (!match.matched || !match.matchedTitle) {
+        return;
+      }
+      const entry = entryByTitle.get(match.matchedTitle);
+      if (entry && !seenNsuids.has(entry.nsuid)) {
+        seenNsuids.add(entry.nsuid);
+        targets.push(entry);
+      }
+    });
     const missingNsuids = targets
       .filter((entry) => !this.priceCache.has(entry.nsuid))
       .map((entry) => entry.nsuid);

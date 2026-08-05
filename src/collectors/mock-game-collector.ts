@@ -1,4 +1,5 @@
 import { Game } from '../models';
+import { matchTitlesToCandidates } from '../matching/title-matcher';
 import { CollectGamesOptions, GameCollector } from './game-collector';
 
 export class MockGameCollector implements GameCollector {
@@ -98,11 +99,13 @@ export class MockGameCollector implements GameCollector {
   }
 
   collectWishlistPrices(titles: string[]): Promise<Game[]> {
-    const wanted = new Set(titles.map((title) => title.trim().toLowerCase()));
+    const catalogTitles = this.games.map((game) => game.title);
+    const matches = matchTitlesToCandidates(titles, catalogTitles);
+    const byTitle = new Map(this.games.map((game) => [game.title, game]));
     return Promise.resolve(
-      this.games
-        .filter((game) => wanted.has(game.title.trim().toLowerCase()))
-        .map((game) => ({ ...game })),
+      matches
+        .filter((match) => match.matched)
+        .map((match) => ({ ...byTitle.get(match.matchedTitle!)! })),
     );
   }
 }
