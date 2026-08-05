@@ -244,7 +244,11 @@ const checks: Check[] = [
     run: () => {
       const config = loadAppConfig();
       assert.deepStrictEqual(config.notification, resolveNotificationSettings());
-      assert.deepStrictEqual(config.collector, resolveCollectorSettings());
+      assert.deepStrictEqual(
+        config.collector,
+        resolveCollectorSettings(process.env, config.preferences.platform, config.preferences.gameCollector),
+        'collector must combine env overrides with the resolved platform and gameCollector preferences',
+      );
       assert.ok(Array.isArray(config.familyProfiles) && config.familyProfiles.length > 0);
       assert.ok(Array.isArray(config.wishlist.items) && config.wishlist.items.length > 0);
     },

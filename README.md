@@ -107,11 +107,11 @@ The Gmail SMTP host/port (`smtp.gmail.com:465`, implicit TLS) are **built into t
 
 #### Everything else
 
-User preferences (`platform`, `emailProvider`, `gameCollector`, `logLevel`, `emailTo`) and notification settings live in `data/settings.json` (see [User preferences](#user-preferences--datasettingsjson)). `DRY_RUN` / `FORCE_EMAIL` are **one-time execution modes**, not configuration: pass them per run on the command line (`npm run monitor -- --dry-run`) or as GitHub Actions inputs, and they never persist.
+User preferences (`platform`, `emailProvider`, `gameCollector`, `logLevel`, `emailTo`) and notification settings live in `data/settings.json` (see [User preferences](#user-preferences--datasettingsjson)). The digest recipient comes **only** from `emailTo` in `data/settings.json`, falling back to the sender (`SMTP_USER`) — there is no `EMAIL_TO` environment variable. `DRY_RUN` / `FORCE_EMAIL` are **one-time execution modes**, not configuration: pass them per run on the command line (`npm run monitor -- --dry-run`) or as GitHub Actions inputs, and they never persist.
 
 #### Optional environment overrides (CI / command line)
 
-For CI or a one-off run, these environment variables are honored and take precedence over `data/settings.json`: `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `NINTENDO_PLATFORM`, `LOG_LEVEL`, `EMAIL_TO`, plus the notification/collector overrides below. Keep them out of `.env` unless you have a temporary reason to set one.
+For CI or a one-off run, these environment variables are honored and take precedence over `data/settings.json`: `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `NINTENDO_PLATFORM`, `LOG_LEVEL`, plus the notification/collector overrides below. Keep them out of `.env` unless you have a temporary reason to set one.
 
 | Variable              | Overrides (settings.json key)                                              | Default       |
 | --------------------- | ------------------------------------------------------------------------ | ------------- |
@@ -119,7 +119,6 @@ For CI or a one-off run, these environment variables are honored and take preced
 | `EMAIL_PROVIDER`      | `emailProvider` (`gmail` or `mock`)                                       | `gmail`       |
 | `GAME_COLLECTOR`      | `gameCollector` (`mock` or `nintendo`)                                    | `mock`        |
 | `LOG_LEVEL`           | `logLevel` (`debug`, `info`, `warn`, `error`, `silent`)                   | `info`        |
-| `EMAIL_TO`            | `emailTo` (digest recipient; defaults to `SMTP_USER` when unset)          | —             |
 | `NINTENDO_REGION`     | — (eShop region, `US` only)                                               | `US`          |
 | `GAME_CATALOG`        | — (game catalog JSON path)                                                | `data/game-catalog.json` |
 | `DEALS_CURRENCY`      | — (currency expected from the price API)                                  | `USD`         |
@@ -342,7 +341,7 @@ Configure these under **Settings → Secrets and variables → Actions**. Secret
 | `SMTP_USER`        | Gmail address used for SMTP auth **and as the sender** | gmail mode         |
 | `SMTP_PASSWORD`    | Gmail App Password                             | gmail mode                  |
 
-The workflow also forwards the notification tuning variables as secrets so you can adjust them without editing the repo: `DEALS_CURRENCY`, `GAME_CATALOG`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` — all optional with built-in defaults. The recipient is `emailTo` in `data/settings.json`, falling back to `SMTP_USER`; it can be overridden per run with `EMAIL_TO`. The Gmail SMTP host/port are built into the provider and are not configurable.
+The workflow also forwards the notification tuning variables as secrets so you can adjust them without editing the repo: `DEALS_CURRENCY`, `GAME_CATALOG`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` — all optional with built-in defaults. The digest recipient comes from `emailTo` in `data/settings.json`, falling back to the sender (`SMTP_USER`) — there is no `EMAIL_TO` secret or environment variable. The Gmail SMTP host/port are built into the provider and are not configurable.
 
 Manual dispatch always lets you override the provider and collector per run (`EMAIL_PROVIDER` / `GAME_COLLECTOR`), independent of the stored secrets. `NINTENDO_PLATFORM` falls back to the `platform` preference (`switch1`) when unset, so the scheduled run always filters to a concrete platform.
 
@@ -586,7 +585,7 @@ Application/user preferences (not secrets) also live in `data/settings.json`:
 - `logLevel` — logging verbosity: `debug`, `info`, `warn`, `error`, or `silent` (default `info`).
 - `emailTo` — optional digest recipient. When omitted the digest is sent **to the sender** (`SMTP_USER`).
 
-These are **user configuration**, not secrets — keep them out of `.env`. Set an environment variable only to override them for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`, `EMAIL_TO`). `dryRun` / `forceEmail` are **not** settings: they are one-time execution modes passed on the command line (see [Running Locally](#running-locally)) or as GitHub Actions inputs.
+These are **user configuration**, not secrets — keep them out of `.env`. Set an environment variable only to override them for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`). The digest recipient is **not** overridable via an environment variable: it comes only from `emailTo` (falling back to `SMTP_USER`). `dryRun` / `forceEmail` are **not** settings: they are one-time execution modes passed on the command line (see [Running Locally](#running-locally)) or as GitHub Actions inputs.
 
 ### Resolution priority
 
@@ -616,7 +615,7 @@ defaults
 | eShop region            | `NINTENDO_REGION`           | —                             | `US`          |
 | Console platform        | `NINTENDO_PLATFORM`         | `platform`                    | `switch1`     |
 | Email provider          | `EMAIL_PROVIDER`            | `emailProvider`               | `gmail`       |
-| Digest recipient        | `EMAIL_TO`                  | `emailTo`                     | `SMTP_USER`   |
+| Digest recipient        | — (settings only)           | `emailTo`                     | `SMTP_USER`   |
 | Log level               | `LOG_LEVEL`                 | `logLevel`                    | `info`        |
 | Game catalog path       | `GAME_CATALOG`              | —                             | `data/game-catalog.json` |
 | Deals currency          | `DEALS_CURRENCY`            | —                             | `USD`         |

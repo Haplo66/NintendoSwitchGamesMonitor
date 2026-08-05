@@ -6,7 +6,8 @@ import * as path from 'node:path';
 
 import { loadAppConfig, resolveCollectorSettings } from './app-config';
 import { defaultNotificationHistoryFile } from './notification-history-store';
-import { resolveEmailProviderKind } from '../notifications/email-factory';
+import { createEmailProvider, resolveEmailProviderKind } from '../notifications/email-factory';
+import { GmailProvider } from '../notifications/gmail-provider';
 import { decideDigestEmail, runMonitor } from '../pipeline/monitor-run';
 import { createGameCollector } from '../collectors/collector-factory';
 import { NintendoPriceCollector } from '../collectors/nintendo-price-collector';
@@ -55,6 +56,32 @@ function restoreHistoryFile(content: string | undefined): void {
     return;
   }
   writeHistoryFile(content);
+}
+
+function withEnv(
+  env: Record<string, string | undefined>,
+  run: () => void,
+): void {
+  const previous: Record<string, string | undefined> = {};
+  for (const key of Object.keys(env)) {
+    previous[key] = process.env[key];
+    if (env[key] === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = env[key];
+    }
+  }
+  try {
+    run();
+  } finally {
+    for (const key of Object.keys(env)) {
+      if (previous[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previous[key];
+      }
+    }
+  }
 }
 
 const EMPTY_HISTORY = `${JSON.stringify({ records: [] }, null, 2)}\n`;
@@ -160,6 +187,43 @@ export async function validateProduction(): Promise<void> {
               'workflow must not reference the removed ' + removed + ' secret',
             );
           }
+          assert.ok(
+            !workflow.includes('EMAIL_TO'),
+            'workflow must not mention EMAIL_TO anywhere (recipient comes from settings.json)',
+          );
+        },
+      },
+      {
+        name: 'the digest recipient comes from settings.json (no EMAIL_TO)',
+        run: () => {
+          const config = loadAppConfig();
+          assert.ok(
+            config.preferences.emailTo === undefined ||
+              typeof config.preferences.emailTo === 'string',
+            'emailTo must be an optional string from settings.json',
+          );
+          assert.strictEqual(
+            process.env.EMAIL_TO,
+            undefined,
+            'the scheduled environment must not define EMAIL_TO',
+          );
+          withEnv(
+            {
+              SMTP_USER: 'sender@gmail.com',
+              SMTP_PASSWORD: 'pw',
+              EMAIL_TO: undefined,
+            },
+            () => {
+              const provider = createEmailProvider('gmail', {
+                emailTo: config.preferences.emailTo,
+              }) as GmailProvider;
+              assert.strictEqual(
+                provider.getRecipient(),
+                config.preferences.emailTo ?? 'sender@gmail.com',
+                'recipient must resolve from settings emailTo, falling back to SMTP_USER',
+              );
+            },
+          );
         },
       },
       {

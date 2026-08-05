@@ -17,6 +17,7 @@ import {
 } from '../notifications/gmail-provider';
 import { resolveRunFlags } from '../pipeline/monitor-run';
 import { resolveRunMode } from '../scripts/run-monitor';
+import { createEmailProvider } from '../notifications/email-factory';
 
 interface Check {
   name: string;
@@ -137,7 +138,6 @@ export async function validatePreferences(): Promise<void> {
               EMAIL_PROVIDER: 'gmail',
               GAME_COLLECTOR: 'nintendo',
               LOG_LEVEL: 'debug',
-              EMAIL_TO: 'env@example.com',
             },
             file,
           );
@@ -145,7 +145,11 @@ export async function validatePreferences(): Promise<void> {
           assert.strictEqual(prefs.emailProvider, 'gmail', 'env email provider must win');
           assert.strictEqual(prefs.gameCollector, 'nintendo', 'env game collector must win');
           assert.strictEqual(prefs.logLevel, 'debug', 'env log level must win');
-          assert.strictEqual(prefs.emailTo, 'env@example.com', 'env EMAIL_TO must win');
+          assert.strictEqual(
+            prefs.emailTo,
+            'settings@example.com',
+            'emailTo has no env override and must come from settings.json',
+          );
         } finally {
           fs.rmSync(file, { force: true });
         }
@@ -285,11 +289,53 @@ export async function validatePreferences(): Promise<void> {
     {
       name: 'emailTo defaults to the sender (SMTP_USER) when not configured',
       run: () => {
-        withEnv({ SMTP_USER: 'a@gmail.com', SMTP_PASSWORD: 'pw' }, () => {
+        withEnv({ SMTP_USER: 'a@gmail.com', SMTP_PASSWORD: 'pw', EMAIL_TO: undefined }, () => {
           const provider = GmailProvider.fromEnv({});
           assert.strictEqual(provider.getRecipient(), 'a@gmail.com');
           const explicit = GmailProvider.fromEnv({ to: 'b@gmail.com' });
           assert.strictEqual(explicit.getRecipient(), 'b@gmail.com');
+        });
+      },
+    },
+    {
+      name: 'no EMAIL_TO environment variable is required',
+      run: () => {
+        withEnv({ SMTP_USER: 'a@gmail.com', SMTP_PASSWORD: 'pw', EMAIL_TO: undefined }, () => {
+          assert.doesNotThrow(() => GmailProvider.fromEnv({}), 'fromEnv must not read EMAIL_TO');
+          const provider = GmailProvider.fromEnv({});
+          assert.strictEqual(provider.getRecipient(), 'a@gmail.com');
+        });
+      },
+    },
+    {
+      name: 'emailTo comes only from settings.json (EMAIL_TO is not honored)',
+      run: () => {
+        const settingsFile = tempFile({ emailTo: 'settings@example.com' });
+        try {
+          const prefs = loadAppPreferences({ EMAIL_TO: 'env@example.com' }, settingsFile);
+          assert.strictEqual(
+            prefs.emailTo,
+            'settings@example.com',
+            'settings emailTo must win over an EMAIL_TO env var',
+          );
+        } finally {
+          fs.rmSync(settingsFile, { force: true });
+        }
+        const missingFile = path.join(os.tmpdir(), 'nsm-no-settings-email-to.json');
+        const prefs = loadAppPreferences({ EMAIL_TO: 'env@example.com' }, missingFile);
+        assert.strictEqual(prefs.emailTo, undefined, 'EMAIL_TO must not supply a recipient');
+      },
+    },
+    {
+      name: 'emailTo from settings.json reaches the gmail provider recipient',
+      run: () => {
+        withEnv({ SMTP_USER: 'sender@gmail.com', SMTP_PASSWORD: 'pw', EMAIL_TO: undefined }, () => {
+          const provider = createEmailProvider('gmail', { emailTo: 'family@example.com' });
+          assert.strictEqual(
+            (provider as GmailProvider).getRecipient(),
+            'family@example.com',
+            'provider recipient must come from the resolved settings emailTo',
+          );
         });
       },
     },

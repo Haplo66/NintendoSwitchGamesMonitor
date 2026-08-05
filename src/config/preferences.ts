@@ -175,11 +175,10 @@ export function loadAppPreferences(
     return DEFAULT_APP_PREFERENCES.logLevel;
   };
 
+  // The digest recipient comes only from `data/settings.json` (`emailTo`) and
+  // falls back to the sender (`SMTP_USER`) inside the provider. There is no
+  // `EMAIL_TO` environment variable anywhere in the pipeline.
   const resolveEmailTo = (): string | undefined => {
-    const envRaw = env.EMAIL_TO?.trim();
-    if (envRaw) {
-      return envRaw;
-    }
     if (typeof raw.emailTo === 'string' && raw.emailTo.trim()) {
       return raw.emailTo.trim();
     }

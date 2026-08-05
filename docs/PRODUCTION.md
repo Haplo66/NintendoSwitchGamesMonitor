@@ -38,7 +38,7 @@ Non-secret application behavior is configured in `data/settings.json`, not `.env
 - `logLevel` — `debug` | `info` | `warn` | `error` | `silent`.
 - `emailTo` — optional digest recipient; when omitted the digest is sent **to the sender** (`SMTP_USER`).
 
-Precedence is **environment variable > `data/settings.json` > defaults**, so a one-off run can still override preferences for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`, `EMAIL_TO`). Dry-run / force-email are **not** settings and have no environment variables — they are one-time command-line flags (see [Execution modes](#execution-modes)).
+Precedence is **environment variable > `data/settings.json` > defaults**, so a one-off run can still override preferences for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`). The digest recipient is **not** overridable via an environment variable — it comes only from `emailTo` in settings (falling back to `SMTP_USER`). Dry-run / force-email are **not** settings and have no environment variables — they are one-time command-line flags (see [Execution modes](#execution-modes)).
 
 ### Required local secrets
 
@@ -114,7 +114,7 @@ Repository secrets used by the scheduled run:
 - Gmail secrets: `SMTP_USER`, `SMTP_PASSWORD` (the From address is `SMTP_USER`; the recipient is `emailTo` from settings, defaulting to `SMTP_USER`).
 - Optional overrides (tuning values you can adjust without editing the repo): `GAME_CATALOG`, `NINTENDO_PLATFORM`, `DEALS_CURRENCY`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`.
 
-Configure them under **Settings → Secrets and variables → Actions**. Do **not** add `SMTP_HOST`, `SMTP_PORT`, or `EMAIL_TO` — host/port are built into the provider and the recipient comes from `emailTo` (falling back to `SMTP_USER`).
+Configure them under **Settings → Secrets and variables → Actions**. Do **not** add `SMTP_HOST`, `SMTP_PORT`, or `EMAIL_TO` — host/port are built into the provider and the recipient comes from `emailTo` in `data/settings.json` (falling back to `SMTP_USER`), never from an environment variable.
 
 ### Manual execution
 
