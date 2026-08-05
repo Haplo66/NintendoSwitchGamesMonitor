@@ -16,14 +16,17 @@ export function resolveEmailProviderKind(kind?: EmailProviderKind | string): Ema
   return provider;
 }
 
-export function createEmailProvider(kind?: EmailProviderKind | string): EmailProvider {
+export function createEmailProvider(
+  kind?: EmailProviderKind | string,
+  options: { emailTo?: string } = {},
+): EmailProvider {
   const selected = resolveEmailProviderKind(kind);
 
   switch (selected) {
     case 'mock':
       return new MockEmailProvider({ outDir: process.env.MOCK_EMAIL_OUT_DIR });
     case 'gmail':
-      return GmailProvider.fromEnv();
+      return GmailProvider.fromEnv({ to: options.emailTo });
     default:
       throw new Error(`Unknown email provider: "${selected}"`);
   }

@@ -11,7 +11,7 @@ import { MonitorReportFiles, writeMonitorReports } from './report-writer';
 
 export async function generateReport(): Promise<MonitorReportFiles> {
   const config = loadAppConfig();
-  const { result } = await runMonitor({ emailProviderKind: 'mock' });
+  const { result } = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock' });
   const data = buildMonitorReportData(result, {
     maxBestDeals: config.notification.dailyDigest.maxBestDeals,
     maxWishlistAlerts: config.notification.dailyDigest.maxWishlistAlerts,

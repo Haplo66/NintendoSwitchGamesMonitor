@@ -126,8 +126,8 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const ignoreNotificationHistory =
     options.ignoreNotificationHistory ??
     process.env.IGNORE_NOTIFICATION_HISTORY === 'true';
-  const forceEmail = options.forceEmail ?? config.preferences.forceEmail;
-  const dryRun = options.dryRun ?? config.preferences.dryRun;
+  const forceEmail = options.forceEmail ?? false;
+  const dryRun = options.dryRun ?? false;
 
   console.log('');
   console.log('Monitor configuration:');
@@ -280,7 +280,9 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   );
   const emailSent = decision.send && !dryRun;
   if (emailSent) {
-    const provider: EmailProvider = createEmailProvider(emailProviderKind);
+    const provider: EmailProvider = createEmailProvider(emailProviderKind, {
+      emailTo: config.preferences.emailTo,
+    });
     await provider.sendEmail({
       subject: `🎮 Nintendo Switch Daily Digest — ${toEmail.length} game(s) worth checking`,
       html,
@@ -314,8 +316,21 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   return { result, html, emailSent };
 }
 
+/**
+ * Parses one-time execution-mode flags from the command line
+ * (`npm run monitor -- --dry-run` / `--force-email`). These are run-scoped
+ * only and never read from `.env` or `data/settings.json`.
+ */
+export function resolveRunFlags(argv: string[]): Pick<MonitorOptions, 'dryRun' | 'forceEmail'> {
+  return {
+    dryRun: argv.includes('--dry-run'),
+    forceEmail: argv.includes('--force-email'),
+  };
+}
+
 if (require.main === module) {
-  runMonitor()
+  const flags = resolveRunFlags(process.argv.slice(2));
+  runMonitor(flags)
     .then(() => {
       console.log('\nMonitor run complete.');
     })

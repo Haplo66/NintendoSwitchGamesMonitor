@@ -8,6 +8,15 @@ import * as path from 'node:path';
 import { ConfigError } from './json-loader';
 import { loadAppConfig } from './app-config';
 import { DEFAULT_APP_PREFERENCES, loadAppPreferences } from './preferences';
+import {
+  GMAIL_SMTP_HOST,
+  GMAIL_SMTP_PORT,
+  GmailProvider,
+  gmailTransportOptions,
+  mailFrom,
+} from '../notifications/gmail-provider';
+import { resolveRunFlags } from '../pipeline/monitor-run';
+import { resolveRunMode } from '../scripts/run-monitor';
 
 interface Check {
   name: string;
@@ -37,6 +46,32 @@ function tempFile(data: unknown): string {
   return file;
 }
 
+function withEnv(
+  env: Record<string, string | undefined>,
+  run: () => void,
+): void {
+  const previous: Record<string, string | undefined> = {};
+  for (const key of Object.keys(env)) {
+    previous[key] = process.env[key];
+    if (env[key] === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = env[key];
+    }
+  }
+  try {
+    run();
+  } finally {
+    for (const key of Object.keys(env)) {
+      if (previous[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = previous[key];
+      }
+    }
+  }
+}
+
 export async function validatePreferences(): Promise<void> {
   const checks: Check[] = [
     {
@@ -52,17 +87,17 @@ export async function validatePreferences(): Promise<void> {
         const file = tempFile({
           platform: 'switch2',
           emailProvider: 'mock',
-          dryRun: true,
-          forceEmail: true,
+          gameCollector: 'nintendo',
           logLevel: 'warn',
+          emailTo: 'family@example.com',
         });
         try {
           assert.deepStrictEqual(loadAppPreferences({}, file), {
             platform: 'switch2',
             emailProvider: 'mock',
-            dryRun: true,
-            forceEmail: true,
+            gameCollector: 'nintendo',
             logLevel: 'warn',
+            emailTo: 'family@example.com',
           });
         } finally {
           fs.rmSync(file, { force: true });
@@ -77,9 +112,9 @@ export async function validatePreferences(): Promise<void> {
           const prefs = loadAppPreferences({}, file);
           assert.strictEqual(prefs.platform, 'switch2');
           assert.strictEqual(prefs.emailProvider, DEFAULT_APP_PREFERENCES.emailProvider);
-          assert.strictEqual(prefs.dryRun, false);
-          assert.strictEqual(prefs.forceEmail, false);
+          assert.strictEqual(prefs.gameCollector, DEFAULT_APP_PREFERENCES.gameCollector);
           assert.strictEqual(prefs.logLevel, DEFAULT_APP_PREFERENCES.logLevel);
+          assert.strictEqual(prefs.emailTo, undefined);
         } finally {
           fs.rmSync(file, { force: true });
         }
@@ -91,26 +126,26 @@ export async function validatePreferences(): Promise<void> {
         const file = tempFile({
           platform: 'switch2',
           emailProvider: 'mock',
-          dryRun: false,
-          forceEmail: false,
+          gameCollector: 'mock',
           logLevel: 'warn',
+          emailTo: 'settings@example.com',
         });
         try {
           const prefs = loadAppPreferences(
             {
               NINTENDO_PLATFORM: 'switch1',
               EMAIL_PROVIDER: 'gmail',
-              DRY_RUN: 'true',
-              FORCE_EMAIL: 'true',
+              GAME_COLLECTOR: 'nintendo',
               LOG_LEVEL: 'debug',
+              EMAIL_TO: 'env@example.com',
             },
             file,
           );
           assert.strictEqual(prefs.platform, 'switch1', 'env platform must win');
           assert.strictEqual(prefs.emailProvider, 'gmail', 'env email provider must win');
-          assert.strictEqual(prefs.dryRun, true, 'env DRY_RUN must win');
-          assert.strictEqual(prefs.forceEmail, true, 'env FORCE_EMAIL must win');
+          assert.strictEqual(prefs.gameCollector, 'nintendo', 'env game collector must win');
           assert.strictEqual(prefs.logLevel, 'debug', 'env log level must win');
+          assert.strictEqual(prefs.emailTo, 'env@example.com', 'env EMAIL_TO must win');
         } finally {
           fs.rmSync(file, { force: true });
         }
@@ -120,11 +155,17 @@ export async function validatePreferences(): Promise<void> {
       name: 'environment normalization accepts mixed case',
       run: () => {
         const prefs = loadAppPreferences(
-          { NINTENDO_PLATFORM: 'Switch2', EMAIL_PROVIDER: 'MOCK', LOG_LEVEL: 'INFO' },
+          {
+            NINTENDO_PLATFORM: 'Switch2',
+            EMAIL_PROVIDER: 'MOCK',
+            GAME_COLLECTOR: 'NINTENDO',
+            LOG_LEVEL: 'INFO',
+          },
           path.join(os.tmpdir(), 'nsm-no-settings.json'),
         );
         assert.strictEqual(prefs.platform, 'switch2');
         assert.strictEqual(prefs.emailProvider, 'mock');
+        assert.strictEqual(prefs.gameCollector, 'nintendo');
         assert.strictEqual(prefs.logLevel, 'info');
       },
     },
@@ -134,9 +175,9 @@ export async function validatePreferences(): Promise<void> {
         const cases: unknown[] = [
           { platform: 'ps5' },
           { emailProvider: 'smtp' },
+          { gameCollector: 'deku' },
           { logLevel: 'verbose' },
-          { dryRun: 'yes' },
-          { forceEmail: 1 },
+          { emailTo: 42 },
         ];
         for (const bad of cases) {
           const file = tempFile(bad);
@@ -150,19 +191,131 @@ export async function validatePreferences(): Promise<void> {
           () => loadAppPreferences({ NINTENDO_PLATFORM: 'ps5' }),
           /NINTENDO_PLATFORM/,
         );
+        assert.throws(
+          () => loadAppPreferences({ GAME_COLLECTOR: 'deku' }),
+          /Illegal game collector/,
+        );
       },
     },
     {
-      name: 'app config exposes preferences and applies platform to the collector',
+      name: 'app config exposes preferences and applies them to the collector',
       run: () => {
         const config = loadAppConfig();
-        assert.ok(config.preferences.platform === 'switch1' || config.preferences.platform === 'switch2' || config.preferences.platform === 'both');
-        assert.strictEqual(config.collector.platform, config.preferences.platform);
-        assert.strictEqual(
-          config.preferences.emailProvider === 'gmail' || config.preferences.emailProvider === 'mock',
-          true,
+        assert.ok(
+          ['switch1', 'switch2', 'both'].includes(config.preferences.platform),
         );
+        assert.strictEqual(config.collector.platform, config.preferences.platform);
+        assert.strictEqual(config.collector.collectorKind, config.preferences.gameCollector);
+        assert.ok(['gmail', 'mock'].includes(config.preferences.emailProvider));
         assert.ok(['debug', 'info', 'warn', 'error', 'silent'].includes(config.preferences.logLevel));
+        assert.ok(
+          config.preferences.emailTo === undefined ||
+            typeof config.preferences.emailTo === 'string',
+        );
+      },
+    },
+    {
+      name: 'dryRun/forceEmail are execution modes, not preferences',
+      run: () => {
+        const file = tempFile({
+          platform: 'switch2',
+          dryRun: true,
+          forceEmail: true,
+        });
+        try {
+          const prefs = loadAppPreferences({}, file);
+          const asRecord = prefs as unknown as Record<string, unknown>;
+          const keys = Object.keys(prefs).sort();
+          assert.deepStrictEqual(keys, [
+            'emailProvider',
+            'emailTo',
+            'gameCollector',
+            'logLevel',
+            'platform',
+          ]);
+          assert.strictEqual(asRecord.dryRun, undefined);
+          assert.strictEqual(asRecord.forceEmail, undefined);
+        } finally {
+          fs.rmSync(file, { force: true });
+        }
+        const flags = resolveRunFlags([]);
+        assert.deepStrictEqual(flags, { dryRun: false, forceEmail: false });
+      },
+    },
+    {
+      name: '.env.example keeps only secrets and NODE_ENV',
+      run: () => {
+        const content = fs.readFileSync(path.resolve(process.cwd(), '.env.example'), 'utf8');
+        const keys = [...content.matchAll(/^([A-Z_]+)=/gm)].map((match) => match[1]);
+        assert.deepStrictEqual(keys.sort(), ['NODE_ENV', 'SMTP_PASSWORD', 'SMTP_USER'].sort());
+      },
+    },
+    {
+      name: 'gmail provider owns its SMTP defaults (host/port/secure)',
+      run: () => {
+        assert.strictEqual(GMAIL_SMTP_HOST, 'smtp.gmail.com');
+        assert.strictEqual(GMAIL_SMTP_PORT, 465);
+        const options = gmailTransportOptions('a@gmail.com', 'pw');
+        assert.strictEqual(options.host, 'smtp.gmail.com');
+        assert.strictEqual(options.port, 465);
+        assert.strictEqual(options.secure, true);
+      },
+    },
+    {
+      name: 'SMTP_USER and SMTP_PASSWORD are required for the gmail provider',
+      run: () => {
+        withEnv({ SMTP_USER: undefined, SMTP_PASSWORD: 'pw' }, () => {
+          assert.throws(() => GmailProvider.fromEnv(), /SMTP_USER/);
+        });
+        withEnv({ SMTP_USER: 'a@gmail.com', SMTP_PASSWORD: undefined }, () => {
+          assert.throws(() => GmailProvider.fromEnv(), /SMTP_PASSWORD/);
+        });
+      },
+    },
+    {
+      name: 'MAIL_FROM is derived from SMTP_USER (single source of truth)',
+      run: () => {
+        assert.strictEqual(mailFrom('a@gmail.com'), 'a@gmail.com');
+        withEnv({ SMTP_USER: 'a@gmail.com', SMTP_PASSWORD: 'pw' }, () => {
+          const provider = GmailProvider.fromEnv({ to: 'b@gmail.com' });
+          assert.strictEqual(provider.getFromAddress(), 'a@gmail.com');
+        });
+      },
+    },
+    {
+      name: 'emailTo defaults to the sender (SMTP_USER) when not configured',
+      run: () => {
+        withEnv({ SMTP_USER: 'a@gmail.com', SMTP_PASSWORD: 'pw' }, () => {
+          const provider = GmailProvider.fromEnv({});
+          assert.strictEqual(provider.getRecipient(), 'a@gmail.com');
+          const explicit = GmailProvider.fromEnv({ to: 'b@gmail.com' });
+          assert.strictEqual(explicit.getRecipient(), 'b@gmail.com');
+        });
+      },
+    },
+    {
+      name: 'runtime modes resolve from command-line flags only',
+      run: () => {
+        assert.deepStrictEqual(resolveRunMode(['node', 'runner.js']), {
+          dryRun: false,
+          forceEmail: false,
+        });
+        assert.deepStrictEqual(resolveRunMode(['node', 'runner.js', '--dry-run']), {
+          dryRun: true,
+          forceEmail: false,
+        });
+        assert.deepStrictEqual(resolveRunMode(['node', 'runner.js', '--force-email']), {
+          dryRun: false,
+          forceEmail: true,
+        });
+        assert.deepStrictEqual(resolveRunMode(['node', 'runner.js', 'dry']), {
+          dryRun: true,
+          forceEmail: false,
+        });
+        assert.deepStrictEqual(resolveRunMode(['node', 'runner.js', 'test-email']), {
+          dryRun: false,
+          forceEmail: true,
+        });
       },
     },
   ];

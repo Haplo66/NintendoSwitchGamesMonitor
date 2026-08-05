@@ -1,9 +1,9 @@
 import { GameCollector } from './game-collector';
 import { MockGameCollector } from './mock-game-collector';
 import { NintendoPriceCollector, DEFAULT_GAME_CATALOG_PATH } from './nintendo-price-collector';
-import { NintendoPlatform, NintendoRegion } from '../models/settings';
+import { GameCollectorKind, NintendoPlatform, NintendoRegion } from '../models/settings';
 
-export type GameCollectorKind = 'mock' | 'nintendo';
+export type { GameCollectorKind };
 
 export interface CollectorFactoryOptions {
   currency?: string;

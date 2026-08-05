@@ -6,7 +6,7 @@ import * as fs from 'node:fs';
 import {
   defaultNotificationHistoryFile,
 } from '../config/notification-history-store';
-import { decideDigestEmail, runMonitor } from './monitor-run';
+import { decideDigestEmail, resolveRunFlags, runMonitor } from './monitor-run';
 
 interface Check {
   name: string;
@@ -82,7 +82,6 @@ function cooldownHistory(now: Date): string {
 }
 
 export async function validateForceEmail(): Promise<void> {
-  process.env.FORCE_EMAIL = 'false';
   process.env.IGNORE_NOTIFICATION_HISTORY = 'false';
   const previousCooldown = process.env.NOTIFICATION_COOLDOWN_DAYS;
   process.env.NOTIFICATION_COOLDOWN_DAYS = '14';
@@ -98,6 +97,23 @@ export async function validateForceEmail(): Promise<void> {
     const normalRun = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock' });
 
     const checks: Check[] = [
+      {
+        name: 'force email is a one-time command-line flag, not a preference',
+        run: () => {
+          assert.deepStrictEqual(resolveRunFlags(['--force-email']), {
+            dryRun: false,
+            forceEmail: true,
+          });
+          assert.deepStrictEqual(resolveRunFlags(['--dry-run']), {
+            dryRun: true,
+            forceEmail: false,
+          });
+          assert.deepStrictEqual(resolveRunFlags([]), {
+            dryRun: false,
+            forceEmail: false,
+          });
+        },
+      },
       {
         name: 'FORCE_EMAIL sends email even with zero new notifications',
         run: () => {

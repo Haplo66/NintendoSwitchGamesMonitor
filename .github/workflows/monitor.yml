@@ -24,6 +24,10 @@ on:
         description: 'Dry run (full pipeline, no email sent, no history written)'
         type: boolean
         default: false
+      force_email:
+        description: 'Force email (send the digest even with 0 new notifications, no history written)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -55,24 +59,18 @@ jobs:
           EMAIL_PROVIDER="${{ inputs.email_provider || secrets.EMAIL_PROVIDER || 'gmail' }}"
           GAME_COLLECTOR="${{ inputs.game_collector || secrets.GAME_COLLECTOR || 'nintendo' }}"
           NINTENDO_PLATFORM="${NINTENDO_PLATFORM:-switch1}"
-          DRY_RUN="${{ inputs.dry_run }}"
           echo "EMAIL_PROVIDER=$EMAIL_PROVIDER" >> "$GITHUB_ENV"
           echo "GAME_COLLECTOR=$GAME_COLLECTOR" >> "$GITHUB_ENV"
           echo "NINTENDO_PLATFORM=$NINTENDO_PLATFORM" >> "$GITHUB_ENV"
-          echo "DRY_RUN=$DRY_RUN" >> "$GITHUB_ENV"
-          echo "::notice::Resolved configuration -> EMAIL_PROVIDER=$EMAIL_PROVIDER, GAME_COLLECTOR=$GAME_COLLECTOR, NINTENDO_PLATFORM=$NINTENDO_PLATFORM, DRY_RUN=$DRY_RUN"
+          echo "::notice::Resolved configuration -> EMAIL_PROVIDER=$EMAIL_PROVIDER, GAME_COLLECTOR=$GAME_COLLECTOR, NINTENDO_PLATFORM=$NINTENDO_PLATFORM"
 
       - name: Run monitoring pipeline
         env:
           EMAIL_PROVIDER: ${{ env.EMAIL_PROVIDER }}
           GAME_COLLECTOR: ${{ env.GAME_COLLECTOR }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
           NINTENDO_PLATFORM: ${{ env.NINTENDO_PLATFORM }}
-          DRY_RUN: ${{ env.DRY_RUN }}
           DEALS_CURRENCY: ${{ secrets.DEALS_CURRENCY }}
           GAME_CATALOG: ${{ secrets.GAME_CATALOG }}
           MIN_DEAL_SCORE: ${{ secrets.MIN_DEAL_SCORE }}
@@ -80,7 +78,11 @@ jobs:
           NOTIFY_FREE_GAMES: ${{ secrets.NOTIFY_FREE_GAMES }}
           NOTIFY_WISHLIST_MATCHES: ${{ secrets.NOTIFY_WISHLIST_MATCHES }}
           MOCK_EMAIL_OUT_DIR: data/emails
-        run: npm run monitor
+        run: |
+          EXTRA_FLAGS=""
+          if [ "${{ inputs.dry_run }}" == "true" ]; then EXTRA_FLAGS="$EXTRA_FLAGS --dry-run"; fi
+          if [ "${{ inputs.force_email }}" == "true" ]; then EXTRA_FLAGS="$EXTRA_FLAGS --force-email"; fi
+          npm run monitor -- $EXTRA_FLAGS
 
       - name: Upload mock email artifact
         if: env.EMAIL_PROVIDER == 'mock'

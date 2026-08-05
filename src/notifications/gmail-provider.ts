@@ -2,12 +2,18 @@ import { createTransport } from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { EmailProvider, SendEmailOptions } from './email-provider';
 
+export const GMAIL_SMTP_HOST = 'smtp.gmail.com';
+export const GMAIL_SMTP_PORT = 465;
+
 export interface GmailProviderConfig {
-  host: string;
-  port: number;
   user: string;
   password: string;
   to: string;
+}
+
+export interface GmailProviderFromEnvOptions {
+  /** Recipient from `data/settings.json` (`emailTo`). Falls back to the sender. */
+  to?: string;
 }
 
 function requireEnv(name: string): string {
@@ -18,6 +24,23 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/**
+ * The "From" address is always the authenticated SMTP user — a single source
+ * of truth (there is no separate `MAIL_FROM` configuration anywhere).
+ */
+export function mailFrom(smtpUser: string): string {
+  return smtpUser;
+}
+
+export function gmailTransportOptions(user: string, password: string): Record<string, unknown> {
+  return {
+    host: GMAIL_SMTP_HOST,
+    port: GMAIL_SMTP_PORT,
+    secure: true,
+    auth: { user, pass: password },
+  };
+}
+
 export class GmailProvider implements EmailProvider {
   private readonly transporter: Transporter;
   private readonly user: string;
@@ -26,30 +49,30 @@ export class GmailProvider implements EmailProvider {
   constructor(config: GmailProviderConfig) {
     this.user = config.user;
     this.to = config.to;
-    this.transporter = createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.port === 465,
-      auth: {
-        user: config.user,
-        pass: config.password,
-      },
+    this.transporter = createTransport(gmailTransportOptions(config.user, config.password));
+  }
+
+  /** Builds the provider from the `.env` secrets plus the `emailTo` preference. */
+  static fromEnv(options: GmailProviderFromEnvOptions = {}): GmailProvider {
+    const user = requireEnv('SMTP_USER');
+    return new GmailProvider({
+      user,
+      password: requireEnv('SMTP_PASSWORD'),
+      to: options.to?.trim() || user,
     });
   }
 
-  static fromEnv(): GmailProvider {
-    return new GmailProvider({
-      host: process.env.SMTP_HOST ?? 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT ?? 465),
-      user: requireEnv('SMTP_USER'),
-      password: requireEnv('SMTP_PASSWORD'),
-      to: requireEnv('EMAIL_TO'),
-    });
+  getFromAddress(): string {
+    return mailFrom(this.user);
+  }
+
+  getRecipient(): string {
+    return this.to;
   }
 
   async sendEmail({ subject, html }: SendEmailOptions): Promise<void> {
     await this.transporter.sendMail({
-      from: `"Nintendo Switch Games Monitor" <${this.user}>`,
+      from: mailFrom(this.user),
       to: this.to,
       subject,
       html,

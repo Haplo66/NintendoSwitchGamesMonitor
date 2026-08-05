@@ -28,9 +28,9 @@ Notifications follow a clean pipeline so each concern can evolve independently:
 3. **Template** (`src/notifications/email-template.ts`) — pure builder functions that turn digest data into HTML blocks (header, summary, wishlist alerts, best deals, free games, family recommendations, price watch, statistics, footer). All styling is inline CSS because email clients strip `<style>` blocks and external stylesheets.
 4. **Renderer** (`src/notifications/email-renderer.ts`) — composes the blocks into a complete HTML email document (`renderDigestEmail(digest)`).
 5. **Provider abstraction** (`src/notifications/email-provider.ts`) — a single `EmailProvider` interface (`sendEmail({ subject, html })`) so Gmail can be swapped for another provider later without changing callers.
-6. **Gmail provider** (`src/notifications/gmail-provider.ts`) — a concrete SMTP implementation built on nodemailer, configured entirely from environment variables.
+6. **Gmail provider** (`src/notifications/gmail-provider.ts`) — a concrete SMTP implementation built on nodemailer. It owns its Gmail defaults (`smtp.gmail.com:465`, implicit TLS), reads the `SMTP_USER` / `SMTP_PASSWORD` secrets from `.env`, and always sends **from** `SMTP_USER` (there is no `MAIL_FROM`).
 7. **Mock provider** (`src/notifications/mock-email-provider.ts`) — a test double that implements the same interface but never sends a real email. It captures the message in memory (and optionally writes the rendered HTML to disk) for verification.
-8. **Provider factory** (`src/notifications/email-factory.ts`) — `createEmailProvider()` selects the active provider from the `EMAIL_PROVIDER` environment variable (`gmail` or `mock`). No caller knows which concrete provider it gets, and the renderer never does.
+8. **Provider factory** (`src/notifications/email-factory.ts`) — `createEmailProvider()` selects the active provider from the `emailProvider` preference (`gmail` or `mock`), overridable by `EMAIL_PROVIDER` for one run. No caller knows which concrete provider it gets, and the renderer never does.
 
 ```
 EmailProvider
@@ -60,7 +60,7 @@ Content sections that have nothing to show are hidden entirely, so an empty day 
 
 ### Testing without SMTP credentials
 
-Set `EMAIL_PROVIDER=mock` (or in `.env`) and run:
+Set `emailProvider: "mock"` in `data/settings.json` (or override with `EMAIL_PROVIDER=mock` for one run) and run:
 
 ```bash
 npm run validate-email
@@ -82,39 +82,58 @@ It always succeeds without any SMTP credentials, making it safe for local runs a
 npm run test-email
 ```
 
-This builds the project, generates a sample `DailyDigest`, renders it to HTML, and sends it. With `EMAIL_PROVIDER=gmail` (default) it sends a real email via Gmail SMTP; with `EMAIL_PROVIDER=mock` it captures the message locally instead — handy for previewing without touching a real inbox.
+This builds the project, generates a sample `DailyDigest`, renders it to HTML, and sends it using the configured `emailProvider` preference. With `gmail` (default) it sends a real email via Gmail SMTP using the `SMTP_USER` / `SMTP_PASSWORD` secrets (recipient is `emailTo`, falling back to `SMTP_USER`); with `mock` it captures the message locally instead — handy for previewing without touching a real inbox.
 
-### Required environment variables
+### Configuration philosophy
 
-| Variable              | Description                                                                     |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `SMTP_HOST`           | SMTP server host (default: `smtp.gmail.com`)                                    |
-| `SMTP_PORT`           | SMTP port (default: `465` for implicit TLS; 587 is also supported)              |
-| `SMTP_USER`           | Gmail address used for authentication (and the email `From` address)            |
-| `SMTP_PASSWORD`       | Gmail App Password (regular account passwords are rejected by Gmail)            |
-| `EMAIL_TO`            | Recipient address the notification emails are sent to                           |
-| `EMAIL_PROVIDER`      | Active provider: `gmail` or `mock` (default: `gmail`)                           |
-| `MOCK_EMAIL_OUT_DIR`  | Where the mock provider saves rendered HTML (default: `data/emails`)            |
-| `GAME_COLLECTOR`      | Active collector: `mock` or `nintendo` (default: `mock`)                   |
-| `NINTENDO_REGION`     | eShop region for the `nintendo` collector: `US` (default, only value)      |
-| `NINTENDO_PLATFORM`   | Target console, filters the catalog before analysis: `switch1`, `switch2`, or `both` (default: `switch1`) |
-| `GAME_CATALOG`        | Path to the US game catalog JSON watched by the `nintendo` collector (default: `data/game-catalog.json`) |
-| `DEALS_CURRENCY`      | Currency expected from the price API (default: `USD`)                      |
-| `DEALS_LIMIT`         | Max games to return per run for the `nintendo` collector (default: `100`)  |
-| `MIN_DEAL_SCORE`      | Minimum score for a game to be included in the report (default: `80`)          |
-| `NOTIFICATION_COOLDOWN_DAYS` | Days before the same game at the same price is notified again (default: `14`) |
-| `MAX_GAMES_PER_EMAIL` | Cap on games included in a single email, best-scoring first (default: `10`)   |
-| `NOTIFY_FREE_GAMES`   | Report games just because they are free (`true`/`false`, default: `true`)      |
-| `NOTIFY_WISHLIST_MATCHES` | Report games just because they match the wishlist (`true`/`false`, default: `true`) |
-| `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | Discount percent used to compute automatic wishlist target prices (default: `40`) |
-| `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | Default `notifyOnAnyDiscount` for wishlist items that omit it (default: `false`) |
-| `IGNORE_NOTIFICATION_HISTORY` | Test mode: bypass cooldown filtering and never write to notification history (`true`/`false`, default: `false`) |
-| `FORCE_EMAIL` | Test mode: always send the digest email (even with 0 new notifications) and never write to history (`true`/`false`, default: `false`) |
-| `DRY_RUN` | Test mode: run the full pipeline (collect, analyze, generate the HTML digest/report) but send no email and never write to history (`true`/`false`, default: `false`) |
+Configuration splits across four layers — each value lives in exactly one place:
 
-> **Note:** `EMAIL_PROVIDER`, `NINTENDO_PLATFORM`, `DRY_RUN`, `FORCE_EMAIL`, and `LOG_LEVEL` are **user preferences** — configure them in `data/settings.json` (see [User preferences](#user-preferences--datasettingsjson)). The environment variables below are honored for CI/temporary overrides only, and take precedence over `data/settings.json`.
+```
+.env                 secrets only (SMTP_USER, SMTP_PASSWORD, optional NODE_ENV)
+data/settings.json   user preferences + notification settings
+provider/collector   provider-specific defaults (Gmail SMTP host/port, catalog path, …)
+command line / CI    one-time execution modes (--dry-run / --force-email)
+```
 
-Copy `.env.example` to `.env` and fill in real values before running `npm run test-email` with the `gmail` provider.
+#### Secrets — `.env`
+
+| Variable | Description |
+| -------- | ----------- |
+| `SMTP_USER` | Gmail address used for SMTP authentication. It is also the email **From** address — there is no separate `MAIL_FROM` (single source of truth). |
+| `SMTP_PASSWORD` | Gmail App Password (regular account passwords are rejected by Gmail). |
+| `NODE_ENV` | Optional. `development` by default. |
+
+The Gmail SMTP host/port (`smtp.gmail.com:465`, implicit TLS) are **built into the Gmail provider** — you never configure them. `MOCK_EMAIL_OUT_DIR` (default `data/emails`) controls where the mock provider saves rendered HTML.
+
+#### Everything else
+
+User preferences (`platform`, `emailProvider`, `gameCollector`, `logLevel`, `emailTo`) and notification settings live in `data/settings.json` (see [User preferences](#user-preferences--datasettingsjson)). `DRY_RUN` / `FORCE_EMAIL` are **one-time execution modes**, not configuration: pass them per run on the command line (`npm run monitor -- --dry-run`) or as GitHub Actions inputs, and they never persist.
+
+#### Optional environment overrides (CI / command line)
+
+For CI or a one-off run, these environment variables are honored and take precedence over `data/settings.json`: `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `NINTENDO_PLATFORM`, `LOG_LEVEL`, `EMAIL_TO`, plus the notification/collector overrides below. Keep them out of `.env` unless you have a temporary reason to set one.
+
+| Variable              | Overrides (settings.json key)                                              | Default       |
+| --------------------- | ------------------------------------------------------------------------ | ------------- |
+| `NINTENDO_PLATFORM`   | `platform` (console: `switch1`, `switch2`, or `both`)                     | `switch1`     |
+| `EMAIL_PROVIDER`      | `emailProvider` (`gmail` or `mock`)                                       | `gmail`       |
+| `GAME_COLLECTOR`      | `gameCollector` (`mock` or `nintendo`)                                    | `mock`        |
+| `LOG_LEVEL`           | `logLevel` (`debug`, `info`, `warn`, `error`, `silent`)                   | `info`        |
+| `EMAIL_TO`            | `emailTo` (digest recipient; defaults to `SMTP_USER` when unset)          | —             |
+| `NINTENDO_REGION`     | — (eShop region, `US` only)                                               | `US`          |
+| `GAME_CATALOG`        | — (game catalog JSON path)                                                | `data/game-catalog.json` |
+| `DEALS_CURRENCY`      | — (currency expected from the price API)                                  | `USD`         |
+| `DEALS_LIMIT`         | — (max games per run for the `nintendo` collector)                        | `100`         |
+| `MIN_DEAL_SCORE`      | `minimumDealScore`                                                        | `80`          |
+| `NOTIFICATION_COOLDOWN_DAYS` | `notificationCooldownDays`                                          | `14`          |
+| `MAX_GAMES_PER_EMAIL` | `maxGamesPerEmail`                                                        | `10`          |
+| `NOTIFY_FREE_GAMES`   | `notifyFreeGames`                                                         | `true`        |
+| `NOTIFY_WISHLIST_MATCHES` | `notifyWishlistMatches`                                                | `true`        |
+| `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | `defaultWishlistDiscountPercent`                          | `40`          |
+| `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | `defaultNotifyOnAnyDiscount`                                  | `false`       |
+| `IGNORE_NOTIFICATION_HISTORY` | Test mode: bypass cooldown filtering and never write history        | `false`       |
+
+Copy `.env.example` to `.env`, fill in the two secrets, and run `npm run test-email` with the `gmail` provider.
 
 ## Game Collection
 
@@ -250,39 +269,30 @@ HTML Email (provider)
 3. **Filter** — only games worth reporting are kept. A game is included when it is free (if `notifyFreeGames`), matches a wishlist item (if `notifyWishlistMatches`), or its deal score reaches `minimumDealScore`.
 4. **Cooldown** — games already notified for the same price within `notificationCooldownDays` are skipped, and the report is capped at `maxGamesPerEmail` games (best-scoring first).
 5. **Render** — filtered games are converted into a `DailyDigest` (with run statistics) by `buildDailyDigest`, then rendered to an HTML email by `renderDigestEmail`.
-6. **Deliver & track** — the email is sent via the configured `EmailProvider` (use `EMAIL_PROVIDER=mock` for local testing without SMTP), then the deal history is reconciled and saved (new on-sale entries, refreshed `lastSeenOnSale`, notification counts for emailed games).
+6. **Deliver & track** — the email is sent via the configured `EmailProvider` (use `emailProvider: "mock"` for local testing without SMTP), then the deal history is reconciled and saved (new on-sale entries, refreshed `lastSeenOnSale`, notification counts for emailed games).
 
 ### Running a local monitor
 
-```bash
-$env:EMAIL_PROVIDER = "mock"; npm run monitor
-```
-
-This collects games, analyzes them against the family profiles and wishlist, generates the HTML report, and captures it in the mock email provider (saved to `data/emails/` by default). Set `GAME_COLLECTOR=nintendo` to monitor real deals:
+The collector and email provider come from `data/settings.json` (`gameCollector` / `emailProvider`). To capture the digest locally instead of emailing, set `emailProvider: "mock"` (or override for one run with `EMAIL_PROVIDER=mock`):
 
 ```bash
-$env:GAME_COLLECTOR = "nintendo"; $env:EMAIL_PROVIDER = "mock"; npm run monitor
+npm run monitor
 ```
 
-When no games are worth reporting and `sendEmptyDigest` is `false` (default), the email is **skipped** and a log line confirms it. For local testing, set `IGNORE_NOTIFICATION_HISTORY=true` to bypass cooldown filtering and keep the history file untouched:
+The rendered email is saved to `data/emails/` by default, so you can open it in a browser. When no games are worth reporting and `sendEmptyDigest` is `false` (default), the email is **skipped** and a log line confirms it. For local testing, set `IGNORE_NOTIFICATION_HISTORY=true` to bypass cooldown filtering and keep the history file untouched:
 
 ```bash
 $env:EMAIL_PROVIDER = "mock"; $env:IGNORE_NOTIFICATION_HISTORY = "true"; npm run monitor
 ```
 
-To verify Gmail delivery without polluting notification history, set `FORCE_EMAIL=true`. It sends the digest even when there are 0 new notifications (cooldown filtering still applies) and never writes to history:
+Execution modes are **one-time command-line flags**, not settings (see [Running Locally](#running-locally)):
 
 ```bash
-$env:EMAIL_PROVIDER = "gmail"; $env:FORCE_EMAIL = "true"; npm run monitor
+npm run monitor -- --force-email   # verify Gmail delivery; sends even with 0 new notifications, never writes history
+npm run monitor -- --dry-run       # rehearsal: full pipeline + HTML, but no email and no history
 ```
 
-For a rehearsal that runs the whole pipeline without touching the outside world, set `DRY_RUN=true`. It performs the full collection and analysis, generates the HTML digest/report, and prints what would be emailed, but it **sends no email** and **never writes to notification history**:
-
-```bash
-$env:EMAIL_PROVIDER = "mock"; $env:DRY_RUN = "true"; npm run monitor
-```
-
-`DRY_RUN` is independent of `IGNORE_NOTIFICATION_HISTORY` and `FORCE_EMAIL`. Combination behavior is: `FORCE_EMAIL` still applies its cooldown filtering and sends despite 0 notifications (unless `DRY_RUN` is also set, which suppresses delivery); `DRY_RUN` always suppresses email delivery and history writes, regardless of the other flags.
+`--dry-run` is independent of `IGNORE_NOTIFICATION_HISTORY` and `--force-email`. Combination behavior is: `--force-email` still applies its cooldown filtering and sends despite 0 notifications (unless `--dry-run` is also set, which suppresses delivery); `--dry-run` always suppresses email delivery and history writes.
 
 Every run ends with a compact summary of the decision, for example:
 
@@ -294,7 +304,7 @@ Monitor summary:
   Email: skipped (no new notifications)
 ```
 
-or, with `FORCE_EMAIL=true`:
+or, with `--force-email`:
 
 ```
 Monitor summary:
@@ -304,7 +314,7 @@ Monitor summary:
   Email: sent (FORCE_EMAIL=true)
 ```
 
-or, with `DRY_RUN=true`:
+or, with `--dry-run`:
 
 ```
 Monitor summary:
@@ -318,9 +328,9 @@ Monitor summary:
 
 The monitor runs automatically in the cloud via GitHub Actions (`.github/workflows/monitor.yml`), so there is no server to keep running:
 
-- **Schedule** — runs once per day at 06:30 UTC via cron. Scheduled runs use **production configuration**: `GAME_COLLECTOR=nintendo`, `EMAIL_PROVIDER=gmail`, `NINTENDO_PLATFORM=switch1`, and `DRY_RUN=false` — so every morning it collects the Nintendo catalog, and emails the daily digest whenever there are new notifications. If a step fails, the workflow fails and the error is visible in the GitHub Actions run logs.
-- **Manual dispatch** — trigger a run anytime from the **Actions** tab. Manual runs let you override `EMAIL_PROVIDER` (`mock` default / `gmail`) and `GAME_COLLECTOR` per run, plus a **Dry run** toggle (default off) that runs the full pipeline but sends no email and writes no history. This is the safe way to test the whole workflow before trusting the scheduled job.
-- **Steps** — checks out the repo, sets up Node.js, installs dependencies with `npm ci`, then runs `npm run monitor`.
+- **Schedule** — runs once per day at 06:30 UTC via cron. Scheduled runs use **production configuration**: the collector/preferences come from `data/settings.json` (`gameCollector: "nintendo"`, `emailProvider: "gmail"`, `platform: "switch1"`), with the `SMTP_USER` / `SMTP_PASSWORD` secrets injected from GitHub. So every morning it collects the Nintendo catalog and emails the daily digest whenever there are new notifications. If a step fails, the workflow fails and the error is visible in the GitHub Actions run logs.
+- **Manual dispatch** — trigger a run anytime from the **Actions** tab. Manual runs let you override the collector and email provider per run (`GAME_COLLECTOR` / `EMAIL_PROVIDER` env, both defaulting to the settings values), plus a **Dry run** toggle (default off) and a **Force email** toggle (default off) that run the full pipeline as one-time modes — dry run sends no email and writes no history; force email sends even with 0 new notifications. This is the safe way to test the whole workflow before trusting the scheduled job.
+- **Steps** — checks out the repo, sets up Node.js, installs dependencies with `npm ci`, then runs `npm run monitor -- $EXTRA_FLAGS` (where `$EXTRA_FLAGS` carries `--dry-run` / `--force-email` from the manual inputs).
 - **Logging** — the pipeline output shows the resolved configuration (collector, region, platform, dry-run), the number of games collected, how many were reported, and the completion status. In mock mode the rendered HTML email is also uploaded as a `monitor-emails` workflow artifact for inspection.
 
 ### Required secrets
@@ -329,23 +339,12 @@ Configure these under **Settings → Secrets and variables → Actions**. Secret
 
 | Secret             | Purpose                                        | Needed for                  |
 | ------------------ | ---------------------------------------------- | --------------------------- |
-| `EMAIL_PROVIDER`   | `gmail` or `mock`                              | scheduled gmail runs        |
-| `SMTP_HOST`        | Gmail SMTP host                                | gmail mode                  |
-| `SMTP_PORT`        | Gmail SMTP port                                | gmail mode                  |
-| `SMTP_USER`        | Gmail address used for SMTP auth               | gmail mode                  |
+| `SMTP_USER`        | Gmail address used for SMTP auth **and as the sender** | gmail mode         |
 | `SMTP_PASSWORD`    | Gmail App Password                             | gmail mode                  |
-| `EMAIL_TO`         | Recipient address for notification emails      | gmail mode                  |
-| `GAME_COLLECTOR`   | `nintendo` or `mock`                           | scheduled runs              |
-| `NINTENDO_PLATFORM` | Target console: `switch1`, `switch2`, or `both` (default `switch1`) | scheduled runs |
-| `GAME_CATALOG`     | Game catalog path (optional, defaults to `data/game-catalog.json`) | scheduled nintendo runs |
-| `MIN_DEAL_SCORE`   | Report threshold (optional, default `80`)      | scheduled runs              |
-| `MAX_GAMES_PER_EMAIL` | Cap on games per email (optional)           | scheduled runs              |
-| `NOTIFY_FREE_GAMES` | Report free games (optional)                 | scheduled runs              |
-| `NOTIFY_WISHLIST_MATCHES` | Report wishlist matches (optional)      | scheduled runs              |
-| `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | Auto wishlist target discount % (optional) | scheduled runs  |
-| `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | Default notify-on-any-discount (optional) | scheduled runs  |
 
-Manual dispatch always lets you override `EMAIL_PROVIDER` and `GAME_COLLECTOR` per run, independent of the stored secrets. `NINTENDO_PLATFORM` falls back to `switch1` when no secret is set, so the scheduled run always filters to a concrete platform.
+The workflow also forwards the notification tuning variables as secrets so you can adjust them without editing the repo: `DEALS_CURRENCY`, `GAME_CATALOG`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` — all optional with built-in defaults. The recipient is `emailTo` in `data/settings.json`, falling back to `SMTP_USER`; it can be overridden per run with `EMAIL_TO`. The Gmail SMTP host/port are built into the provider and are not configurable.
+
+Manual dispatch always lets you override the provider and collector per run (`EMAIL_PROVIDER` / `GAME_COLLECTOR`), independent of the stored secrets. `NINTENDO_PLATFORM` falls back to the `platform` preference (`switch1`) when unset, so the scheduled run always filters to a concrete platform.
 
 ## Notification History & Persistent Deal Tracking
 
@@ -575,19 +574,19 @@ Application/user preferences (not secrets) also live in `data/settings.json`:
 {
   "platform": "switch1",
   "emailProvider": "gmail",
-  "dryRun": false,
-  "forceEmail": false,
-  "logLevel": "info"
+  "gameCollector": "nintendo",
+  "logLevel": "info",
+  "emailTo": "your-email@gmail.com"
 }
 ```
 
 - `platform` — console platform that filters the catalog before analysis: `switch1`, `switch2`, or `both` (default `switch1`).
 - `emailProvider` — how the digest is delivered: `gmail` (real SMTP) or `mock` (local capture, no credentials) (default `gmail`).
-- `dryRun` — when `true`, run the full pipeline (collect → analyze → generate the HTML digest/report) but send **no email** and write **no notification history** (default `false`).
-- `forceEmail` — when `true`, always send the digest (even with 0 new notifications) and never write history (default `false`).
+- `gameCollector` — where game data comes from: `nintendo` (real US deals) or `mock` (sample data) (default `mock`).
 - `logLevel` — logging verbosity: `debug`, `info`, `warn`, `error`, or `silent` (default `info`).
+- `emailTo` — optional digest recipient. When omitted the digest is sent **to the sender** (`SMTP_USER`).
 
-These are **user configuration**, not secrets — keep them out of `.env`. Set an environment variable only to override them for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `DRY_RUN`, `FORCE_EMAIL`, `LOG_LEVEL`).
+These are **user configuration**, not secrets — keep them out of `.env`. Set an environment variable only to override them for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`, `EMAIL_TO`). `dryRun` / `forceEmail` are **not** settings: they are one-time execution modes passed on the command line (see [Running Locally](#running-locally)) or as GitHub Actions inputs.
 
 ### Resolution priority
 
@@ -612,18 +611,17 @@ defaults
 | Notify wishlist matches | `NOTIFY_WISHLIST_MATCHES`   | `notifyWishlistMatches`       | `true`        |
 | Default wishlist discount % | `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | `defaultWishlistDiscountPercent` | `40`    |
 | Default notify on any discount | `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` | `defaultNotifyOnAnyDiscount` | `false` |
-| Collector               | `GAME_COLLECTOR`            | —                             | `mock`        |
+| Game collector          | `GAME_COLLECTOR`            | `gameCollector`               | `mock`        |
 | Deals per run           | `DEALS_LIMIT`               | —                             | `100`         |
 | eShop region            | `NINTENDO_REGION`           | —                             | `US`          |
 | Console platform        | `NINTENDO_PLATFORM`         | `platform`                    | `switch1`     |
 | Email provider          | `EMAIL_PROVIDER`            | `emailProvider`               | `gmail`       |
-| Dry run                 | `DRY_RUN`                   | `dryRun`                      | `false`       |
-| Force email             | `FORCE_EMAIL`               | `forceEmail`                  | `false`       |
+| Digest recipient        | `EMAIL_TO`                  | `emailTo`                     | `SMTP_USER`   |
 | Log level               | `LOG_LEVEL`                 | `logLevel`                    | `info`        |
 | Game catalog path       | `GAME_CATALOG`              | —                             | `data/game-catalog.json` |
 | Deals currency          | `DEALS_CURRENCY`            | —                             | `USD`         |
 
-`dailyDigest` and `sendEmptyDigest` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above. The user preferences (`platform`, `emailProvider`, `dryRun`, `forceEmail`, `logLevel`) are configured in `data/settings.json` and overridable by their environment variables for CI or temporary runs.
+`dailyDigest` and `sendEmptyDigest` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above. `DRY_RUN` / `FORCE_EMAIL` are **not** in this table: they are one-time execution modes (see below), never read from `settings.json`.
 
 ### Validating settings
 
@@ -632,22 +630,26 @@ npm run validate-settings
 npm run validate-preferences
 ```
 
-`validate-settings` checks that defaults apply when the file is missing, full and partial files load correctly (including partial `dailyDigest` blocks), malformed files and invalid values are rejected, and environment variables correctly override `settings.json`. `validate-preferences` checks the user-preference fields specifically: settings values load, environment overrides settings, defaults apply when missing, and invalid values are rejected.
+`validate-settings` checks that defaults apply when the file is missing, full and partial files load correctly (including partial `dailyDigest` blocks), malformed files and invalid values are rejected, and environment variables correctly override `settings.json`. `validate-preferences` checks the user-preference fields specifically: settings values load, environment overrides settings, defaults apply when missing, invalid values are rejected, `.env.example` keeps only secrets, and the Gmail provider defaults (host/port), required SMTP credentials, and `MAIL_FROM = SMTP_USER` are correct.
 
 ## Running Locally
 
-Configure your `.env` file first (copy `.env.example` and fill in values), then use the convenience scripts below. They all call the same existing monitor pipeline — only the execution mode changes.
+Configure your `.env` file first (copy `.env.example` and fill in the two secrets), then use the convenience scripts below. They all call the same existing monitor pipeline — only the execution mode changes.
 
 | Command | Mode | What it does |
 | ------- | ---- | ------------ |
 | `npm run monitor` | Normal | Full pipeline: collect → analyze → build digest → send email (per `sendEmptyDigest`/cooldown rules) → record history. |
-| `npm run monitor:dry` | Dry run | Full pipeline including HTML digest generation, but **no email is sent** and **notification history is not written**. |
-| `npm run monitor:test-email` | Test email | Sends the digest even with 0 new notifications (cooldown filtering still applies) and **never writes to history** — useful to verify Gmail delivery. |
+| `npm run monitor -- --dry-run` | Dry run | Full pipeline including HTML digest generation, but **no email is sent** and **notification history is not written**. |
+| `npm run monitor -- --force-email` | Test email | Sends the digest even with 0 new notifications (cooldown filtering still applies) and **never writes to history** — useful to verify Gmail delivery. |
+
+The `monitor:dry` / `monitor:test-email` wrapper scripts do the same thing as the `--dry-run` / `--force-email` flags:
 
 ```bash
-npm run monitor            # normal daily execution
-npm run monitor:dry        # rehearsal: full run, no email, no history
-npm run monitor:test-email # force-send the digest, no history
+npm run monitor                     # normal daily execution
+npm run monitor -- --dry-run        # rehearsal: full run, no email, no history
+npm run monitor -- --force-email    # force-send the digest, no history
+npm run monitor:dry                 # same as --dry-run
+npm run monitor:test-email          # same as --force-email
 ```
 
 The distinction in one line:
@@ -656,7 +658,7 @@ The distinction in one line:
 - **Dry run** does everything up to delivery and then stops — safe to run anytime.
 - **Test email** forces a delivery so you can confirm Gmail works, without polluting history.
 
-For fully offline testing set `EMAIL_PROVIDER=mock` (in `.env` or inline): the digest is captured locally instead of emailed. Dry-run and force-email are user preferences in `data/settings.json`; the `monitor:dry` / `monitor:test-email` scripts simply set the matching environment override for that run.
+These modes are **one-time per run**: they are never persisted in `.env` or `data/settings.json`, so a normal `npm run monitor` later behaves normally again. For fully offline testing set `emailProvider: "mock"` in `data/settings.json` (or override with `EMAIL_PROVIDER=mock` for one run): the digest is captured locally instead of emailed.
 
 See [docs/PRODUCTION.md](docs/PRODUCTION.md) for the full production-readiness walkthrough.
 
@@ -679,16 +681,16 @@ cp .env.example .env   # then fill in values
 | `npm run collect-games`  | Build and collect sample games via the mock collector |
 | `npm run validate-config` | Build and validate family profiles + wishlist + blacklist config |
 | `npm run validate-settings` | Build and validate notification preferences + env overrides |
-| `npm run validate-preferences` | Build and validate user preferences (platform, email provider, dry/force run, log level) |
+| `npm run validate-preferences` | Build and validate user preferences (platform, email provider, game collector, log level, email recipient) |
 | `npm run analyze-games`   | Build and analyze mock games vs profiles + wishlist |
 | `npm run validate-collector` | Build and validate the game collector against real data |
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |
 | `npm run generate-catalog`   | Build and regenerate the US game catalog from the Nintendo store sitemap + product pages |
 | `npm run monitor`       | Build and run the full monitor pipeline (collect → analyze → email) |
-| `npm run monitor:dry`   | Build and run the monitor in dry-run mode (`DRY_RUN=true`: no email sent, no history written) |
-| `npm run monitor:test-email` | Build and run the monitor in test-email mode (`FORCE_EMAIL=true`: always send the digest, no history written) |
-| `npm run validate-force-email` | Build and validate FORCE_EMAIL test-mode behavior (send empty digest, history untouched) |
-| `npm run validate-dry-run` | Build and validate DRY_RUN test-mode behavior (full pipeline + HTML generated, no email sent, history untouched) |
+| `npm run monitor:dry`   | Build and run the monitor in dry-run mode (one-time `--dry-run`: no email sent, no history written) |
+| `npm run monitor:test-email` | Build and run the monitor in test-email mode (one-time `--force-email`: always send the digest, no history written) |
+| `npm run validate-force-email` | Build and validate test-email behavior (send empty digest, history untouched) |
+| `npm run validate-dry-run` | Build and validate dry-run behavior (full pipeline + HTML generated, no email sent, history untouched) |
 | `npm run report`        | Build, run the pipeline with mock email, and write a markdown + HTML report |
 | `npm run validate-reports` | Build and validate report generation (markdown + HTML) |
 | `npm run validate-wishlist-price` | Build and validate always-on Wishlist Watch pricing (coverage, no duplicate API requests, section order) |

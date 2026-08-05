@@ -317,3 +317,16 @@ Features:
 - Recommendation scoring, family matching, blacklist behavior, and notification cooldown logic unchanged (out of scope for this task)
 
 > **Status: ✅ Complete**
+
+## v0.29 Simplified Configuration & Separate Runtime Modes (v0.29.0)
+
+Features:
+- **`.env` is secrets only** — `.env.example` now contains just `NODE_ENV` (optional), `SMTP_USER`, and `SMTP_PASSWORD`; `SMTP_HOST`, `SMTP_PORT`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `DRY_RUN`, `FORCE_EMAIL`, etc. were removed. The Gmail SMTP host/port are hardcoded in the provider (`smtp.gmail.com:465`, implicit TLS) and are not configurable
+- **Sender is always `SMTP_USER`** — `MAIL_FROM` removed entirely; `mailFrom()` derives the From address from the SMTP user (single source of truth). The optional `emailTo` preference (recipient) defaults to `SMTP_USER` when unset and can be overridden per run with `EMAIL_TO`
+- **Runtime modes are one-time flags, not settings** — `DRY_RUN` / `FORCE_EMAIL` are gone from `.env` and `data/settings.json` (the `dryRun` / `forceEmail` preference keys were removed); they are now passed per run as `npm run monitor -- --dry-run` / `-- --force-email` (parsed by `resolveRunFlags` in `monitor-run.ts` and `resolveRunMode` in `run-monitor.ts`, which rejects combining both) or as GitHub Actions manual-dispatch inputs that build `$EXTRA_FLAGS`
+- **Collector moved to preferences** — new `gameCollector` preference (`nintendo` | `mock`) in `data/settings.json` drives the collector; `GAME_COLLECTOR` remains a one-off env override. `collector-factory` re-exports `GameCollectorKind` from the settings model, and `collect-games.ts` wires the resolved `AppConfig` collector (currency/region/platform/catalog) into `createGameCollector`
+- **Workflow simplified** — `.github/workflows/monitor.yml` adds a `force_email` manual input, keeps run-scoped `EMAIL_PROVIDER` / `GAME_COLLECTOR` / `NINTENDO_PLATFORM`, injects only the `SMTP_USER` / `SMTP_PASSWORD` secrets (SMTP_HOST/SMTP_PORT/EMAIL_TO removed), and runs `npm run monitor -- $EXTRA_FLAGS`
+- **Validation** — `validate-preferences` expanded to 14 checks (defaults, settings load, partial merge, env override, normalization, invalid rejection, app-config integration, `.env.example` key set, Gmail host/port/secure defaults, required SMTP credentials, `mailFrom` derivation, `emailTo` fallback, runtime flag parsing); `validate-dry-run` / `validate-force-email` now assert the flags are one-time CLI modes; `validate-production` asserts the workflow exports no `DRY_RUN`/`FORCE_EMAIL` and that secrets are only `SMTP_USER`/`SMTP_PASSWORD`; `npm test` aggregates everything (build + 16 suites)
+- Collector behavior, analyzer, recommendation logic, digest layout, and notification history unchanged (out of scope for this task)
+
+> **Status: ✅ Complete**

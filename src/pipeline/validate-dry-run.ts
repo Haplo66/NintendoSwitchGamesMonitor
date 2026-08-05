@@ -13,7 +13,7 @@ import {
   resolveEmailProviderKind,
 } from '../notifications/email-factory';
 import { MockEmailProvider } from '../notifications/mock-email-provider';
-import { decideDigestEmail, runMonitor } from './monitor-run';
+import { decideDigestEmail, resolveRunFlags, runMonitor } from './monitor-run';
 
 interface Check {
   name: string;
@@ -74,9 +74,7 @@ function verifyDecision(
 }
 
 export async function validateDryRun(): Promise<void> {
-  process.env.DRY_RUN = 'true';
   process.env.IGNORE_NOTIFICATION_HISTORY = 'false';
-  process.env.FORCE_EMAIL = 'false';
 
   const backup = readHistoryFile();
   writeHistoryFile(EMPTY_HISTORY);
@@ -110,6 +108,23 @@ export async function validateDryRun(): Promise<void> {
           assert.strictEqual(resolveEmailProviderKind(undefined), 'gmail', 'Unset EMAIL_PROVIDER must resolve to gmail');
           assert.strictEqual(resolveEmailProviderKind('gmail'), 'gmail');
           assert.ok(createEmailProvider('mock') instanceof MockEmailProvider, 'mock provider resolves correctly');
+        },
+      },
+      {
+        name: 'dry run is a one-time command-line flag, not a preference',
+        run: () => {
+          assert.deepStrictEqual(resolveRunFlags(['--dry-run']), {
+            dryRun: true,
+            forceEmail: false,
+          });
+          assert.deepStrictEqual(resolveRunFlags(['--force-email']), {
+            dryRun: false,
+            forceEmail: true,
+          });
+          assert.deepStrictEqual(resolveRunFlags([]), {
+            dryRun: false,
+            forceEmail: false,
+          });
         },
       },
       {

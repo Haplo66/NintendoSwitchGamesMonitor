@@ -1,38 +1,48 @@
 import 'dotenv/config';
 
-import { runMonitor } from '../pipeline/monitor-run';
+import { MonitorOptions, runMonitor } from '../pipeline/monitor-run';
 
 export type RunMonitorMode = 'dry' | 'test-email';
 
-const MODES: readonly RunMonitorMode[] = ['dry', 'test-email'];
+const POSITIONAL_MODES: readonly RunMonitorMode[] = ['dry', 'test-email'];
 
-function resolveMode(argv: string[]): RunMonitorMode | undefined {
-  const raw = argv[2];
-  if (raw === undefined) {
-    return undefined;
-  }
-  if (!MODES.includes(raw as RunMonitorMode)) {
-    throw new Error(
-      `Unknown mode "${raw}". Expected one of: ${MODES.join(', ')} (or omit for normal execution).`,
-    );
-  }
-  return raw as RunMonitorMode;
+export interface ResolvedRunMode {
+  dryRun: boolean;
+  forceEmail: boolean;
+}
+
+/** Resolves runtime execution modes from CLI args (positional or `--flag`). */
+export function resolveRunMode(argv: string[]): ResolvedRunMode {
+  const args = argv.slice(2);
+  let dryRun = args.includes('--dry-run') || args.includes('dry');
+  const forceEmail = args.includes('--force-email') || args.includes('test-email');
+  return { dryRun, forceEmail };
 }
 
 export async function runLocalMonitor(argv: string[] = process.argv): Promise<void> {
-  const mode = resolveMode(argv);
+  const mode = resolveRunMode(argv);
 
-  if (mode === 'dry') {
-    process.env.DRY_RUN = 'true';
-    console.log('Local monitor mode: DRY_RUN=true (full pipeline, no email sent, no history written).');
-  } else if (mode === 'test-email') {
-    process.env.FORCE_EMAIL = 'true';
-    console.log('Local monitor mode: FORCE_EMAIL=true (digest sent even with 0 new notifications, no history written).');
+  if (mode.dryRun && mode.forceEmail) {
+    throw new Error(
+      'Cannot combine --dry-run and --force-email: dry run suppresses email delivery.',
+    );
+  }
+
+  if (mode.dryRun) {
+    console.log('Local monitor mode: dry run (full pipeline, no email sent, no history written).');
+  } else if (mode.forceEmail) {
+    console.log(
+      'Local monitor mode: force email (digest sent even with 0 new notifications, no history written).',
+    );
   } else {
     console.log('Local monitor mode: normal execution.');
   }
 
-  await runMonitor();
+  const options: MonitorOptions = {
+    dryRun: mode.dryRun,
+    forceEmail: mode.forceEmail,
+  };
+  await runMonitor(options);
 }
 
 if (require.main === module) {

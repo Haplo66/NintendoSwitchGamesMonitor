@@ -15,7 +15,6 @@
   },
   "platform": "switch1",
   "emailProvider": "gmail",
-  "dryRun": false,
-  "forceEmail": false,
+  "gameCollector": "nintendo",
   "logLevel": "info"
 }

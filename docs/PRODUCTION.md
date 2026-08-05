@@ -1,10 +1,17 @@
 # Production Readiness
 
-This guide walks through running Nintendo Switch Games Monitor for real daily use — locally first, then scheduled in GitHub Actions. Configuration splits into two layers: **user preferences live in `data/settings.json`** (the single source of truth for how the app behaves), and **secrets / CI overrides live in `.env` / GitHub secrets** (environment-specific values that must not be committed).
+This guide walks through running Nintendo Switch Games Monitor for real daily use — locally first, then scheduled in GitHub Actions. Configuration splits across four layers, and each value lives in exactly one place:
+
+```
+.env                 secrets only (SMTP_USER, SMTP_PASSWORD, optional NODE_ENV)
+data/settings.json   user preferences + notification settings
+provider/collector   provider-specific defaults (Gmail SMTP host/port, catalog path, …)
+command line / CI    one-time execution modes (--dry-run / --force-email)
+```
 
 ## Local Configuration
 
-The monitor reads user configuration from `data/settings.json` and secrets/overrides from a `.env` file in the project root (loaded via `dotenv`). Copy the template and fill in your values:
+The monitor reads user preferences from `data/settings.json` and secrets from a `.env` file in the project root (loaded via `dotenv`). Copy the template and fill in your values:
 
 ```bash
 cp .env.example .env
@@ -20,39 +27,38 @@ Non-secret application behavior is configured in `data/settings.json`, not `.env
 {
   "platform": "switch1",
   "emailProvider": "gmail",
-  "dryRun": false,
-  "forceEmail": false,
+  "gameCollector": "nintendo",
   "logLevel": "info"
 }
 ```
 
 - `platform` — console to filter the catalog for (`switch1`, `switch2`, `both`).
 - `emailProvider` — `gmail` for real delivery or `mock` for local capture.
-- `dryRun` — full pipeline but no email and no history written.
-- `forceEmail` — always send the digest even with 0 new notifications.
+- `gameCollector` — `nintendo` for real US Switch deals or `mock` for sample data.
 - `logLevel` — `debug` | `info` | `warn` | `error` | `silent`.
+- `emailTo` — optional digest recipient; when omitted the digest is sent **to the sender** (`SMTP_USER`).
 
-Precedence is **environment variable > `data/settings.json` > defaults**, so `.env` / GitHub secrets can still override any of these for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `DRY_RUN`, `FORCE_EMAIL`, `LOG_LEVEL`).
+Precedence is **environment variable > `data/settings.json` > defaults**, so a one-off run can still override preferences for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`, `EMAIL_TO`). Dry-run / force-email are **not** settings and have no environment variables — they are one-time command-line flags (see [Execution modes](#execution-modes)).
 
 ### Required local secrets
 
+`.env` keeps secrets only:
+
 | Variable | Purpose | Example |
 | -------- | ------- | ------- |
-| `EMAIL_PROVIDER` | Email provider — `gmail` for real delivery, `mock` for local testing (overrides `emailProvider` in settings) | `EMAIL_PROVIDER=gmail` |
-| `SMTP_USER` | Gmail address used for SMTP auth (and the `From` address) | `SMTP_USER=your-email@gmail.com` |
+| `SMTP_USER` | Gmail address used for SMTP auth **and as the From address** | `SMTP_USER=your-email@gmail.com` |
 | `SMTP_PASSWORD` | Gmail **App Password** (see below) | `SMTP_PASSWORD=xxxx xxxx xxxx xxxx` |
-| `EMAIL_TO` | Recipient of the daily digest | `EMAIL_TO=your-email@gmail.com` |
-| `GAME_COLLECTOR` | `nintendo` for real US Switch deals, `mock` for sample data | `GAME_COLLECTOR=nintendo` |
+| `NODE_ENV` | Optional; e.g. `development` | `NODE_ENV=development` |
 
-Other environment variables are optional (see `.env.example`) and override the matching `data/settings.json` value where one exists: `SMTP_HOST`, `SMTP_PORT`, `GAME_CATALOG`, `NINTENDO_PLATFORM`, `DEALS_CURRENCY`, `DEALS_LIMIT`, `MIN_DEAL_SCORE`, `NOTIFICATION_COOLDOWN_DAYS`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`, `IGNORE_NOTIFICATION_HISTORY`, `FORCE_EMAIL`, `DRY_RUN`.
+There is no `MAIL_FROM` — the sender is always `SMTP_USER` (single source of truth). The Gmail SMTP host/port are built into the provider (`smtp.gmail.com:465`, implicit TLS) and are not configurable. Other environment variables are optional one-off overrides and are kept **out of** `.env` unless you have a temporary reason to set one.
 
 ## Gmail Production Setup
 
 For real daily delivery use Gmail SMTP:
 
-- Set `emailProvider=gmail` in `data/settings.json` (or override with `EMAIL_PROVIDER=gmail` in `.env`).
+- Set `emailProvider=gmail` in `data/settings.json`.
 - Set `SMTP_USER` to the sending Gmail address.
-- Set `EMAIL_TO` to the recipient.
+- Optionally set `emailTo` in `data/settings.json` for the recipient (defaults to `SMTP_USER`).
 - Set `SMTP_PASSWORD` to a Gmail **App Password**.
 
 ### App Password requirement
@@ -68,7 +74,7 @@ Keep the App Password only in `.env` (local) or GitHub secrets (CI). Never commi
 
 ## Collector Setup
 
-For real Nintendo Switch deals, set `GAME_COLLECTOR=nintendo`. The collector targets the **US** eShop (`NINTENDO_REGION=US`): prices in **USD**, US (ESRB) ratings and genres from the local game catalog, and deal links to `nintendo.com/us/store/products/<slug>/` (the `slug` is taken verbatim from the catalog entry, so every deal link is canonical and resolvable). Before querying prices it filters the catalog to the configured console (`platform` in `data/settings.json` — `switch1` / `switch2` / `both`, default `switch1`; `NINTENDO_PLATFORM` overrides it). It watches the games listed in `data/game-catalog.json` (currently 300) and queries Nintendo's official price API (`api.ec.nintendo.com/v1/price`) in batches to detect current sales; games that are not discounted are ignored. Point `GAME_CATALOG` at another file to watch a different set of games. Use `GAME_COLLECTOR=mock` for offline sample data.
+For real Nintendo Switch deals, set `gameCollector=nintendo` in `data/settings.json` (`GAME_COLLECTOR=nintendo` overrides it for a one-off run). The collector targets the **US** eShop (`NINTENDO_REGION=US`): prices in **USD**, US (ESRB) ratings and genres from the local game catalog, and deal links to `nintendo.com/us/store/products/<slug>/` (the `slug` is taken verbatim from the catalog entry, so every deal link is canonical and resolvable). Before querying prices it filters the catalog to the configured console (`platform` in `data/settings.json` — `switch1` / `switch2` / `both`, default `switch1`; `NINTENDO_PLATFORM` overrides it). It watches the games listed in `data/game-catalog.json` (currently 300) and queries Nintendo's official price API (`api.ec.nintendo.com/v1/price`) in batches to detect current sales; games that are not discounted are ignored. Point `GAME_CATALOG` at another file to watch a different set of games. Use `gameCollector=mock` for offline sample data.
 
 To refresh the catalog, run `npm run generate-catalog` (regenerates `data/game-catalog.json` from the store sitemap and product pages, targeting 300 entries; `CATALOG_TARGET` / `CATALOG_OUT` override) and review the git diff before committing. Run `npm run validate-collector` to confirm the result passes structural validation (no duplicate nsuids/slugs, required fields present, valid platforms, well-formed URLs).
 
@@ -87,21 +93,28 @@ Some titles are never worth showing — shovelware, inappropriate games, or anyt
 
 Matching is **exact and case-insensitive** on the normalized title (trimmed + lowercased), so `"carrot smash"` or `" Carrot Smash "` match the same entry. The filter runs **after collection and before analysis**: blacklisted games are excluded from deal analysis, **Best Deals**, **Recommended For Your Family**, and notifications, and they do not change the **Games Checked** statistic. If you put a blacklisted game on the wishlist it stays visible in **Wishlist Watch** with today's price/status, but it is still never recommended or shown as a general deal. The collector and the price API are untouched — hiding is purely a display-side filter. Run `npm run validate-blacklist` to confirm the behavior.
 
+## Execution modes
+
+Dry-run and force-email are **one-time per run** — they are never persisted in `.env` or `data/settings.json`, so a normal `npm run monitor` afterwards behaves normally again:
+
+- `npm run monitor -- --dry-run` (same as `npm run monitor:dry`) — runs the full pipeline (collect → analyze → generate HTML digest/report) but **sends no email** and **never writes to notification history**. Safe to run any time.
+- `npm run monitor -- --force-email` (same as `npm run monitor:test-email`) — sends the digest even when there are 0 new notifications (cooldown filtering still applies) and **never writes to history**. Used to verify Gmail delivery without polluting history.
+- For fully offline testing set `emailProvider=mock` in `data/settings.json` (or pass `EMAIL_PROVIDER=mock` for one run): the digest is captured locally instead of emailed.
+
 ## GitHub Actions
 
 The monitor runs automatically via `.github/workflows/monitor.yml` — no server to maintain.
 
 ### Scheduled execution
 
-A cron schedule runs the pipeline once per day (06:30 UTC) using **production configuration**: `GAME_COLLECTOR=nintendo`, `EMAIL_PROVIDER=gmail`, `NINTENDO_PLATFORM=switch1`, and `DRY_RUN=false`. In CI these are environment overrides applied on top of the committed `data/settings.json` (user preferences), so the same precedence rules apply (environment > settings > defaults). Each morning it collects the Nintendo catalog and emails the daily digest whenever there are new notifications. Cooldown filtering and the persistent deal history behave exactly as they do locally: every real run records the games that are on sale, refreshes when they were last seen, tracks how long a deal stays active, and never spams the same game+price inside the cooldown window. Any failing step fails the run and the error is visible in the GitHub Actions logs for that run.
+A cron schedule runs the pipeline once per day (06:30 UTC) using **production configuration**: `gameCollector=nintendo`, `emailProvider=gmail`, and `platform=switch1` come from the committed `data/settings.json`, with the `SMTP_USER` / `SMTP_PASSWORD` secrets injected from GitHub. The workflow also sets `EMAIL_PROVIDER` / `GAME_COLLECTOR` / `NINTENDO_PLATFORM` as run-scoped environment overrides so a manual run can switch them without editing files. Each morning it collects the Nintendo catalog and emails the daily digest whenever there are new notifications. Cooldown filtering and the persistent deal history behave exactly as they do locally: every real run records the games that are on sale, refreshes when they were last seen, tracks how long a deal stays active, and never spams the same game+price inside the cooldown window. Any failing step fails the run and the error is visible in the GitHub Actions logs for that run.
 
 Repository secrets used by the scheduled run:
 
-- `EMAIL_PROVIDER` / `GAME_COLLECTOR` default to `gmail` / `nintendo` in production; `NINTENDO_PLATFORM` defaults to `switch1`.
-- Gmail secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_TO`.
-- Optional overrides: `GAME_CATALOG`, `NINTENDO_PLATFORM`, `DEALS_CURRENCY`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`.
+- Gmail secrets: `SMTP_USER`, `SMTP_PASSWORD` (the From address is `SMTP_USER`; the recipient is `emailTo` from settings, defaulting to `SMTP_USER`).
+- Optional overrides (tuning values you can adjust without editing the repo): `GAME_CATALOG`, `NINTENDO_PLATFORM`, `DEALS_CURRENCY`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`.
 
-Configure them under **Settings → Secrets and variables → Actions**.
+Configure them under **Settings → Secrets and variables → Actions**. Do **not** add `SMTP_HOST`, `SMTP_PORT`, or `EMAIL_TO` — host/port are built into the provider and the recipient comes from `emailTo` (falling back to `SMTP_USER`).
 
 ### Manual execution
 
@@ -109,24 +122,17 @@ Trigger a run anytime from the **Actions** tab — either to test the workflow b
 
 - **Email provider** — `mock` (default, no credentials needed) or `gmail`.
 - **Game collector** — `nintendo` (default) or `mock`.
-- **Dry run** — boolean toggle (default off).
+- **Dry run** — boolean toggle (default off): passes `--dry-run`.
+- **Force email** — boolean toggle (default off): passes `--force-email`.
 
-Because manual runs default to `mock` / `nintendo` / dry-run-off, they are safe to run without exposing any email credentials until you explicitly enable them.
-
-### DRY_RUN option
-
-Turning on **Dry run** in manual dispatch sets `DRY_RUN=true`: the full pipeline runs (collect → analyze → generate HTML digest/report) but **no email is sent** and **notification history is not written**. Safe to run any time.
-
-### FORCE_EMAIL option
-
-`FORCE_EMAIL=true` sends the digest even when there are 0 new notifications (cooldown filtering still applies) and never writes to history. It is used to verify Gmail delivery without polluting notification history. It can be provided as a repository secret or set manually.
+Because manual runs default to `mock` / `nintendo` / both toggles off, they are safe to run without exposing any email credentials until you explicitly enable them.
 
 ## First Production Validation Checklist
 
 Run through these before trusting the scheduled job:
 
 1. **Configuration validation passes** — `npm run validate-config`, `npm run validate-settings`, `npm run validate-preferences`, and `npm run validate-production` (workflow config, production settings, scheduled-mode behavior).
-2. **DRY_RUN run succeeds** — `npm run monitor:dry` completes the full pipeline, prints the summary with `Email: not sent (DRY_RUN=true)`, and leaves `data/notification-history.json` untouched.
-3. **Live Gmail test succeeds** — `npm run monitor:test-email` with `EMAIL_PROVIDER=gmail` sends a real digest to the recipient inbox.
+2. **Dry run succeeds** — `npm run monitor:dry` completes the full pipeline, prints the summary with `Email: not sent (DRY_RUN=true)`, and leaves `data/notification-history.json` untouched.
+3. **Live Gmail test succeeds** — `npm run monitor:test-email` (with `emailProvider=gmail` and the `SMTP_USER` / `SMTP_PASSWORD` secrets set) sends a real digest to the recipient inbox.
 4. **Notification history behaves correctly** — a normal `npm run monitor` records notified games into `data/notification-history.json` (as deal-history entries); re-running does not notify the same game+price within the cooldown window and does not duplicate entries, and `npm run validate-history` passes.
 5. **Scheduled workflow verified** — trigger the workflow manually with `EMAIL_PROVIDER=gmail` and `GAME_COLLECTOR=nintendo`, confirm the run succeeds and the email arrives, then confirm the daily cron is enabled.

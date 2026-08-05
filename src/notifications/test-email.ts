@@ -1,6 +1,7 @@
 import 'dotenv/config';
 
 import { DailyDigest } from '../models';
+import { loadAppConfig } from '../config/app-config';
 import { createEmailProvider } from './email-factory';
 import { renderDigestEmail } from './email-renderer';
 
@@ -163,15 +164,21 @@ function buildSampleDigest(): DailyDigest {
 export async function sendTestEmail(): Promise<void> {
   const digest = buildSampleDigest();
   const html = renderDigestEmail(digest);
-  const provider = createEmailProvider();
+  const config = loadAppConfig();
+  const provider = createEmailProvider(config.preferences.emailProvider, {
+    emailTo: config.preferences.emailTo,
+  });
 
   await provider.sendEmail({
     subject: '🎮 Nintendo Switch Daily Digest — Test Notification',
     html,
   });
 
-  const target = process.env.EMAIL_PROVIDER === 'mock' ? 'mock provider' : process.env.EMAIL_TO;
-  console.log(`Test email sent via ${process.env.EMAIL_PROVIDER ?? 'gmail'} to ${target}.`);
+  const target =
+    config.preferences.emailProvider === 'mock'
+      ? 'mock provider'
+      : config.preferences.emailTo ?? '(defaults to SMTP_USER)';
+  console.log(`Test email sent via ${config.preferences.emailProvider} to ${target}.`);
 }
 
 if (require.main === module) {

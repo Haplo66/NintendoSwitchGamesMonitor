@@ -6,7 +6,6 @@ import * as path from 'node:path';
 
 import { loadAppConfig, resolveCollectorSettings } from './app-config';
 import { defaultNotificationHistoryFile } from './notification-history-store';
-import { parseEnvBoolean } from './settings-loader';
 import { resolveEmailProviderKind } from '../notifications/email-factory';
 import { decideDigestEmail, runMonitor } from '../pipeline/monitor-run';
 import { createGameCollector } from '../collectors/collector-factory';
@@ -67,7 +66,6 @@ export async function validateProduction(): Promise<void> {
   const previousEmailProvider = process.env.EMAIL_PROVIDER;
   const previousGameCollector = process.env.GAME_COLLECTOR;
   const previousPlatform = process.env.NINTENDO_PLATFORM;
-  const previousDryRun = process.env.DRY_RUN;
   const previousMinScore = process.env.MIN_DEAL_SCORE;
   const previousCooldown = process.env.NOTIFICATION_COOLDOWN_DAYS;
 
@@ -76,8 +74,6 @@ export async function validateProduction(): Promise<void> {
   let historyAfterFirstRun: string | undefined;
 
   try {
-    process.env.DRY_RUN = 'false';
-    process.env.FORCE_EMAIL = 'false';
     process.env.IGNORE_NOTIFICATION_HISTORY = 'false';
     process.env.MIN_DEAL_SCORE = '50';
     process.env.NOTIFICATION_COOLDOWN_DAYS = '14';
@@ -124,22 +120,44 @@ export async function validateProduction(): Promise<void> {
       {
         name: 'workflow scheduled path does not force DRY_RUN',
         run: () => {
-          assert.ok(workflow.includes('DRY_RUN'), 'workflow must pass DRY_RUN to the pipeline');
-          const dryRunLine = workflow.split('\n').find((line) => line.includes('DRY_RUN='));
+          assert.ok(workflow.includes('inputs.dry_run'), 'workflow must expose a dry_run manual input');
           assert.ok(
-            dryRunLine === undefined || !dryRunLine.includes('true'),
-            'the scheduled path must default DRY_RUN to false',
+            !workflow.includes('DRY_RUN='),
+            'workflow must not export DRY_RUN as a persistent environment variable',
+          );
+          const dryRunFlag = workflow.split('\n').find((line) => line.includes('--dry-run'));
+          assert.ok(dryRunFlag !== undefined, 'workflow must pass --dry-run as a one-time flag');
+          assert.ok(
+            dryRunFlag.includes('inputs.dry_run') && dryRunFlag.includes('== "true"'),
+            'the flag must be added only when the dry_run input is true',
           );
         },
       },
       {
-        name: 'workflow references the required email secrets',
+        name: 'workflow passes force-email as a one-time input flag',
         run: () => {
-          for (const secret of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD', 'EMAIL_TO']) {
+          assert.ok(workflow.includes('force_email'), 'workflow must expose a force_email manual input');
+          assert.ok(workflow.includes('--force-email'), 'workflow must support --force-email');
+          assert.ok(
+            !workflow.includes('FORCE_EMAIL='),
+            'workflow must not export FORCE_EMAIL as a persistent environment variable',
+          );
+        },
+      },
+      {
+        name: 'workflow references the required email secrets only',
+        run: () => {
+          for (const secret of ['SMTP_USER', 'SMTP_PASSWORD']) {
             const needle = '${{ secrets.' + secret + ' }}';
             assert.ok(
               workflow.includes(needle),
               'workflow must pass the ' + secret + ' secret',
+            );
+          }
+          for (const removed of ['SMTP_HOST', 'SMTP_PORT', 'EMAIL_TO']) {
+            assert.ok(
+              !workflow.includes('${{ secrets.' + removed + ' }}'),
+              'workflow must not reference the removed ' + removed + ' secret',
             );
           }
         },
@@ -164,15 +182,16 @@ export async function validateProduction(): Promise<void> {
         },
       },
       {
-        name: 'production settings load EMAIL_PROVIDER=gmail and DRY_RUN=false',
+        name: 'production settings load EMAIL_PROVIDER=gmail and no persisted dry/force modes',
         run: () => {
           assert.strictEqual(resolveEmailProviderKind(undefined), 'gmail');
           assert.strictEqual(resolveEmailProviderKind('gmail'), 'gmail');
-          assert.strictEqual(parseEnvBoolean('DRY_RUN', 'false'), false);
-          assert.strictEqual(parseEnvBoolean('DRY_RUN', undefined), undefined);
-          assert.strictEqual(parseEnvBoolean('DRY_RUN', 'true'), true);
           const config = loadAppConfig();
           assert.strictEqual(config.notification.minimumDealScore, 50, 'MIN_DEAL_SCORE env must apply');
+          assert.ok(
+            !('dryRun' in config.preferences) && !('forceEmail' in config.preferences),
+            'dryRun/forceEmail must not be persisted preferences',
+          );
         },
       },
       {
@@ -259,10 +278,8 @@ export async function validateProduction(): Promise<void> {
     restore('EMAIL_PROVIDER', previousEmailProvider);
     restore('GAME_COLLECTOR', previousGameCollector);
     restore('NINTENDO_PLATFORM', previousPlatform);
-    restore('DRY_RUN', previousDryRun);
     restore('MIN_DEAL_SCORE', previousMinScore);
     restore('NOTIFICATION_COOLDOWN_DAYS', previousCooldown);
-    delete process.env.FORCE_EMAIL;
     delete process.env.IGNORE_NOTIFICATION_HISTORY;
   }
 }

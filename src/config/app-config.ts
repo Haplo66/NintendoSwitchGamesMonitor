@@ -37,12 +37,15 @@ export const DEFAULT_COLLECTOR_SETTINGS: CollectorSettings = {
 export function resolveCollectorSettings(
   env: NodeJS.ProcessEnv = process.env,
   platform?: NintendoPlatform,
+  gameCollector?: string,
 ): CollectorSettings {
   const nintendoRegion = resolveNintendoRegion(env);
   const regionProfile = REGION_PROFILES[nintendoRegion];
   return {
     collectorKind:
-      env.GAME_COLLECTOR?.trim().toLowerCase() || DEFAULT_COLLECTOR_SETTINGS.collectorKind,
+      gameCollector ??
+      env.GAME_COLLECTOR?.trim().toLowerCase() ??
+      DEFAULT_COLLECTOR_SETTINGS.collectorKind,
     dealLimit:
       parseEnvNumber('DEALS_LIMIT', env.DEALS_LIMIT) ?? DEFAULT_COLLECTOR_SETTINGS.dealLimit,
     gameCatalogPath: env.GAME_CATALOG?.trim() || DEFAULT_GAME_CATALOG_PATH,
@@ -57,7 +60,7 @@ export function loadAppConfig(options: LoadAppConfigOptions = {}): AppConfig {
   const notification = resolveNotificationSettings(process.env);
   return {
     notification,
-    collector: resolveCollectorSettings(process.env, preferences.platform),
+    collector: resolveCollectorSettings(process.env, preferences.platform, preferences.gameCollector),
     familyProfiles: loadFamilyProfiles(options.familyProfileFile),
     wishlist: loadWishlist(options.wishlistFile, {
       defaultNotifyOnAnyDiscount: notification.defaultNotifyOnAnyDiscount,

@@ -1,4 +1,5 @@
 import { Game } from '../models';
+import { loadAppConfig } from '../config/app-config';
 import { createGameCollector } from './collector-factory';
 import { GameCollector } from './game-collector';
 
@@ -33,8 +34,14 @@ function displayGames(games: Game[]): void {
 }
 
 export async function collectGames(): Promise<Game[]> {
-  const kind = process.env.GAME_COLLECTOR ?? 'mock';
-  const collector: GameCollector = createGameCollector();
+  const config = loadAppConfig();
+  const kind = config.collector.collectorKind;
+  const collector: GameCollector = createGameCollector(kind, {
+    currency: config.collector.dealsCurrency,
+    region: config.collector.nintendoRegion,
+    platform: config.collector.platform,
+    catalogPath: config.collector.gameCatalogPath,
+  });
   const games = await collector.collectGames();
 
   const source = games[0]?.source ?? 'unknown';
