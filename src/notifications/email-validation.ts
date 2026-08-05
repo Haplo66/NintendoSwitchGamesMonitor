@@ -14,13 +14,38 @@ function buildSampleDigest(): DailyDigest {
     currency: 'USD',
     defaultWishlistDiscountPercent: 40,
     summary: {
+      newDeals: 3,
+      wishlistGamesOnSale: 1,
+      stillActiveDeals: 1,
+      biggestDiscountPercent: 33,
+      biggestDiscountTitle: 'Breath of the Wild',
       gamesChecked: 5,
-      potentialMatches: 4,
-      newNotifications: 3,
-      wishlistHits: 2,
-      freeGames: 1,
-      skippedByCooldown: 1,
     },
+    stillOnSale: [
+      {
+        title: 'Super Mario Odyssey',
+        currentPrice: 39.99,
+        originalPrice: 59.99,
+        discountPercent: 33,
+        firstReportedAt: '2026-07-20T00:00:00.000Z',
+        daysOnSale: 12,
+        storeUrl: 'https://www.nintendo.com/store/products/super-mario-odyssey/',
+      },
+    ],
+    wishlistWatch: [
+      {
+        title: 'Mario Kart 8 Deluxe',
+        status: 'target-reached',
+        currentPrice: 39.99,
+        targetPrice: 44.99,
+        discountPercent: 33,
+        storeUrl: 'https://www.nintendo.com/store/products/mario-kart-8-deluxe/?ref=test',
+      },
+      {
+        title: 'Super Mario RPG',
+        status: 'not-monitored',
+      },
+    ],
     wishlistAlerts: [
       {
         title: 'Mario Kart 8 <script>alert("xss")</script> Deluxe',
@@ -88,13 +113,14 @@ function emptyDigest(): DailyDigest {
     currency: 'USD',
     defaultWishlistDiscountPercent: 40,
     summary: {
+      newDeals: 0,
+      wishlistGamesOnSale: 0,
+      stillActiveDeals: 0,
+      biggestDiscountPercent: 0,
       gamesChecked: 0,
-      potentialMatches: 0,
-      newNotifications: 0,
-      wishlistHits: 0,
-      freeGames: 0,
-      skippedByCooldown: 0,
     },
+    stillOnSale: [],
+    wishlistWatch: [],
     wishlistAlerts: [],
     bestDeals: [],
     freeGames: [],
@@ -103,7 +129,7 @@ function emptyDigest(): DailyDigest {
   };
 }
 
-function hasStat(html: string, value: number, label: string): boolean {
+function hasStat(html: string, value: string | number, label: string): boolean {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`>${value}</div><div[^>]*>${escaped}</div>`).test(html);
 }
@@ -162,16 +188,35 @@ export async function validateEmailRendering(): Promise<void> {
         assert.ok(html.includes('multiplayer &amp; family'), 'Ampersand was not escaped');
       },
     },
-    {
+{
       name: 'Summary section renders with correct values',
       run: () => {
         assert.ok(html.includes('Today\u2019s Summary'), 'Summary section missing');
-        assert.ok(hasStat(html, 5, 'Games checked'), 'Games checked value wrong');
-        assert.ok(hasStat(html, 4, 'Potential matches'), 'Potential matches value wrong');
-        assert.ok(hasStat(html, 3, 'New notifications'), 'New notifications value wrong');
-        assert.ok(hasStat(html, 2, 'Wishlist hits'), 'Wishlist hits value wrong');
-        assert.ok(hasStat(html, 1, 'Free games'), 'Free games value wrong');
-        assert.ok(hasStat(html, 1, 'Skipped by cooldown'), 'Skipped by cooldown value wrong');
+        assert.ok(hasStat(html, 3, '🔥 New Deals'), 'New Deals value wrong');
+        assert.ok(hasStat(html, 1, '⭐ Wishlist on Sale'), 'Wishlist on Sale value wrong');
+        assert.ok(hasStat(html, 1, '🕒 Still Active'), 'Still Active value wrong');
+        assert.ok(hasStat(html, '-33% Breath of the Wild', '🏷 Biggest Discount'), 'Biggest Discount value wrong');
+        assert.ok(hasStat(html, 5, '📦 Games Checked'), 'Games checked value wrong');
+      },
+    },
+    {
+      name: 'Wishlist Watch section renders',
+      run: () => {
+        assert.ok(html.includes('Wishlist Watch'), 'Wishlist Watch header missing');
+        assert.ok(html.includes('Target Price Reached'), 'Target Reached badge missing');
+        assert.ok(html.includes('Not Currently Monitored'), 'Not monitored badge missing');
+        assert.ok(html.includes('Mario Kart 8'), 'Wishlist watch game missing');
+        assert.ok(html.includes('Super Mario RPG'), 'Not monitored game missing');
+      },
+    },
+    {
+      name: 'Still On Sale section renders',
+      run: () => {
+        assert.ok(html.includes('Still On Sale'), 'Still On Sale header missing');
+        assert.ok(html.includes('Super Mario Odyssey'), 'Still on sale game missing');
+        assert.ok(html.includes('12 days on sale'), 'Days on sale missing');
+        assert.ok(html.includes('First reported'), 'First reported missing');
+        assert.ok(html.includes('-33%'), 'Discount badge missing');
       },
     },
     {
@@ -252,7 +297,9 @@ export async function validateEmailRendering(): Promise<void> {
           'Empty Recommended still shown',
         );
         assert.ok(!emptyHtml.includes('Price Watch'), 'Empty Price Watch still shown');
+        assert.ok(!emptyHtml.includes('Still On Sale'), 'Empty Still On Sale still shown');
         assert.ok(!emptyHtml.includes('Monitoring Statistics'), 'Hidden statistics still shown');
+        assert.ok(emptyHtml.includes('Wishlist Watch'), 'Wishlist Watch should always render');
         assert.ok(emptyHtml.includes('Today\u2019s Summary'), 'Summary should always render');
         assert.ok(
           emptyHtml.includes('Generated automatically by'),

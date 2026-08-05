@@ -54,7 +54,7 @@ The monitor runs automatically via `.github/workflows/monitor.yml` — no server
 
 ### Scheduled execution
 
-A cron schedule runs the pipeline once per day (06:30 UTC) using **production configuration**: `GAME_COLLECTOR=nintendo`, `EMAIL_PROVIDER=gmail`, `NINTENDO_PLATFORM=switch1`, and `DRY_RUN=false`. Each morning it collects the Nintendo catalog and emails the daily digest whenever there are new notifications; cooldown filtering and notification history behave exactly as they do locally. Any failing step fails the run and the error is visible in the GitHub Actions logs for that run.
+A cron schedule runs the pipeline once per day (06:30 UTC) using **production configuration**: `GAME_COLLECTOR=nintendo`, `EMAIL_PROVIDER=gmail`, `NINTENDO_PLATFORM=switch1`, and `DRY_RUN=false`. Each morning it collects the Nintendo catalog and emails the daily digest whenever there are new notifications. Cooldown filtering and the persistent deal history behave exactly as they do locally: every real run records the games that are on sale, refreshes when they were last seen, tracks how long a deal stays active, and never spams the same game+price inside the cooldown window. Any failing step fails the run and the error is visible in the GitHub Actions logs for that run.
 
 Repository secrets used by the scheduled run:
 
@@ -89,5 +89,5 @@ Run through these before trusting the scheduled job:
 1. **Configuration validation passes** — `npm run validate-config`, `npm run validate-settings`, and `npm run validate-production` (workflow config, production settings, scheduled-mode behavior).
 2. **DRY_RUN run succeeds** — `npm run monitor:dry` completes the full pipeline, prints the summary with `Email: not sent (DRY_RUN=true)`, and leaves `data/notification-history.json` untouched.
 3. **Live Gmail test succeeds** — `npm run monitor:test-email` with `EMAIL_PROVIDER=gmail` sends a real digest to the recipient inbox.
-4. **Notification history behaves correctly** — a normal `npm run monitor` records notified games; re-running does not notify the same game+price within the cooldown window.
+4. **Notification history behaves correctly** — a normal `npm run monitor` records notified games into `data/notification-history.json` (as deal-history entries); re-running does not notify the same game+price within the cooldown window and does not duplicate entries, and `npm run validate-history` passes.
 5. **Scheduled workflow verified** — trigger the workflow manually with `EMAIL_PROVIDER=gmail` and `GAME_COLLECTOR=nintendo`, confirm the run succeeds and the email arrives, then confirm the daily cron is enabled.

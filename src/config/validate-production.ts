@@ -199,7 +199,7 @@ export async function validateProduction(): Promise<void> {
         },
       },
       {
-        name: 'a second scheduled run respects cooldown and leaves history unchanged',
+        name: 'a second scheduled run respects cooldown and adds no new history',
         run: () => {
           assert.ok(secondScheduled !== undefined);
           assert.ok(
@@ -212,11 +212,20 @@ export async function validateProduction(): Promise<void> {
             'cooldown filtering must suppress the already-notified games',
           );
           assert.strictEqual(secondScheduled.emailSent, false, 'no new notifications => no email');
-          assert.strictEqual(
-            historyAfterFirstRun,
-            readHistoryFile(),
-            'history must be unchanged when nothing new is notified',
-          );
+          const afterFirst = JSON.parse(historyAfterFirstRun as string) as {
+            entries: Array<{ gameTitle: string; notificationCount: number }>;
+          };
+          const afterSecond = JSON.parse(readHistoryFile() as string) as {
+            entries: Array<{ gameTitle: string; notificationCount: number }>;
+          };
+          assert.strictEqual(afterSecond.entries.length, afterFirst.entries.length, 'no duplicate entries');
+          const countsEqual = afterFirst.entries.every((entry) => {
+            const match = afterSecond.entries.find(
+              (other) => other.gameTitle === entry.gameTitle,
+            );
+            return match !== undefined && match.notificationCount === entry.notificationCount;
+          });
+          assert.ok(countsEqual, 'notification counts must not grow when nothing new is notified');
         },
       },
       {

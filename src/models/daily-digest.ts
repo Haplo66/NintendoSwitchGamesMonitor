@@ -1,10 +1,33 @@
 export interface DigestSummary {
+  newDeals: number;
+  wishlistGamesOnSale: number;
+  stillActiveDeals: number;
+  biggestDiscountPercent: number;
+  biggestDiscountTitle?: string;
   gamesChecked: number;
-  potentialMatches: number;
-  newNotifications: number;
-  wishlistHits: number;
-  freeGames: number;
-  skippedByCooldown: number;
+}
+
+export interface DigestStillOnSale {
+  title: string;
+  currentPrice: number;
+  originalPrice?: number;
+  discountPercent: number;
+  firstReportedAt: string;
+  daysOnSale: number;
+  storeUrl: string;
+}
+
+export type WishlistWatchStatus = 'on-sale' | 'target-reached' | 'full-price' | 'not-monitored';
+
+export interface DigestWishlistWatch {
+  title: string;
+  status: WishlistWatchStatus;
+  currentPrice?: number;
+  originalPrice?: number;
+  discountPercent?: number;
+  targetPrice?: number;
+  targetPriceOrigin?: 'configured' | 'auto';
+  storeUrl?: string;
 }
 
 export interface DigestWishlistAlert {
@@ -68,6 +91,8 @@ export interface DailyDigest {
   currency: string;
   defaultWishlistDiscountPercent: number;
   summary: DigestSummary;
+  stillOnSale: DigestStillOnSale[];
+  wishlistWatch: DigestWishlistWatch[];
   wishlistAlerts: DigestWishlistAlert[];
   bestDeals: DigestBestDeal[];
   freeGames: DigestFreeGame[];

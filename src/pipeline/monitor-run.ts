@@ -6,13 +6,12 @@ import { createGameCollector } from '../collectors/collector-factory';
 import { GameCollector } from '../collectors/game-collector';
 import { loadAppConfig } from '../config/app-config';
 import {
-  addNotificationRecords,
   filterNotifiableGames,
-  loadNotificationHistory,
-  saveNotificationHistory,
-  toNotificationRecords,
+  loadDealHistory,
+  reconcileDealHistory,
+  saveDealHistory,
 } from '../config/notification-history-store';
-import { Game, GameAnalysis, MonitorResult, NotificationHistory } from '../models';
+import { DealHistory, Game, GameAnalysis, MonitorResult } from '../models';
 import { buildDailyDigest } from '../notifications/daily-digest-builder';
 import { createEmailProvider } from '../notifications/email-factory';
 import { EmailProvider } from '../notifications/email-provider';
@@ -176,14 +175,14 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     console.log(`  - ${analysis.game.title} (score ${analysis.dealScore.score})`);
   }
 
-  let history: NotificationHistory = { records: [] };
+  let history: DealHistory = { entries: [] };
   let notifiable: GameAnalysis[] = reported;
   let skippedByCooldown = 0;
   let skippedByCooldownAnalyses: GameAnalysis[] = [];
   if (ignoreNotificationHistory) {
     console.log('Test mode: notification history ignored (IGNORE_NOTIFICATION_HISTORY=true).');
   } else {
-    history = loadNotificationHistory();
+    history = loadDealHistory();
     notifiable = filterNotifiableGames(reported, history, cooldownDays);
     skippedByCooldown = reported.length - notifiable.length;
     skippedByCooldownAnalyses = reported.filter((analysis) => !notifiable.includes(analysis));
@@ -202,6 +201,13 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     );
   }
 
+  const updatedHistory = reconcileDealHistory(
+    history,
+    games,
+    toEmail.map((analysis) => analysis.game),
+    new Date(),
+  );
+
   const skippedByScoreAnalyses = analyses.filter((analysis) => !reported.includes(analysis));
 
   const result: MonitorResult = {
@@ -219,6 +225,8 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     reportedAnalyses: toEmail,
     skippedByCooldownAnalyses,
     skippedByScoreAnalyses,
+    dealHistory: updatedHistory,
+    wishlist: config.wishlist,
   };
 
   const digest = buildDailyDigest(result, {
@@ -249,11 +257,8 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   }
 
   if (!ignoreNotificationHistory && !forceEmail && !dryRun) {
-    const records = toNotificationRecords(toEmail);
-    if (records.length > 0) {
-      saveNotificationHistory(addNotificationRecords(history, records));
-      console.log(`Recorded ${records.length} notification(s) to history.`);
-    }
+    saveDealHistory(updatedHistory);
+    console.log(`Recorded deal history (${updatedHistory.entries.length} game(s) tracked).`);
   }
 
   console.log('');

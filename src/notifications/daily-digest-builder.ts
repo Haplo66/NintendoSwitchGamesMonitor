@@ -6,10 +6,13 @@ import {
   DigestFamilyRecommendation,
   DigestPriceWatchItem,
   DigestStatistics,
+  DigestStillOnSale,
   DigestSummary,
   DigestWishlistAlert,
+  DigestWishlistWatch,
   Game,
   MonitorResult,
+  WishlistWatchStatus,
 } from '../models';
 
 export interface BuildDailyDigestOptions {
@@ -53,6 +56,94 @@ function resolveStoreUrl(game: Game): string {
   return `https://www.nintendo-europe.com/en-gb/search/?term=${encodeURIComponent(game.title)}`;
 }
 
+function titleKey(title: string): string {
+  return title.trim().toLowerCase();
+}
+
+function daysBetween(earlierIso: string, laterIso: string): number {
+  const earlier = Date.parse(earlierIso);
+  const later = Date.parse(laterIso);
+  if (Number.isNaN(earlier) || Number.isNaN(later)) {
+    return 0;
+  }
+  const ms = later - earlier;
+  return Math.max(0, Math.floor(ms / (24 * 60 * 60 * 1000)));
+}
+
+function buildStillOnSale(result: MonitorResult): DigestStillOnSale[] {
+  const reportedTitles = new Set(result.reportedAnalyses.map((analysis) => titleKey(analysis.game.title)));
+  const gameByTitle = new Map(
+    result.analyses.map((analysis) => [titleKey(analysis.game.title), analysis.game]),
+  );
+
+  const items: DigestStillOnSale[] = [];
+  for (const entry of result.dealHistory.entries) {
+    if (!entry.currentlyOnSale || !entry.firstNotified) {
+      continue;
+    }
+    if (reportedTitles.has(titleKey(entry.gameTitle))) {
+      continue;
+    }
+    const game = gameByTitle.get(titleKey(entry.gameTitle));
+    if (!game || !isOnSale(game)) {
+      continue;
+    }
+    items.push({
+      title: entry.gameTitle,
+      currentPrice: game.currentPrice,
+      originalPrice: game.originalPrice,
+      discountPercent: calculateDiscountPercent(game),
+      firstReportedAt: entry.firstNotified,
+      daysOnSale: daysBetween(entry.firstSeenOnSale, result.generatedAt),
+      storeUrl: resolveStoreUrl(game),
+    });
+  }
+  items.sort((a, b) => b.discountPercent - a.discountPercent);
+  return items;
+}
+
+function buildWishlistWatch(result: MonitorResult): DigestWishlistWatch[] {
+  const analysisByTitle = new Map(
+    result.analyses.map((analysis) => [titleKey(analysis.game.title), analysis]),
+  );
+
+  return result.wishlist.items.map((item): DigestWishlistWatch => {
+    const analysis = analysisByTitle.get(titleKey(item.gameTitle));
+    if (!analysis) {
+      return {
+        title: item.gameTitle,
+        status: 'not-monitored',
+        targetPrice: item.targetPrice,
+      };
+    }
+    const game = analysis.game;
+    const onSale = isOnSale(game);
+    const targetReached = analysis.wishlistMatch?.priceTargetReached ?? false;
+    let status: WishlistWatchStatus;
+    if (targetReached) {
+      status = 'target-reached';
+    } else if (onSale) {
+      status = 'on-sale';
+    } else {
+      status = 'full-price';
+    }
+    return {
+      title: item.gameTitle,
+      status,
+      currentPrice: game.currentPrice,
+      originalPrice: game.originalPrice,
+      discountPercent: calculateDiscountPercent(game),
+      targetPrice: analysis.wishlistMatch?.effectiveTargetPrice ?? item.targetPrice,
+      targetPriceOrigin: analysis.wishlistMatch?.targetPriceOrigin,
+      storeUrl: resolveStoreUrl(game),
+    };
+  });
+}
+
+function isOnSale(game: Game): boolean {
+  return game.originalPrice !== undefined && game.originalPrice > game.currentPrice;
+}
+
 export function buildDailyDigest(
   result: MonitorResult,
   options: BuildDailyDigestOptions = {},
@@ -62,20 +153,32 @@ export function buildDailyDigest(
   const showStatistics = options.showStatistics ?? DEFAULT_DAILY_DIGEST_SETTINGS.showStatistics;
   const showPriceWatch = options.showPriceWatch ?? DEFAULT_DAILY_DIGEST_SETTINGS.showPriceWatch;
 
-  const wishlistHits = result.analyses.filter(
-    (analysis) => analysis.wishlistMatch?.matched ?? false,
-  ).length;
-  const freeGamesCount = result.analyses.filter(
-    (analysis) => analysis.game.currentPrice === 0,
+  const stillOnSale = buildStillOnSale(result);
+  const wishlistWatch = buildWishlistWatch(result);
+  const wishlistGamesOnSale = wishlistWatch.filter(
+    (item) => item.status === 'on-sale' || item.status === 'target-reached',
   ).length;
 
+  let biggestDiscountPercent = 0;
+  let biggestDiscountTitle: string | undefined;
+  for (const analysis of result.analyses) {
+    if (!isOnSale(analysis.game)) {
+      continue;
+    }
+    const percent = calculateDiscountPercent(analysis.game);
+    if (percent > biggestDiscountPercent) {
+      biggestDiscountPercent = percent;
+      biggestDiscountTitle = analysis.game.title;
+    }
+  }
+
   const summary: DigestSummary = {
+    newDeals: result.reportedCount,
+    wishlistGamesOnSale,
+    stillActiveDeals: stillOnSale.length,
+    biggestDiscountPercent,
+    biggestDiscountTitle,
     gamesChecked: result.analyzedCount,
-    potentialMatches: result.potentialMatchCount,
-    newNotifications: result.reportedCount,
-    wishlistHits,
-    freeGames: freeGamesCount,
-    skippedByCooldown: result.skippedByCooldownCount,
   };
 
   const wishlistAlerts: DigestWishlistAlert[] = result.reportedAnalyses
@@ -183,6 +286,8 @@ export function buildDailyDigest(
     currency: result.currency,
     defaultWishlistDiscountPercent: result.defaultWishlistDiscountPercent,
     summary,
+    stillOnSale,
+    wishlistWatch,
     wishlistAlerts,
     bestDeals,
     freeGames,

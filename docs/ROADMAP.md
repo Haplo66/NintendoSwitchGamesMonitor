@@ -203,3 +203,17 @@ Features:
 - New `validate-production` validation covering workflow configuration (cron, manual dispatch, production defaults, secrets), production settings loading, and scheduled-mode behavior (email sent on new notifications; cooldown + unchanged history on re-run); `npm test` aggregates all validation suites
 
 > **Status: ✅ In progress**
+
+## v0.20 Persistent Deal Tracking & Wishlist Watch Digest
+
+Features:
+- **Persistent deal tracking** — `data/notification-history.json` becomes a `DealHistory` of `entries[]` (`deal-history`), one per discounted game ever seen: `firstSeenOnSale` / `lastSeenOnSale`, `firstNotified` / `lastNotified` / `lastNotifiedPrice`, `notificationCount`, and `currentlyOnSale`. Legacy `{ records: [...] }` files migrate automatically on first load
+- **History reconciliation** — `reconcileDealHistory()` keeps the file accurate without deleting history: creates an entry for a new on-sale game, refreshes `lastSeenOnSale` every run, marks an entry off-sale when a sale ends (preserving the record), and records notification metadata + counts only for emailed games. Free (price 0) games are tracked so they are not re-notified daily. History is saved even when nothing is notified; the raw file changes each real run (last-seen refresh), but entries and notification counts stay stable
+- **Still On Sale section** — the digest (and markdown/HTML reports) list already-notified deals that are *still* discounted and not re-reported today, each with `First reported <date> · N days on sale` and a View Deal link; hidden when empty
+- **Wishlist Watch section** — every wishlist item with a status (🔥 On Sale / 🎯 Target Price Reached / ⚪ Full Price / ❓ Not Currently Monitored); always renders even when empty
+- **Today's Summary** — now 5 metrics: new deals, wishlist games on sale, still-active deals, biggest discount (title + %), and games checked
+- **Validation** — `validate-history` rewritten for the deal-history lifecycle (legacy migration, new/deleted/repeated/sale-ended deals, cooldown incl. price-reset and inclusive bounds, free-game tracking); `validate-reports` and `validate-email` cover the new sections; `validate-production` second-run check verifies entry/count stability instead of raw file equality
+- Docs updated (README digest layout + persistent deal tracking, PRODUCTION.md, ROADMAP)
+- Collector, Nintendo price API, scoring, and family matching are unchanged (out of scope for this task)
+
+> **Status: ✅ In progress**

@@ -5,7 +5,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { Game, GameAnalysis, MonitorResult } from '../models';
+import { DealHistory, Game, GameAnalysis, MonitorResult } from '../models';
 import {
   buildMonitorReportData,
   generateMonitorReportHtml,
@@ -99,6 +99,30 @@ function sampleResult(): MonitorResult {
   ];
   const reportedAnalyses = [makeAnalysis(marioKart), makeAnalysis(fortnite), makeAnalysis(odyssey)];
 
+  const dealHistory: DealHistory = {
+    entries: [
+      {
+        gameTitle: 'Chess',
+        firstSeenOnSale: '2026-07-28T00:00:00.000Z',
+        lastSeenOnSale: '2026-08-01T00:00:00.000Z',
+        firstNotified: '2026-07-28T00:00:00.000Z',
+        lastNotified: '2026-07-28T00:00:00.000Z',
+        lastNotifiedPrice: 9.99,
+        notificationCount: 1,
+        currentlyOnSale: true,
+      },
+      {
+        gameTitle: 'Fall Guys',
+        firstSeenOnSale: '2026-07-30T00:00:00.000Z',
+        lastSeenOnSale: '2026-07-31T00:00:00.000Z',
+        firstNotified: '2026-07-30T00:00:00.000Z',
+        lastNotified: '2026-07-30T00:00:00.000Z',
+        notificationCount: 1,
+        currentlyOnSale: false,
+      },
+    ],
+  };
+
   return {
     generatedAt: '2026-08-01T12:00:00.000Z',
     collector: 'mock',
@@ -114,6 +138,13 @@ function sampleResult(): MonitorResult {
     reportedAnalyses,
     skippedByCooldownAnalyses: [makeAnalysis(fallGuys)],
     skippedByScoreAnalyses: [makeAnalysis(chess)],
+    dealHistory,
+    wishlist: {
+      items: [
+        { gameTitle: 'Stardew Valley', targetPrice: 35.99, notifyOnAnyDiscount: false },
+        { gameTitle: 'Super Mario RPG', notifyOnAnyDiscount: false },
+      ],
+    },
   };
 }
 
@@ -133,6 +164,8 @@ function emptyResult(): MonitorResult {
     reportedAnalyses: [],
     skippedByCooldownAnalyses: [],
     skippedByScoreAnalyses: [],
+    dealHistory: { entries: [] },
+    wishlist: { items: [] },
   };
 }
 
@@ -155,12 +188,33 @@ const checks: Check[] = [
   {
     name: 'markdown summary table has correct values',
     run: () => {
-      assert.ok(markdown.includes('| Games checked | 6 |'), 'Games checked wrong');
-      assert.ok(markdown.includes('| Potential matches | 4 |'), 'Potential matches wrong');
-      assert.ok(markdown.includes('| New notifications | 3 |'), 'New notifications wrong');
-      assert.ok(markdown.includes('| Wishlist hits | 2 |'), 'Wishlist hits wrong');
-      assert.ok(markdown.includes('| Free games | 1 |'), 'Free games wrong');
-      assert.ok(markdown.includes('| Skipped by cooldown | 1 |'), 'Skipped cooldown wrong');
+      assert.ok(markdown.includes('| 🔥 New Deals | 3 |'), 'New Deals wrong');
+      assert.ok(markdown.includes('| ⭐ Wishlist Games on Sale | 1 |'), 'Wishlist on Sale wrong');
+      assert.ok(markdown.includes('| 🕒 Still Active Deals | 1 |'), 'Still Active wrong');
+      assert.ok(markdown.includes('| 🏷 Biggest Discount | -83% (Chess) |'), 'Biggest Discount wrong');
+      assert.ok(markdown.includes('| 📦 Games Checked | 6 |'), 'Games checked wrong');
+    },
+  },
+  {
+    name: 'markdown wishlist watch renders with statuses',
+    run: () => {
+      assert.ok(markdown.includes("## 👀 Wishlist Watch"), 'Wishlist Watch section missing');
+      assert.ok(markdown.includes('🔥 On Sale — Stardew Valley'), 'On Sale status missing');
+      assert.ok(markdown.includes('❓ Not Currently Monitored — Super Mario RPG'), 'Not monitored status missing');
+      assert.ok(markdown.includes('**Current price:** EUR 37.00'), 'Wishlist watch current price missing');
+      assert.ok(markdown.includes('**Target price:** EUR 35.99'), 'Wishlist watch target price missing');
+    },
+  },
+  {
+    name: 'markdown still on sale renders with duration',
+    run: () => {
+      assert.ok(markdown.includes('## 🕒 Still On Sale'), 'Still On Sale section missing');
+      assert.ok(markdown.includes('Chess'), 'Still on sale game missing');
+      assert.ok(markdown.includes('**Current price:** EUR 9.99'), 'Still on sale current price missing');
+      assert.ok(markdown.includes('**Original price:** EUR 59.99'), 'Still on sale original price missing');
+      assert.ok(markdown.includes('**Discount:** 83%'), 'Still on sale discount missing');
+      assert.ok(markdown.includes('**On sale for:** 4 day(s)'), 'Still on sale days missing');
+      assert.ok(markdown.includes('[View Deal]('), 'Still on sale link missing');
     },
   },
   {
@@ -227,6 +281,8 @@ const checks: Check[] = [
       assert.ok(html.trim().startsWith('<!DOCTYPE html>'), 'Missing doctype');
       assert.ok(html.includes('Nintendo Switch Daily Digest'), 'Report title missing');
       assert.ok(html.includes('Wishlist Alerts'), 'Wishlist Alerts missing in HTML');
+      assert.ok(html.includes('Wishlist Watch'), 'Wishlist Watch missing in HTML');
+      assert.ok(html.includes('Still On Sale'), 'Still On Sale missing in HTML');
       assert.ok(html.includes('Best Deals'), 'Best Deals missing in HTML');
       assert.ok(html.includes('Free Games'), 'Free Games missing in HTML');
       assert.ok(html.includes('Recommended For Your Family'), 'Recommendations missing in HTML');
@@ -241,8 +297,12 @@ const checks: Check[] = [
     run: () => {
       const data = buildMonitorReportData(sampleResult());
       assert.strictEqual(data.digest.summary.gamesChecked, 6);
-      assert.strictEqual(data.digest.summary.potentialMatches, 4);
-      assert.strictEqual(data.digest.summary.newNotifications, 3);
+      assert.strictEqual(data.digest.summary.newDeals, 3);
+      assert.strictEqual(data.digest.wishlistWatch.length, 2);
+      assert.strictEqual(data.digest.wishlistWatch[0].status, 'on-sale');
+      assert.strictEqual(data.digest.wishlistWatch[1].status, 'not-monitored');
+      assert.strictEqual(data.digest.stillOnSale.length, 1);
+      assert.strictEqual(data.digest.stillOnSale[0].title, 'Chess');
       assert.strictEqual(data.digest.wishlistAlerts.length, 1);
       assert.strictEqual(data.digest.bestDeals.length, 1);
       assert.strictEqual(data.digest.freeGames.length, 1);
@@ -259,6 +319,8 @@ const checks: Check[] = [
       const h = generateMonitorReportHtml(emptyData);
       assert.ok(md.includes('Generated automatically by **NintendoSwitchGamesMonitor**'), 'Markdown footer missing');
       assert.ok(!md.includes('## 🎯 Wishlist Alerts'), 'Empty wishlist alerts shown');
+      assert.ok(md.includes("## 👀 Wishlist Watch"), 'Wishlist Watch must always show');
+      assert.ok(!md.includes('## 🕒 Still On Sale'), 'Empty still on sale shown');
       assert.ok(!md.includes('## 🔥 Best Deals'), 'Empty best deals shown');
       assert.ok(!md.includes('## 🆓 Free Games'), 'Empty free games shown');
       assert.ok(!md.includes('## ⭐ Recommended For Your Family'), 'Empty recommendations shown');

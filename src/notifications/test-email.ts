@@ -18,13 +18,40 @@ function buildSampleDigest(): DailyDigest {
     currency: 'USD',
     defaultWishlistDiscountPercent: 40,
     summary: {
+      newDeals: 3,
+      wishlistGamesOnSale: 2,
+      stillActiveDeals: 1,
+      biggestDiscountPercent: 42,
+      biggestDiscountTitle: 'Mario Kart 8 Deluxe',
       gamesChecked: 5,
-      potentialMatches: 4,
-      newNotifications: 3,
-      wishlistHits: 2,
-      freeGames: 1,
-      skippedByCooldown: 1,
     },
+    stillOnSale: [
+      {
+        title: 'Super Mario Odyssey',
+        currentPrice: 41.99,
+        originalPrice: 59.99,
+        discountPercent: 30,
+        firstReportedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+        daysOnSale: 12,
+        storeUrl: 'https://www.nintendo.com/store/products/super-mario-odyssey/',
+      },
+    ],
+    wishlistWatch: [
+      {
+        title: 'Mario Kart 8 Deluxe',
+        status: 'target-reached',
+        currentPrice: 34.99,
+        originalPrice: 59.99,
+        discountPercent: 42,
+        targetPrice: 39.99,
+        targetPriceOrigin: 'configured',
+        storeUrl: 'https://www.nintendo.com/store/products/mario-kart-8-deluxe/',
+      },
+      {
+        title: 'Super Mario RPG',
+        status: 'not-monitored',
+      },
+    ],
     wishlistAlerts: [
       {
         title: 'Mario Kart 8 Deluxe',

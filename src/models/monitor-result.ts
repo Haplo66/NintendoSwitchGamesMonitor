@@ -1,3 +1,5 @@
+import { DealHistory } from './notification-history';
+import { Wishlist } from './wishlist';
 import { GameAnalysis } from './game-analysis';
 
 export interface MonitorResult {
@@ -15,4 +17,6 @@ export interface MonitorResult {
   reportedAnalyses: GameAnalysis[];
   skippedByCooldownAnalyses: GameAnalysis[];
   skippedByScoreAnalyses: GameAnalysis[];
+  dealHistory: DealHistory;
+  wishlist: Wishlist;
 }

@@ -1,15 +1,19 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { Game, GameAnalysis, NotificationHistory, NotificationRecord } from '../models';
+import { DealHistory, DealHistoryEntry, Game, GameAnalysis } from '../models';
 import { ConfigError } from './json-loader';
-import { validateNotificationHistory } from './validators';
+import { validateDealHistory } from './validators';
 
 export const DEFAULT_NOTIFICATION_COOLDOWN_DAYS = 14;
+
+export const EMPTY_DEAL_HISTORY: DealHistory = { entries: [] };
 
 export function defaultNotificationHistoryFile(): string {
   return path.resolve(process.cwd(), 'data', 'notification-history.json');
 }
+
+export const defaultDealHistoryFile = defaultNotificationHistoryFile;
 
 export function notificationCooldownDays(env?: NodeJS.ProcessEnv): number {
   const raw = (env ?? process.env).NOTIFICATION_COOLDOWN_DAYS;
@@ -23,10 +27,67 @@ export function notificationCooldownDays(env?: NodeJS.ProcessEnv): number {
   return parsed;
 }
 
-export function loadNotificationHistory(filePath?: string): NotificationHistory {
+interface LegacyRecord {
+  gameId?: string;
+  title?: string;
+  notificationType?: string;
+  score?: number;
+  price?: number;
+  notifiedAt?: string;
+}
+
+function isLegacyHistory(data: unknown): data is { records: LegacyRecord[] } {
+  if (data === null || typeof data !== 'object') {
+    return false;
+  }
+  const value = data as Record<string, unknown>;
+  return Array.isArray(value.records);
+}
+
+function migrateLegacyHistory(data: { records: LegacyRecord[] }, now: Date): DealHistory {
+  const byTitle = new Map<string, LegacyRecord[]>();
+  for (const record of data.records) {
+    const title = typeof record.title === 'string' ? record.title.trim() : '';
+    if (!title) {
+      continue;
+    }
+    const key = title.toLowerCase();
+    const existing = byTitle.get(key);
+    if (existing) {
+      existing.push(record);
+    } else {
+      byTitle.set(key, [record]);
+    }
+  }
+
+  const entries: DealHistoryEntry[] = [];
+  for (const group of byTitle.values()) {
+    const gameTitle = group[0].title as string;
+    const notifiedAt = group
+      .map((record) => (typeof record.notifiedAt === 'string' ? Date.parse(record.notifiedAt) : Number.NaN))
+      .filter((value) => Number.isFinite(value))
+      .sort((a, b) => a - b);
+    const first = notifiedAt[0];
+    const last = notifiedAt[notifiedAt.length - 1];
+    const ref: number = Number.isFinite(first) ? (first as number) : now.getTime();
+    entries.push({
+      gameTitle,
+      firstSeenOnSale: new Date(ref).toISOString(),
+      lastSeenOnSale: new Date(Number.isFinite(last) ? (last as number) : ref).toISOString(),
+      firstNotified: Number.isFinite(first) ? new Date(first)?.toISOString() : undefined,
+      lastNotified: Number.isFinite(last) ? new Date(last)?.toISOString() : undefined,
+      lastNotifiedPrice: typeof group[0].price === 'number' ? group[0].price : undefined,
+      notificationCount: group.length,
+      currentlyOnSale: false,
+    });
+  }
+  return { entries };
+}
+
+export function loadDealHistory(filePath?: string): DealHistory {
   const resolved = filePath ?? defaultNotificationHistoryFile();
   if (!fs.existsSync(resolved)) {
-    return { records: [] };
+    return { entries: [] };
   }
 
   let raw: string;
@@ -34,7 +95,7 @@ export function loadNotificationHistory(filePath?: string): NotificationHistory 
     raw = fs.readFileSync(resolved, 'utf8');
   } catch (error) {
     throw new ConfigError(
-      `Failed to read notification history file "${resolved}": ${(error as Error).message}`,
+      `Failed to read deal history file "${resolved}": ${(error as Error).message}`,
     );
   }
 
@@ -43,19 +104,25 @@ export function loadNotificationHistory(filePath?: string): NotificationHistory 
     data = JSON.parse(raw);
   } catch (error) {
     throw new ConfigError(
-      `Malformed JSON in notification history file "${resolved}": ${(error as Error).message}`,
+      `Malformed JSON in deal history file "${resolved}": ${(error as Error).message}`,
     );
   }
 
-  const history = data as NotificationHistory;
-  const errors = validateNotificationHistory(history);
+  if (isLegacyHistory(data)) {
+    return migrateLegacyHistory(data, new Date());
+  }
+
+  const history = data as DealHistory;
+  const errors = validateDealHistory(history);
   if (errors.length > 0) {
-    throw new ConfigError(`Invalid notification history in "${resolved}": ${errors.join('; ')}`);
+    throw new ConfigError(`Invalid deal history in "${resolved}": ${errors.join('; ')}`);
   }
   return history;
 }
 
-export function saveNotificationHistory(history: NotificationHistory, filePath?: string): void {
+export const loadNotificationHistory = loadDealHistory;
+
+export function saveDealHistory(history: DealHistory, filePath?: string): void {
   const resolved = filePath ?? defaultNotificationHistoryFile();
   const dir = path.dirname(resolved);
   if (!fs.existsSync(dir)) {
@@ -64,38 +131,124 @@ export function saveNotificationHistory(history: NotificationHistory, filePath?:
   fs.writeFileSync(resolved, `${JSON.stringify(history, null, 2)}\n`, 'utf8');
 }
 
-export function isSameGame(record: NotificationRecord, game: Game): boolean {
-  if (record.gameId && game.id) {
-    return record.gameId === game.id;
+export const saveNotificationHistory = saveDealHistory;
+
+export function isGameOnSale(game: Game): boolean {
+  if (game.currentPrice === 0) {
+    return true;
   }
-  return record.title.toLowerCase() === game.title.toLowerCase();
+  return game.originalPrice !== undefined && game.originalPrice > game.currentPrice;
 }
 
-export function isWithinCooldown(record: NotificationRecord, now: Date, cooldownDays: number): boolean {
+function entryKey(title: string): string {
+  return title.trim().toLowerCase();
+}
+
+export function findDealEntry(history: DealHistory, title: string): DealHistoryEntry | undefined {
+  const key = entryKey(title);
+  return history.entries.find((entry) => entryKey(entry.gameTitle) === key);
+}
+
+export function reconcileDealHistory(
+  history: DealHistory,
+  collectedGames: Game[],
+  notifiedGames: Game[],
+  now: Date = new Date(),
+): DealHistory {
+  const nowIso = now.toISOString();
+  const notifiedByKey = new Map<string, Game>();
+  for (const game of notifiedGames) {
+    notifiedByKey.set(entryKey(game.title), game);
+  }
+
+  const presentByKey = new Map<string, { entry: DealHistoryEntry | undefined; game: Game }>();
+  for (const game of collectedGames) {
+    if (!isGameOnSale(game)) {
+      continue;
+    }
+    presentByKey.set(entryKey(game.title), {
+      entry: findDealEntry(history, game.title),
+      game,
+    });
+  }
+
+  const entries: DealHistoryEntry[] = history.entries.map((entry) => {
+    const present = presentByKey.has(entryKey(entry.gameTitle));
+    const updated: DealHistoryEntry = { ...entry, currentlyOnSale: present };
+    if (present) {
+      updated.lastSeenOnSale = nowIso;
+    }
+    const notified = notifiedByKey.get(entryKey(entry.gameTitle));
+    if (notified) {
+      updated.firstNotified = updated.firstNotified ?? nowIso;
+      updated.lastNotified = nowIso;
+      updated.lastNotifiedPrice = notified.currentPrice;
+      updated.notificationCount = updated.notificationCount + 1;
+    }
+    return updated;
+  });
+
+  for (const [key, value] of presentByKey) {
+    if (value.entry !== undefined) {
+      continue;
+    }
+    const notified = notifiedByKey.get(key);
+    const entry: DealHistoryEntry = {
+      gameTitle: value.game.title,
+      firstSeenOnSale: nowIso,
+      lastSeenOnSale: nowIso,
+      currentlyOnSale: true,
+      notificationCount: notified ? 1 : 0,
+    };
+    if (notified) {
+      entry.firstNotified = nowIso;
+      entry.lastNotified = nowIso;
+      entry.lastNotifiedPrice = notified.currentPrice;
+    }
+    entries.push(entry);
+  }
+
+  return { entries };
+}
+
+function dateWithinCooldown(dateIso: string | undefined, now: Date, cooldownDays: number): boolean {
+  if (dateIso === undefined) {
+    return false;
+  }
+  const timestamp = Date.parse(dateIso);
+  if (Number.isNaN(timestamp)) {
+    return false;
+  }
   const cutoff = now.getTime() - cooldownDays * 24 * 60 * 60 * 1000;
-  return Date.parse(record.notifiedAt) >= cutoff;
+  return timestamp >= cutoff;
+}
+
+export function isWithinCooldown(dateIso: string, now: Date, cooldownDays: number): boolean {
+  return dateWithinCooldown(dateIso, now, cooldownDays);
 }
 
 export function hasRecentNotification(
-  history: NotificationHistory,
+  history: DealHistory,
   game: Game,
   now: Date,
   cooldownDays: number,
 ): boolean {
-  return history.records.some((record) => {
-    if (!isSameGame(record, game)) {
-      return false;
-    }
-    if (record.price !== game.currentPrice) {
-      return false;
-    }
-    return isWithinCooldown(record, now, cooldownDays);
-  });
+  const entry = findDealEntry(history, game.title);
+  if (!entry) {
+    return false;
+  }
+  if (!dateWithinCooldown(entry.lastNotified, now, cooldownDays)) {
+    return false;
+  }
+  if (entry.lastNotifiedPrice !== undefined && entry.lastNotifiedPrice !== game.currentPrice) {
+    return false;
+  }
+  return true;
 }
 
 export function filterNotifiableGames(
   analyses: GameAnalysis[],
-  history: NotificationHistory,
+  history: DealHistory,
   cooldownDays: number,
   now?: Date,
 ): GameAnalysis[] {
@@ -103,32 +256,4 @@ export function filterNotifiableGames(
   return analyses.filter(
     (analysis) => !hasRecentNotification(history, analysis.game, reference, cooldownDays),
   );
-}
-
-export function toNotificationRecords(analyses: GameAnalysis[], now?: Date): NotificationRecord[] {
-  const notifiedAt = (now ?? new Date()).toISOString();
-  return analyses.map((analysis) => {
-    const game = analysis.game;
-    const notificationType =
-      game.currentPrice === 0
-        ? 'free'
-        : (analysis.wishlistMatch?.matched ?? false)
-          ? 'wishlist'
-          : 'deal';
-    return {
-      gameId: game.id,
-      title: game.title,
-      notificationType,
-      score: analysis.dealScore.score,
-      price: game.currentPrice,
-      notifiedAt,
-    };
-  });
-}
-
-export function addNotificationRecords(
-  history: NotificationHistory,
-  records: NotificationRecord[],
-): NotificationHistory {
-  return { records: [...history.records, ...records] };
 }

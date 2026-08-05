@@ -32,6 +32,21 @@ function formatAmount(currency: string, value: number): string {
   return `${currency} ${value.toFixed(2)}`;
 }
 
+function statusMeta(stats: string): string {
+  switch (stats) {
+    case 'on-sale':
+      return '🔥 On Sale';
+    case 'target-reached':
+      return '🎯 Target Price Reached';
+    case 'full-price':
+      return '⚪ Full Price';
+    case 'not-monitored':
+      return '❓ Not Currently Monitored';
+    default:
+      return stats;
+  }
+}
+
 function formatLink(label: string, url: string): string {
   return `[${label}](${url})`;
 }
@@ -48,15 +63,66 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
 
   out.push("## 📊 Today's Summary");
   out.push('');
-  out.push('| Metric | Count |');
+  out.push('| Metric | Value |');
   out.push('| --- | ---: |');
-  out.push(`| Games checked | ${digest.summary.gamesChecked} |`);
-  out.push(`| Potential matches | ${digest.summary.potentialMatches} |`);
-  out.push(`| New notifications | ${digest.summary.newNotifications} |`);
-  out.push(`| Wishlist hits | ${digest.summary.wishlistHits} |`);
-  out.push(`| Free games | ${digest.summary.freeGames} |`);
-  out.push(`| Skipped by cooldown | ${digest.summary.skippedByCooldown} |`);
+  out.push(`| 🔥 New Deals | ${digest.summary.newDeals} |`);
+  out.push(`| ⭐ Wishlist Games on Sale | ${digest.summary.wishlistGamesOnSale} |`);
+  out.push(`| 🕒 Still Active Deals | ${digest.summary.stillActiveDeals} |`);
+  out.push(
+    `| 🏷 Biggest Discount | ${
+      digest.summary.biggestDiscountTitle
+        ? `-${digest.summary.biggestDiscountPercent}% (${digest.summary.biggestDiscountTitle})`
+        : '-'
+    } |`,
+  );
+  out.push(`| 📦 Games Checked | ${digest.summary.gamesChecked} |`);
   out.push('');
+
+  out.push('## 👀 Wishlist Watch');
+  out.push('');
+  if (digest.wishlistWatch.length > 0) {
+    for (const item of digest.wishlistWatch) {
+      const status = statusMeta(item.status);
+      out.push(`### ${status} — ${item.title}`);
+      out.push('');
+      if (item.currentPrice !== undefined) {
+        out.push(`- **Current price:** ${formatAmount(digest.currency, item.currentPrice)}`);
+      }
+      if (item.targetPrice !== undefined) {
+        out.push(`- **Target price:** ${formatAmount(digest.currency, item.targetPrice)}`);
+      }
+      if (item.discountPercent !== undefined && item.discountPercent > 0) {
+        out.push(`- **Discount:** ${item.discountPercent}%`);
+      }
+      if (item.storeUrl) {
+        out.push('');
+        out.push(formatLink('View Deal', item.storeUrl));
+      }
+      out.push('');
+    }
+  } else {
+    out.push('No games on your wishlist yet.');
+    out.push('');
+  }
+
+  if (digest.stillOnSale.length > 0) {
+    out.push('## 🕒 Still On Sale');
+    out.push('');
+    for (const item of digest.stillOnSale) {
+      out.push(`### ${item.title}`);
+      out.push('');
+      out.push(`- **Current price:** ${formatAmount(digest.currency, item.currentPrice)}`);
+      if (item.originalPrice !== undefined && item.originalPrice > item.currentPrice) {
+        out.push(`- **Original price:** ${formatAmount(digest.currency, item.originalPrice)}`);
+        out.push(`- **Discount:** ${item.discountPercent}%`);
+      }
+      out.push(`- **First reported:** ${item.firstReportedAt}`);
+      out.push(`- **On sale for:** ${item.daysOnSale} day(s)`);
+      out.push('');
+      out.push(formatLink('View Deal', item.storeUrl));
+      out.push('');
+    }
+  }
 
   if (digest.wishlistAlerts.length > 0) {
     out.push('## 🎯 Wishlist Alerts');

@@ -45,16 +45,18 @@ EmailProvider
 The notification email is a **daily digest** written for a busy parent. It opens with a one-glance summary, then walks through the deals worth their attention:
 
 1. **Header** — Nintendo red banner with the app name, formatted date, and the collector used.
-2. **Today's Summary** — a quick stats bar: games checked, potential matches, new notifications, wishlist hits, free games, and games skipped by cooldown.
-3. **Wishlist Alerts** — games on the family wishlist whose price target was reached (or any discount, when enabled). Each alert shows current/original price, discount %, the target and where it came from (`Configured target` vs `Auto target (N% discount)`), and a store link.
-4. **Best Deals** — the highest-scoring non-wishlist deals, each with price, discount badge, deal score, and why it's recommended.
-5. **Free Games** — free-to-download games, nothing to buy.
-6. **Recommended For Your Family** — one short list per family profile showing which featured games fit each child.
-7. **Price Watch** (optional) — wishlist items currently above their target but within ~10% of it, so you can see which deals are about to happen.
-8. **Monitoring Statistics** (optional) — games checked/reported/skipped, the collector, and execution time.
-9. **Footer** — a muted "generated automatically" note.
+2. **Today's Summary** — a quick stats bar: new deals today, wishlist games on sale, still-active deals, the biggest discount, and games checked.
+3. **Wishlist Watch** — every game on the family wishlist and its current status: 🔥 **On Sale**, 🎯 **Target Price Reached**, ⚪ **Full Price**, or ❓ **Not Currently Monitored** (not present in today's collected games). It always renders, so an empty wishlist is shown explicitly.
+4. **Still On Sale** — deals the family has already been notified about that are *still* discounted (and not re-reported today), with how long each has been on sale (`First reported <date> · N days on sale`). Hidden when there are no still-active tracked deals.
+5. **Wishlist Alerts** — games on the family wishlist whose price target was reached (or any discount, when enabled). Each alert shows current/original price, discount %, the target and where it came from (`Configured target` vs `Auto target (N% discount)`), and a store link.
+6. **Best Deals** — the highest-scoring non-wishlist deals, each with price, discount badge, deal score, and why it's recommended.
+7. **Free Games** — free-to-download games, nothing to buy.
+8. **Recommended For Your Family** — one short list per family profile showing which featured games fit each child.
+9. **Price Watch** (optional) — wishlist items currently above their target but within ~10% of it, so you can see which deals are about to happen.
+10. **Monitoring Statistics** (optional) — games checked/reported/skipped, the collector, and execution time.
+11. **Footer** — a muted "generated automatically" note.
 
-Sections that have no content are hidden entirely, so an empty day arrives as a short, honest email. The subject line summarizes the whole digest: `🎮 Nintendo Switch Daily Digest — N game(s) worth checking`. The HTML and Markdown reports use the exact same section order.
+Content sections that have nothing to show are hidden entirely, so an empty day arrives as a short, honest email — except **Wishlist Watch** and **Today's Summary**, which always render so you can see at a glance that nothing new happened. The subject line summarizes the whole digest: `🎮 Nintendo Switch Daily Digest — N game(s) worth checking`. The HTML and Markdown reports use the exact same section order.
 
 ### Testing without SMTP credentials
 
@@ -68,8 +70,8 @@ This runs a self-contained validation suite with no external services:
 
 - verifies HTML output is generated (doctype, full document)
 - verifies HTML escaping protects against injected markup
-- verifies every digest section renders (header, summary, wishlist alerts, best deals, free games, family recommendations, price watch, statistics, footer)
-- verifies empty sections disappear gracefully
+- verifies every digest section renders (header, Today's Summary, wishlist watch, still on sale, wishlist alerts, best deals, free games, family recommendations, price watch, statistics, footer)
+- verifies empty sections disappear gracefully (while summary and wishlist watch always render)
 - verifies an email can be captured by `MockEmailProvider`
 
 It always succeeds without any SMTP credentials, making it safe for local runs and future GitHub Actions validation. The mock provider also writes the rendered email to `data/emails/` (default) so you can open it in a browser.
@@ -232,7 +234,7 @@ HTML Email (provider)
 3. **Filter** — only games worth reporting are kept. A game is included when it is free (if `notifyFreeGames`), matches a wishlist item (if `notifyWishlistMatches`), or its deal score reaches `minimumDealScore`.
 4. **Cooldown** — games already notified for the same price within `notificationCooldownDays` are skipped, and the report is capped at `maxGamesPerEmail` games (best-scoring first).
 5. **Render** — filtered games are converted into a `DailyDigest` (with run statistics) by `buildDailyDigest`, then rendered to an HTML email by `renderDigestEmail`.
-6. **Deliver & record** — the email is sent via the configured `EmailProvider` (use `EMAIL_PROVIDER=mock` for local testing without SMTP), then the reported games are recorded to notification history.
+6. **Deliver & track** — the email is sent via the configured `EmailProvider` (use `EMAIL_PROVIDER=mock` for local testing without SMTP), then the deal history is reconciled and saved (new on-sale entries, refreshed `lastSeenOnSale`, notification counts for emailed games).
 
 ### Running a local monitor
 
@@ -329,26 +331,27 @@ Configure these under **Settings → Secrets and variables → Actions**. Secret
 
 Manual dispatch always lets you override `EMAIL_PROVIDER` and `GAME_COLLECTOR` per run, independent of the stored secrets. `NINTENDO_PLATFORM` falls back to `switch1` when no secret is set, so the scheduled run always filters to a concrete platform.
 
-## Notification History & Intelligence
+## Notification History & Persistent Deal Tracking
 
-To avoid spamming the family with the same deal, the pipeline tracks every game it has notified about and skips duplicates.
+To avoid spamming the family with the same deal — and to power the **Still On Sale** and **Wishlist Watch** digest sections — the pipeline keeps a persistent deal history of every discounted game it has ever seen.
 
-1. **History model** (`src/models/notification-history.ts`) — a `NotificationRecord` captures `gameId`, `title`, `notificationType` (`deal` / `free` / `wishlist`), `score`, `price`, and `notifiedAt`. A `NotificationHistory` is just `records[]`. Models carry no logic.
-2. **Storage** (`src/config/notification-history-store.ts`) — `loadNotificationHistory()` / `saveNotificationHistory()` read and write `data/notification-history.json`. A missing file initializes an empty history, a malformed file fails with a clear error, and writes always produce valid JSON.
-3. **Duplicate prevention** — before building the daily digest, the pipeline filters out games that were already notified for the **same price** within the cooldown window (`notificationCooldownDays` in `data/settings.json`, default `14`). If the price drops further, that counts as a new deal and is reported again.
-4. **Recording** — after the email is delivered successfully, every game included in the digest is appended to the history file.
+1. **History model** (`src/models/notification-history.ts`) — a `DealHistoryEntry` captures `gameTitle`, `firstSeenOnSale` / `lastSeenOnSale`, `firstNotified` / `lastNotified` / `lastNotifiedPrice`, `notificationCount`, and `currentlyOnSale`. A `DealHistory` is just `entries[]`. Models carry no logic.
+2. **Storage** (`src/config/notification-history-store.ts`) — `loadDealHistory()` / `saveDealHistory()` read and write `data/notification-history.json`. A missing file initializes an empty history, a malformed file fails with a clear error, and writes always produce valid JSON. Legacy `{ records: [...] }` files are migrated automatically to deal-history entries on first load.
+3. **Reconciliation** — on every real run, `reconcileDealHistory()` keeps the file accurate without ever deleting history: it creates an entry the first time a game is on sale, refreshes `lastSeenOnSale` each run, marks an entry `currentlyOnSale: false` when a sale ends (keeping the historical record), and records `firstNotified` / `lastNotified` / `lastNotifiedPrice` / `notificationCount` for every game that is actually emailed.
+4. **Duplicate prevention** — before building the daily digest, the pipeline filters out games that were already notified for the **same price** within the cooldown window (`notificationCooldownDays` in `data/settings.json`, default `14`). If the price drops further, that counts as a new deal and is reported again.
+5. **Recording** — after the email is delivered successfully, every game included in the digest is reconciled back into the history file (history is saved even when nothing is notified, so `lastSeenOnSale` stays fresh).
 
 ```
 Reported games (threshold met)
     |
     v
-Load history + apply cooldown filter (NOTIFICATION_COOLDOWN_DAYS)
+Load deal history + apply cooldown filter (NOTIFICATION_COOLDOWN_DAYS)
     |
     v
 Build DailyDigest  -->  render HTML  -->  send email
     |
     v
-Record notified games back to history
+Reconcile deal history (new entries, last seen, notifications, sale end) and save
 ```
 
 ### Validating history logic
@@ -357,7 +360,7 @@ Record notified games back to history
 npm run validate-history
 ```
 
-Runs checks (no external services) that confirm: empty/missing history initializes correctly, save/load round-trips valid JSON, malformed files fail clearly, duplicate detection matches same game + price within cooldown, price changes reset the cooldown, expired records become notifiable again, and records carry the expected notification type.
+Runs checks (no external services) that confirm: empty/missing history initializes correctly, save/load round-trips valid JSON, malformed files fail clearly, legacy records migrate to entries, a new deal creates an entry, a repeated deal updates the same entry instead of duplicating it, a sale ending keeps the entry but marks it off-sale, the cooldown respects same-price notifications (and resets when the price changes or expires), and free games are tracked so they are not re-notified daily.
 
 ## Monitoring Reports
 
@@ -374,7 +377,7 @@ reports/monitor-YYYY-MM-DD-HHmm.md
 reports/html/monitor-YYYY-MM-DD-HHmm.html
 ```
 
-- **Markdown report** — mirrors the daily digest section order (header, summary, wishlist alerts, best deals, free games, family recommendations, price watch, statistics), then appends a **Skipped Games** section split into cooldown and below-threshold groups.
+- **Markdown report** — mirrors the daily digest section order (header, Today's Summary, wishlist watch, still on sale, wishlist alerts, best deals, free games, family recommendations, price watch, statistics), then appends a **Skipped Games** section split into cooldown and below-threshold groups.
 
 For wishlist matches, the report shows where the target price came from: **Configured target** when the item specifies `targetPrice`, or **Auto target (40% discount)** when it was computed from the game's original price and `defaultWishlistDiscountPercent`.
 - **HTML report** — reuses the same digest rendering (`renderDigestEmail`) so it is readable in a browser, plus the skipped-games section.

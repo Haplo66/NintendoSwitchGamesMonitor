@@ -1,6 +1,5 @@
 import { DailyDigest } from '../models';
 import {
-  escapeHtml,
   renderBestDealsSection,
   renderDigestHeader,
   renderDigestSummary,
@@ -9,12 +8,17 @@ import {
   renderPriceWatchSection,
   renderRecommendedSection,
   renderStatisticsSection,
+  renderStillOnSaleSection,
   renderWishlistAlertsSection,
+  renderWishlistWatchSection,
+  escapeHtml,
 } from './email-template';
 
 export function composeDigestSections(digest: DailyDigest): string {
   return (
     renderDigestSummary(digest.summary) +
+    renderWishlistWatchSection(digest.wishlistWatch, digest.currency) +
+    renderStillOnSaleSection(digest.stillOnSale, digest.currency) +
     renderWishlistAlertsSection(digest.wishlistAlerts, digest.currency, digest) +
     renderBestDealsSection(digest.bestDeals, digest.currency) +
     renderFreeGamesSection(digest.freeGames) +

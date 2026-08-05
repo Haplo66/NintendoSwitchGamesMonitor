@@ -1,14 +1,14 @@
-export type NotificationType = 'deal' | 'free' | 'wishlist';
-
-export interface NotificationRecord {
-  gameId: string;
-  title: string;
-  notificationType: NotificationType;
-  score: number;
-  price: number;
-  notifiedAt: string;
+export interface DealHistoryEntry {
+  gameTitle: string;
+  firstSeenOnSale: string;
+  lastSeenOnSale: string;
+  firstNotified?: string;
+  lastNotified?: string;
+  lastNotifiedPrice?: number;
+  notificationCount: number;
+  currentlyOnSale: boolean;
 }
 
-export interface NotificationHistory {
-  records: NotificationRecord[];
+export interface DealHistory {
+  entries: DealHistoryEntry[];
 }

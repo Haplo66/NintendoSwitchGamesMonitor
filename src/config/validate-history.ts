@@ -5,18 +5,18 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { Game, GameAnalysis, NotificationHistory, NotificationRecord } from '../models';
+import { DealHistory, Game, GameAnalysis } from '../models';
 import { ConfigError } from './json-loader';
 import {
   DEFAULT_NOTIFICATION_COOLDOWN_DAYS,
-  addNotificationRecords,
   filterNotifiableGames,
   hasRecentNotification,
+  isGameOnSale,
   isWithinCooldown,
-  loadNotificationHistory,
+  loadDealHistory,
   notificationCooldownDays,
-  saveNotificationHistory,
-  toNotificationRecords,
+  reconcileDealHistory,
+  saveDealHistory,
 } from './notification-history-store';
 
 interface Check {
@@ -67,36 +67,38 @@ function makeAnalysis(game: Game): GameAnalysis {
   };
 }
 
-function record(overrides: Partial<NotificationRecord> = {}): NotificationRecord {
+function makeEntry(overrides: Partial<DealHistory['entries'][number]> = {}): DealHistory['entries'][number] {
   return {
-    gameId: 'game-1',
-    title: 'Mario Kart 8 Deluxe',
-    notificationType: 'deal',
-    score: 100,
-    price: 49.99,
-    notifiedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    gameTitle: 'Mario Kart 8 Deluxe',
+    firstSeenOnSale: '2026-07-01T00:00:00.000Z',
+    lastSeenOnSale: '2026-07-30T00:00:00.000Z',
+    firstNotified: '2026-07-01T00:00:00.000Z',
+    lastNotified: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    lastNotifiedPrice: 49.99,
+    notificationCount: 1,
+    currentlyOnSale: true,
     ...overrides,
   };
 }
 
-const now = new Date();
+const now = new Date('2026-08-01T12:00:00.000Z');
 
 const checks: Check[] = [
   {
     name: 'missing history file initializes empty history',
     run: () => {
       const file = tempHistoryFile();
-      assert.deepStrictEqual(loadNotificationHistory(file), { records: [] });
+      assert.deepStrictEqual(loadDealHistory(file), { entries: [] });
     },
   },
   {
     name: 'save then load round-trips valid JSON',
     run: () => {
       const file = tempHistoryFile();
-      const history: NotificationHistory = { records: [record()] };
+      const history: DealHistory = { entries: [makeEntry()] };
       try {
-        saveNotificationHistory(history, file);
-        assert.deepStrictEqual(loadNotificationHistory(file), history);
+        saveDealHistory(history, file);
+        assert.deepStrictEqual(loadDealHistory(file), history);
         assert.deepStrictEqual(JSON.parse(fs.readFileSync(file, 'utf8')), history);
       } finally {
         fs.rmSync(file, { force: true });
@@ -109,7 +111,7 @@ const checks: Check[] = [
       const file = tempHistoryFile();
       fs.writeFileSync(file, '{ this is not valid json ', 'utf8');
       try {
-        assert.throws(() => loadNotificationHistory(file), ConfigError);
+        assert.throws(() => loadDealHistory(file), ConfigError);
       } finally {
         fs.rmSync(file, { force: true });
       }
@@ -119,34 +121,134 @@ const checks: Check[] = [
     name: 'invalid history structure fails clearly',
     run: () => {
       const file = tempHistoryFile();
-      fs.writeFileSync(file, JSON.stringify({ records: 'not-an-array' }), 'utf8');
+      fs.writeFileSync(file, JSON.stringify({ entries: 'not-an-array' }), 'utf8');
       try {
-        assert.throws(() => loadNotificationHistory(file), ConfigError);
+        assert.throws(() => loadDealHistory(file), ConfigError);
       } finally {
         fs.rmSync(file, { force: true });
       }
     },
   },
   {
-    name: 'duplicate detection matches same game and price within cooldown',
+    name: 'legacy notification records migrate to deal history entries',
     run: () => {
-      const history: NotificationHistory = { records: [record()] };
+      const file = tempHistoryFile();
+      fs.writeFileSync(
+        file,
+        JSON.stringify({
+          records: [
+            {
+              gameId: 'x',
+              title: 'Mario Kart 8 Deluxe',
+              notificationType: 'deal',
+              score: 100,
+              price: 49.99,
+              notifiedAt: '2026-07-01T00:00:00.000Z',
+            },
+            {
+              gameId: 'x',
+              title: 'Mario Kart 8 Deluxe',
+              notificationType: 'deal',
+              score: 100,
+              price: 39.99,
+              notifiedAt: '2026-07-10T00:00:00.000Z',
+            },
+          ],
+        }),
+        'utf8',
+      );
+      try {
+        const history = loadDealHistory(file);
+        assert.strictEqual(history.entries.length, 1, 'duplicate titles must merge into one entry');
+        const entry = history.entries[0];
+        assert.strictEqual(entry.gameTitle, 'Mario Kart 8 Deluxe');
+        assert.strictEqual(entry.notificationCount, 2);
+        assert.strictEqual(entry.firstNotified, '2026-07-01T00:00:00.000Z');
+        assert.strictEqual(entry.lastNotified, '2026-07-10T00:00:00.000Z');
+        assert.strictEqual(entry.currentlyOnSale, false);
+      } finally {
+        fs.rmSync(file, { force: true });
+      }
+    },
+  },
+  {
+    name: 'a new deal creates a history entry',
+    run: () => {
+      const result = reconcileDealHistory({ entries: [] }, [makeGame()], [], now);
+      assert.strictEqual(result.entries.length, 1);
+      assert.strictEqual(result.entries[0].gameTitle, 'Mario Kart 8 Deluxe');
+      assert.strictEqual(result.entries[0].currentlyOnSale, true);
+      assert.strictEqual(result.entries[0].notificationCount, 0);
+      assert.strictEqual(result.entries[0].firstSeenOnSale, now.toISOString());
+      assert.strictEqual(result.entries[0].firstNotified, undefined);
+    },
+  },
+  {
+    name: 'a newly notified deal records the notification',
+    run: () => {
+      const result = reconcileDealHistory({ entries: [] }, [makeGame()], [makeGame()], now);
+      const entry = result.entries[0];
+      assert.strictEqual(entry.notificationCount, 1);
+      assert.strictEqual(entry.firstNotified, now.toISOString());
+      assert.strictEqual(entry.lastNotified, now.toISOString());
+      assert.strictEqual(entry.lastNotifiedPrice, 49.99);
+    },
+  },
+  {
+    name: 'a repeated deal updates the entry without duplicating it',
+    run: () => {
+      const first = reconcileDealHistory({ entries: [] }, [makeGame()], [makeGame()], now);
+      const second = reconcileDealHistory(first, [makeGame()], [makeGame()], now);
+      assert.strictEqual(second.entries.length, 1, 'no duplicate history entries');
+      assert.strictEqual(second.entries[0].notificationCount, 2);
+      assert.strictEqual(second.entries[0].firstNotified, now.toISOString());
+      assert.strictEqual(second.entries[0].lastSeenOnSale, now.toISOString());
+    },
+  },
+  {
+    name: 'when a sale ends the entry is kept but marked off-sale',
+    run: () => {
+      const existing: DealHistory = { entries: [makeEntry()] };
+      const result = reconcileDealHistory(existing, [], [], now);
+      assert.strictEqual(result.entries.length, 1, 'history entry must be preserved');
+      assert.strictEqual(result.entries[0].currentlyOnSale, false);
+      assert.strictEqual(result.entries[0].firstSeenOnSale, '2026-07-01T00:00:00.000Z');
+      assert.strictEqual(result.entries[0].notificationCount, 1);
+      assert.strictEqual(result.entries[0].lastNotified, makeEntry().lastNotified);
+    },
+  },
+  {
+    name: 'isGameOnSale detects discounted and free games',
+    run: () => {
+      assert.ok(isGameOnSale(makeGame({ currentPrice: 49.99, originalPrice: 59.99 })));
+      assert.ok(!isGameOnSale(makeGame({ currentPrice: 59.99, originalPrice: 59.99 })));
+      assert.ok(!isGameOnSale(makeGame({ currentPrice: 49.99, originalPrice: undefined })));
+      assert.ok(isGameOnSale(makeGame({ currentPrice: 0, originalPrice: 0 })));
+      assert.ok(isGameOnSale(makeGame({ currentPrice: 0, originalPrice: undefined })));
+    },
+  },
+  {
+    name: 'same game and price within cooldown is not notifiable',
+    run: () => {
+      const history: DealHistory = { entries: [makeEntry()] };
       assert.ok(hasRecentNotification(history, makeGame(), now, 14));
       assert.ok(hasRecentNotification(history, makeGame(), now, DEFAULT_NOTIFICATION_COOLDOWN_DAYS));
     },
   },
   {
-    name: 'different price resets cooldown (new deal is notifiable)',
+    name: 'a different price resets the cooldown (new deal is notifiable)',
     run: () => {
-      const history: NotificationHistory = { records: [record()] };
+      const history: DealHistory = { entries: [makeEntry()] };
       assert.ok(!hasRecentNotification(history, makeGame({ currentPrice: 39.99 }), now, 14));
     },
   },
   {
-    name: 'expired record outside cooldown is notifiable again',
+    name: 'an expired notification outside the cooldown is notifiable again',
     run: () => {
-      const history: NotificationHistory = {
-        records: [record({ notifiedAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString() })],
+      const history: DealHistory = {
+        entries: [
+          makeEntry({ lastNotified: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString() }),
+        ],
       };
       assert.ok(!hasRecentNotification(history, makeGame(), now, 14));
     },
@@ -155,52 +257,20 @@ const checks: Check[] = [
     name: 'cooldown boundary is inclusive',
     run: () => {
       const atCutoff = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
-      assert.ok(isWithinCooldown(record({ notifiedAt: atCutoff }), now, 14));
+      assert.ok(isWithinCooldown(atCutoff, now, 14));
     },
   },
   {
     name: 'filterNotifiableGames drops recently notified games',
     run: () => {
-      const history: NotificationHistory = { records: [record()] };
+      const history: DealHistory = { entries: [makeEntry()] };
       const analyses = [
         makeAnalysis(makeGame()),
-        makeAnalysis(makeGame({ id: 'game-2', title: 'Fortnite', currentPrice: 0 })),
+        makeAnalysis(makeGame({ id: 'game-2', title: 'Fortnite', currentPrice: 0, originalPrice: 0 })),
       ];
       const result = filterNotifiableGames(analyses, history, 14, now);
       assert.strictEqual(result.length, 1);
       assert.strictEqual(result[0].game.id, 'game-2');
-    },
-  },
-  {
-    name: 'records carry the expected notification type',
-    run: () => {
-      const analyses = [
-        makeAnalysis(makeGame({ id: 'free-1', title: 'Fortnite', currentPrice: 0 })),
-        makeAnalysis(
-          makeGame({ id: 'wl-1', title: 'Zelda', currentPrice: 50 }),
-        ),
-      ];
-      analyses[1].wishlistMatch = {
-        matched: true,
-        wishlistItem: { gameTitle: 'Zelda', notifyOnAnyDiscount: false },
-        priceTargetReached: true,
-      };
-      analyses.push(makeAnalysis(makeGame({ id: 'deal-1', title: 'Pokemon', currentPrice: 40 })));
-
-      const records = toNotificationRecords(analyses);
-      assert.deepStrictEqual(
-        records.map((r) => r.notificationType),
-        ['free', 'wishlist', 'deal'],
-      );
-    },
-  },
-  {
-    name: 'addNotificationRecords appends without mutating input',
-    run: () => {
-      const base: NotificationHistory = { records: [] };
-      const updated = addNotificationRecords(base, [record()]);
-      assert.strictEqual(base.records.length, 0);
-      assert.strictEqual(updated.records.length, 1);
     },
   },
   {
@@ -215,12 +285,12 @@ const checks: Check[] = [
 
 async function validateHistory(): Promise<void> {
   await runChecks(checks);
-  console.log('\nAll notification history validation checks passed.');
+  console.log('\nAll deal history validation checks passed.');
 }
 
 if (require.main === module) {
   validateHistory().catch((error: unknown) => {
-    console.error('Notification history validation failed:', error);
+    console.error('Deal history validation failed:', error);
     process.exitCode = 1;
   });
 }

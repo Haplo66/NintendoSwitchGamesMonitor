@@ -4,8 +4,10 @@ import {
   DigestFamilyRecommendation,
   DigestPriceWatchItem,
   DigestStatistics,
+  DigestStillOnSale,
   DigestSummary,
   DigestWishlistAlert,
+  DigestWishlistWatch,
   FreeGame,
 } from '../models';
 
@@ -24,6 +26,7 @@ const COLORS = {
   danger: '#c62828',
   link: '#1a56db',
   linkBg: '#e8f0fe',
+  time: '#0e7490',
 };
 
 const FONT = 'Arial, Helvetica, sans-serif';
@@ -128,20 +131,24 @@ export function renderDigestHeader(digest: DailyDigest): string {
 }
 
 export function renderDigestSummary(summary: DigestSummary): string {
-  const stats = [
-    ['Games checked', summary.gamesChecked],
-    ['Potential matches', summary.potentialMatches],
-    ['New notifications', summary.newNotifications],
-    ['Wishlist hits', summary.wishlistHits],
-    ['Free games', summary.freeGames],
-    ['Skipped by cooldown', summary.skippedByCooldown],
+  const stats: Array<[string, string]> = [
+    ['🔥 New Deals', String(summary.newDeals)],
+    ['⭐ Wishlist on Sale', String(summary.wishlistGamesOnSale)],
+    ['🕒 Still Active', String(summary.stillActiveDeals)],
+    [
+      '🏷 Biggest Discount',
+      summary.biggestDiscountTitle
+        ? `-${summary.biggestDiscountPercent}% ${summary.biggestDiscountTitle}`
+        : '-',
+    ],
+    ['📦 Games Checked', String(summary.gamesChecked)],
   ];
   const cells = stats
     .map(
       ([label, value]) =>
-        `<td align="center" style="padding:12px 4px;">` +
-        `<div style="font-family:${FONT}; font-size:22px; font-weight:bold; color:${COLORS.text};">${value}</div>` +
-        `<div style="font-family:${FONT}; font-size:11px; color:${COLORS.muted};">${label}</div>` +
+        `<td align="center" style="padding:12px 6px;">` +
+        `<div style="font-family:${FONT}; font-size:18px; font-weight:bold; color:${COLORS.text}; white-space:nowrap;">${escapeHtml(value)}</div>` +
+        `<div style="font-family:${FONT}; font-size:11px; color:${COLORS.muted};">${escapeHtml(label)}</div>` +
         `</td>`,
     )
     .join('');
@@ -152,6 +159,100 @@ export function renderDigestSummary(summary: DigestSummary): string {
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${cells}</tr></table>` +
     `</div>`
   );
+}
+
+function formatShortDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+function renderStillOnSaleCard(item: DigestStillOnSale, currency: string): string {
+  const daysLabel = item.daysOnSale === 1 ? '1 day on sale' : `${item.daysOnSale} days on sale`;
+  return card(
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
+    `<td style="padding:0 12px 0 0;">` +
+    `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
+    `<div>${priceRow(currency, item.originalPrice, item.currentPrice, COLORS.time)}</div>` +
+    `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">` +
+    `First reported ${formatShortDate(item.firstReportedAt)} · ${daysLabel}</div>` +
+    `</td>` +
+    `</tr></table>` +
+    actionButton('View Deal', item.storeUrl, COLORS.time),
+    COLORS.time,
+  );
+}
+
+export function renderStillOnSaleSection(items: DigestStillOnSale[], currency: string): string {
+  if (items.length === 0) {
+    return '';
+  }
+  const cards = items.map((item) => renderStillOnSaleCard(item, currency)).join('');
+  return sectionHeader('🕒', 'Still On Sale', COLORS.time) + cards;
+}
+
+export function wishlistStatusMeta(status: DigestWishlistWatch['status']): {
+  label: string;
+  color: string;
+} {
+  switch (status) {
+    case 'on-sale':
+      return { label: '🔥 On Sale', color: COLORS.success };
+    case 'target-reached':
+      return { label: '🎯 Target Price Reached', color: COLORS.wishlist };
+    case 'full-price':
+      return { label: '⚪ Full Price', color: COLORS.muted };
+    case 'not-monitored':
+      return { label: '❓ Not Currently Monitored', color: COLORS.muted };
+  }
+}
+
+function renderWishlistWatchCard(item: DigestWishlistWatch, currency: string): string {
+  const meta = wishlistStatusMeta(item.status);
+  let details = `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">`;
+  if (item.currentPrice !== undefined) {
+    details += `Current: <strong>${formatMoney(currency, item.currentPrice)}</strong>`;
+    if (item.originalPrice !== undefined && item.originalPrice > item.currentPrice) {
+      details += ` <span style="color:${COLORS.muted}; text-decoration:line-through; font-size:12px;">${formatMoney(currency, item.originalPrice)}</span>`;
+    }
+    if (item.discountPercent !== undefined && item.discountPercent > 0) {
+      details += ` ${badge(`-${item.discountPercent}%`, COLORS.discount)}`;
+    }
+  }
+  if (item.targetPrice !== undefined) {
+    details += `${item.currentPrice !== undefined ? ' · ' : ''}Target: <strong>${formatMoney(currency, item.targetPrice)}</strong>`;
+  }
+  details += '</div>';
+  return card(
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
+    `<td style="padding:0 12px 0 0;">` +
+    `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
+    `<div>${badge(meta.label, meta.color)}</div>` +
+    details +
+    `</td>` +
+    `</tr></table>`,
+    COLORS.wishlist,
+  );
+}
+
+export function renderWishlistWatchSection(items: DigestWishlistWatch[], currency: string): string {
+  const header = sectionHeader('👀', 'Wishlist Watch', COLORS.wishlist);
+  if (items.length === 0) {
+    return (
+      header +
+      `<p style="margin:0 0 10px 0; font-size:13px; color:${COLORS.muted}; font-family:${FONT};">` +
+      `No games on your wishlist yet.</p>`
+    );
+  }
+  const cards = items.map((item) => renderWishlistWatchCard(item, currency)).join('');
+  return header + cards;
 }
 
 function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, digest: DailyDigest): string {

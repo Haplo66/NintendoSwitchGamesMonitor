@@ -1,4 +1,4 @@
-import { FamilyProfile, NotificationHistory, NotificationRecord, WishlistItem } from '../models';
+import { DealHistory, DealHistoryEntry, FamilyProfile, WishlistItem } from '../models';
 
 export function validateFamilyProfile(profile: FamilyProfile): string[] {
   const errors: string[] = [];
@@ -48,34 +48,49 @@ export function validateWishlistItem(item: WishlistItem): string[] {
   return errors;
 }
 
-export function validateNotificationRecord(record: NotificationRecord): string[] {
+export function validateDealHistoryEntry(entry: DealHistoryEntry): string[] {
   const errors: string[] = [];
-  if (typeof record.gameId !== 'string' || record.gameId.trim() === '') {
-    errors.push('gameId must be a non-empty string');
+  if (typeof entry.gameTitle !== 'string' || entry.gameTitle.trim() === '') {
+    errors.push('gameTitle must be a non-empty string');
   }
-  if (typeof record.title !== 'string' || record.title.trim() === '') {
-    errors.push('title must be a non-empty string');
+  if (typeof entry.firstSeenOnSale !== 'string' || Number.isNaN(Date.parse(entry.firstSeenOnSale))) {
+    errors.push('firstSeenOnSale must be a valid date string');
   }
-  if (record.notificationType !== 'deal' && record.notificationType !== 'free' && record.notificationType !== 'wishlist') {
-    errors.push("notificationType must be one of: 'deal', 'free', 'wishlist'");
+  if (typeof entry.lastSeenOnSale !== 'string' || Number.isNaN(Date.parse(entry.lastSeenOnSale))) {
+    errors.push('lastSeenOnSale must be a valid date string');
   }
-  if (typeof record.score !== 'number' || record.score < 0) {
-    errors.push('score must be a non-negative number');
+  if (
+    entry.firstNotified !== undefined &&
+    (typeof entry.firstNotified !== 'string' || Number.isNaN(Date.parse(entry.firstNotified)))
+  ) {
+    errors.push('firstNotified must be a valid date string when provided');
   }
-  if (typeof record.price !== 'number' || record.price < 0) {
-    errors.push('price must be a non-negative number');
+  if (
+    entry.lastNotified !== undefined &&
+    (typeof entry.lastNotified !== 'string' || Number.isNaN(Date.parse(entry.lastNotified)))
+  ) {
+    errors.push('lastNotified must be a valid date string when provided');
   }
-  if (typeof record.notifiedAt !== 'string' || Number.isNaN(Date.parse(record.notifiedAt))) {
-    errors.push('notifiedAt must be a valid date string');
+  if (
+    entry.lastNotifiedPrice !== undefined &&
+    (typeof entry.lastNotifiedPrice !== 'number' || !Number.isFinite(entry.lastNotifiedPrice))
+  ) {
+    errors.push('lastNotifiedPrice must be a finite number when provided');
+  }
+  if (typeof entry.notificationCount !== 'number' || !Number.isInteger(entry.notificationCount) || entry.notificationCount < 0) {
+    errors.push('notificationCount must be a non-negative whole number');
+  }
+  if (typeof entry.currentlyOnSale !== 'boolean') {
+    errors.push('currentlyOnSale must be a boolean');
   }
   return errors;
 }
 
-export function validateNotificationHistory(history: NotificationHistory): string[] {
-  if (!Array.isArray(history.records)) {
-    return ['records must be an array'];
+export function validateDealHistory(history: DealHistory): string[] {
+  if (!Array.isArray(history.entries)) {
+    return ['entries must be an array'];
   }
-  return history.records.flatMap((record, index) =>
-    validateNotificationRecord(record).map((error) => `record ${index}: ${error}`),
+  return history.entries.flatMap((entry, index) =>
+    validateDealHistoryEntry(entry).map((error) => `entry ${index}: ${error}`),
   );
 }
