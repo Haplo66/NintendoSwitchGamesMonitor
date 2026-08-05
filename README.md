@@ -463,13 +463,31 @@ The service is family-aware: games are matched against who lives in the househol
 
 Once a collected game's title matches a wishlist item and its price is at or below the effective target price (or any discount applies), it becomes a notification candidate.
 
+### Game blacklist
+
+`data/blacklist.json` lists titles to permanently hide from the daily digest — shovelware, inappropriate games, or anything the family is not interested in. Each entry is either a simple title string or an object with a `title` and an optional `reason`:
+
+```json
+{
+  "games": [
+    "Carrot Smash",
+    { "title": "Example Game", "reason": "Not family-friendly" }
+  ]
+}
+```
+
+- `title` — **required**, unique (case-insensitive). The title string.
+- `reason` — optional note about why the game is hidden (must be a string).
+
+Matching is **exact and case-insensitive** on the normalized title (surrounding whitespace is ignored, so `"Carrot Smash"`, `"carrot smash"`, and `" Carrot Smash "` all match the same entry), and it is applied **after collection and before analysis**: blacklisted games never appear in deal analysis, **Best Deals**, **Recommended For Your Family**, or notifications, and they do not affect the **Games Checked** statistic. If a blacklisted game is also on the wishlist it stays visible in **Wishlist Watch** with today's price/status, but is still excluded from recommendations and general deals. An empty `"games"` array (or an empty blacklist file) hides nothing.
+
 ### Validating configuration
 
 ```bash
 npm run validate-config
 ```
 
-This loads both files, prints a summary, and runs checks that confirm the JSON files exist, required fields are present and unique, optional fields are populated with runtime defaults, automatic target prices are calculated correctly, explicit target prices override automatic values, and malformed configuration fails with a clear error — with no SMTP credentials or external services required.
+This loads the family profiles, wishlist, and blacklist, prints a summary, and runs checks that confirm the JSON files exist, required fields are present and unique, optional fields are populated with runtime defaults, automatic target prices are calculated correctly, explicit target prices override automatic values, and malformed configuration fails with a clear error — with no SMTP credentials or external services required.
 
 ## Analysis & Deal Intelligence
 
@@ -523,8 +541,7 @@ User-editable notification preferences live in `data/settings.json`:
     "maxWishlistAlerts": 10,
     "showStatistics": true,
     "showPriceWatch": true
-  },
-  "blacklistedGames": []
+  }
 }
 ```
 
@@ -541,7 +558,8 @@ User-editable notification preferences live in `data/settings.json`:
   - `maxWishlistAlerts` — how many wishlist alerts (and price-watch items) to show (whole number, default `10`).
   - `showStatistics` — whether to render the **Monitoring Statistics** section (boolean, default `true`).
   - `showPriceWatch` — whether to render the **Price Watch** section (boolean, default `true`).
-- `blacklistedGames` — titles of games to permanently hide from the daily digest. Use this for shovelware, inappropriate games, or titles the family is not interested in. Matching is **exact and case-insensitive** on the normalized title (surrounding whitespace is ignored, so `"Carrot Smash"`, `"carrot smash"`, and `" Carrot Smash "` all match the same entry), and it is applied **after collection and before analysis**: blacklisted games never appear in deal analysis, **Best Deals**, **Recommended For Your Family**, or notifications, and they do not affect the **Games Checked** statistic. If a blacklisted game is also on the wishlist it stays visible in **Wishlist Watch** with today's price/status, but is still excluded from recommendations and general deals. An empty array (the default) hides nothing.
+
+The game blacklist is **not** part of `data/settings.json` — it lives in its own `data/blacklist.json` file (see [Game blacklist](#game-blacklist)).
 
 A missing settings file falls back to the defaults; a malformed file or invalid values fail with a clear error.
 
@@ -601,7 +619,7 @@ defaults
 | Game catalog path       | `GAME_CATALOG`              | —                             | `data/game-catalog.json` |
 | Deals currency          | `DEALS_CURRENCY`            | —                             | `USD`         |
 
-`dailyDigest`, `sendEmptyDigest`, and `blacklistedGames` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above. The user preferences (`platform`, `emailProvider`, `dryRun`, `forceEmail`, `logLevel`) are configured in `data/settings.json` and overridable by their environment variables for CI or temporary runs.
+`dailyDigest` and `sendEmptyDigest` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above. The user preferences (`platform`, `emailProvider`, `dryRun`, `forceEmail`, `logLevel`) are configured in `data/settings.json` and overridable by their environment variables for CI or temporary runs.
 
 ### Validating settings
 
@@ -610,7 +628,7 @@ npm run validate-settings
 npm run validate-preferences
 ```
 
-`validate-settings` checks that defaults apply when the file is missing, full and partial files load correctly (including partial `dailyDigest` blocks), malformed files and invalid values are rejected (including a malformed `blacklistedGames` array), and environment variables correctly override `settings.json`. `validate-preferences` checks the user-preference fields specifically: settings values load, environment overrides settings, defaults apply when missing, and invalid values are rejected.
+`validate-settings` checks that defaults apply when the file is missing, full and partial files load correctly (including partial `dailyDigest` blocks), malformed files and invalid values are rejected, and environment variables correctly override `settings.json`. `validate-preferences` checks the user-preference fields specifically: settings values load, environment overrides settings, defaults apply when missing, and invalid values are rejected.
 
 ## Running Locally
 
@@ -655,7 +673,7 @@ cp .env.example .env   # then fill in values
 | `npm run test-email` | Build and send a sample HTML test notification   |
 | `npm run validate-email` | Build and run the email rendering validation suite |
 | `npm run collect-games`  | Build and collect sample games via the mock collector |
-| `npm run validate-config` | Build and validate family profiles + wishlist config |
+| `npm run validate-config` | Build and validate family profiles + wishlist + blacklist config |
 | `npm run validate-settings` | Build and validate notification preferences + env overrides |
 | `npm run validate-preferences` | Build and validate user preferences (platform, email provider, dry/force run, log level) |
 | `npm run analyze-games`   | Build and analyze mock games vs profiles + wishlist |
@@ -671,6 +689,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-reports` | Build and validate report generation (markdown + HTML) |
 | `npm run validate-wishlist-price` | Build and validate always-on Wishlist Watch pricing (coverage, no duplicate API requests, section order) |
 | `npm run validate-blacklist` | Build and validate the game blacklist (removal, matching, wishlist exception, no notifications) |
+| `npm run validate-blacklist-loader` | Build and validate the blacklist file loader (object/string entries, invalid entries, duplicates, normalization, filtering) |
 | `npm run validate-recommendations` | Build and validate deal-focused family recommendations (discounted/free/active deals included, full-price excluded, price status rendered) |
 
 ## Project Structure
@@ -710,15 +729,27 @@ cp .env.example .env   # then fill in values
 │   ├── scripts/       # Local runner convenience (run-monitor: normal / dry / test-email)
 │   ├── models/        # Shared domain types (Game, GameDeal, NotificationSettings, ...)
 │   └── main.ts        # Service entry point
-├── data/              # Runtime data / cache + family/wishlist config + history + settings
+├── data/              # Runtime data / cache + family/wishlist/blacklist config + history + settings
 │   ├── family-profile.json
 │   ├── wishlist.json
+│   ├── blacklist.json
 │   ├── game-catalog.json
 │   ├── notification-history.json
 │   └── settings.json
 ├── reports/           # Generated monitoring reports (markdown + html/, git-ignored)
 └── .github/workflows  # Scheduled execution (GitHub Actions monitor workflow)
 ```
+
+### Data files
+
+| File | Purpose | Type |
+| ---- | ------- | ---- |
+| `data/family-profile.json` | Family profiles (names, max ages, preferred/excluded genres) used by the analyzer | User-editable config |
+| `data/wishlist.json` | Games the family wants to watch (target prices, notifications) | User-editable config |
+| `data/blacklist.json` | Titles permanently hidden from the digest (with optional reasons) | User-editable config |
+| `data/settings.json` | Application settings: notification preferences + user preferences (`platform`, `emailProvider`, `dryRun`, `forceEmail`, `logLevel`) | Application settings |
+| `data/game-catalog.json` | US game catalog (nsuids, titles, genres, ESRB ratings, slugs) that the Nintendo collector watches | Runtime / generated data |
+| `data/notification-history.json` | Persistent deal tracking + cooldown state written by monitor runs | Runtime state |
 
 ## Roadmap
 

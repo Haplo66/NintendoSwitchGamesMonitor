@@ -8,12 +8,11 @@
   "defaultNotifyOnAnyDiscount": false,
   "sendEmptyDigest": false,
   "dailyDigest": {
-    "maxBestDeals": 5,
-    "maxWishlistAlerts": 10,
+    "maxBestDeals": 10,
+    "maxWishlistAlerts": 6,
     "showStatistics": true,
     "showPriceWatch": true
   },
-  "blacklistedGames": ["fortnite"],
   "platform": "switch1",
   "emailProvider": "gmail",
   "dryRun": false,

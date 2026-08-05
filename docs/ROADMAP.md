@@ -290,3 +290,17 @@ Features:
 - **Eligibility** — a game is recommendable when it is free, discounted (`originalPrice > currentPrice`), or tracked as `currentlyOnSale` in deal history; the filter lives in `daily-digest-builder.ts`
 - **Validation** — new `npm run validate-recommendations` suite covers: discounted family match appears, full-price family match excluded, full-price wishlist game excluded (but kept in Wishlist Watch), active historical deal remains visible, free games remain visible, and that recommended games expose + render price status; `npm test` aggregates the suite
 - Collector, catalog generation, and blacklist unchanged (out of scope for this task)
+
+> **Status: ✅ Complete**
+
+## v0.27 User Data Files Separated From Application Settings (v0.27.0)
+
+Features:
+- **Dedicated blacklist file** — the game blacklist moved out of `data/settings.json` (`blacklistedGames`) into its own `data/blacklist.json` with a `games` array; each entry is a title string or an object with `title` + optional `reason`. `data/settings.json` now holds only application settings, and the blacklist is validated/loaded by its own module instead of the settings loader
+- **Dedicated loader** — `src/config/blacklist.ts` exposes `loadBlacklist()` (defaults to `data/blacklist.json`), validates structure (non-empty titles, string-only reasons, duplicate titles rejected case-insensitively, whitespace-tolerant normalization via the shared `normalizeGameTitle`), and keeps the same matching API (`isGameBlacklisted`, `filterBlacklistedGames`) with `BlacklistSource` accepting `Blacklist | string[] | BlacklistEntry[]` so the existing `validate-blacklist` suite passes unchanged
+- **App config wiring** — `AppConfig` now exposes `blacklist`, `loadAppConfig()` loads it, and `monitor-run.ts` filters through `config.blacklist`; `validate-config` validates `blacklist.json` alongside the family profiles and wishlist
+- **Data file purposes documented** — README documents the purpose of each `data/` file, separating user-editable config (`family-profile.json`, `wishlist.json`, `blacklist.json`) from application settings (`settings.json`) and runtime state (`game-catalog.json`, `notification-history.json`)
+- **Validation** — new `npm run validate-blacklist-loader` suite covers object/string entry formats, missing/invalid entries, duplicate titles, normalization, and filtering against the real `data/blacklist.json`; `npm test` aggregates the suite
+- Blacklist behavior (filtering position, wishlist exception, history handling) and everything else unchanged (out of scope for this task)
+
+> **Status: ✅ Complete**

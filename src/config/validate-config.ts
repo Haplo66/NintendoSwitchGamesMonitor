@@ -7,6 +7,7 @@ import * as path from 'node:path';
 
 import { computeWishlistTargetPrice } from '../analyzer/wishlist-matcher';
 import { FamilyProfile, Game, WishlistItem } from '../models';
+import { loadBlacklist } from './blacklist';
 import { loadFamilyProfiles } from './family-profiles-loader';
 import { ConfigError, loadJsonFile } from './json-loader';
 import { validateFamilyProfile, validateWishlistItem } from './validators';
@@ -37,6 +38,7 @@ async function runChecks(checks: Check[]): Promise<void> {
 export async function validateConfig(): Promise<void> {
   const profiles = loadFamilyProfiles();
   const wishlist = loadWishlist();
+  const blacklist = loadBlacklist();
 
   console.log(`Loaded ${profiles.length} family profile(s):`);
   for (const profile of profiles) {
@@ -71,6 +73,18 @@ export async function validateConfig(): Promise<void> {
         assert.ok(wishlist.items.length > 0, 'Wishlist is empty');
         for (const item of wishlist.items) {
           assert.deepStrictEqual(validateWishlistItem(item), []);
+        }
+      },
+    },
+    {
+      name: 'blacklist.json exists and is valid',
+      run: () => {
+        assert.ok(Array.isArray(blacklist.entries), 'Blacklist entries missing');
+        for (const entry of blacklist.entries) {
+          assert.ok(
+            typeof entry.title === 'string' && entry.title.trim() !== '',
+            `Blacklist entry has an empty title: ${JSON.stringify(entry)}`,
+          );
         }
       },
     },

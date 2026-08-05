@@ -70,7 +70,6 @@ const checks: Check[] = [
           showStatistics: false,
           showPriceWatch: true,
         },
-        blacklistedGames: ['Carrot Smash', 'Example Game'],
       };
       try {
         writeSettings(settings, file);
@@ -173,9 +172,6 @@ const checks: Check[] = [
         { dailyDigest: { maxWishlistAlerts: 2.5 } },
         { dailyDigest: { showStatistics: 'yes' } },
         { dailyDigest: { showPriceWatch: 1 } },
-        { blacklistedGames: 'nope' },
-        { blacklistedGames: [1, 2] },
-        { blacklistedGames: ['', 'Game'] },
       ];
       for (const bad of cases) {
         const file = tempSettingsFile();

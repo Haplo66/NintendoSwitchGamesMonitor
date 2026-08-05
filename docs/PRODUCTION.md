@@ -74,11 +74,14 @@ To refresh the catalog, run `npm run generate-catalog` (regenerates `data/game-c
 
 ### Hiding games from the digest (blacklist)
 
-Some titles are never worth showing — shovelware, inappropriate games, or anything the family just is not interested in. Add their exact titles to `blacklistedGames` in `data/settings.json`:
+Some titles are never worth showing — shovelware, inappropriate games, or anything the family just is not interested in. Add their exact titles to `data/blacklist.json`. Each entry is a title string or an object with a `title` and an optional `reason`:
 
 ```json
 {
-  "blacklistedGames": ["Carrot Smash", "Example Game"]
+  "games": [
+    "Carrot Smash",
+    { "title": "Example Game", "reason": "Not family-friendly" }
+  ]
 }
 ```
 

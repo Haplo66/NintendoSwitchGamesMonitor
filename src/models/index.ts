@@ -1,5 +1,6 @@
 export * from './daily-digest';
 export * from './deal-score-result';
+export * from './blacklist';
 export * from './family-profile';
 export * from './free-game';
 export * from './game';

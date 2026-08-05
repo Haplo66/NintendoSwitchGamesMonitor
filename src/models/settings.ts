@@ -15,11 +15,6 @@ export interface NotificationSettings {
   defaultNotifyOnAnyDiscount: boolean;
   sendEmptyDigest: boolean;
   dailyDigest: DailyDigestSettings;
-  /** Titles of games that should never be analyzed, recommended, or notified
-   * about. Matching is exact and case-insensitive on the normalized title. A
-   * blacklisted game stays visible in Wishlist Watch only when explicitly on
-   * the wishlist. */
-  blacklistedGames: string[];
 }
 
 export type NintendoRegion = 'US';

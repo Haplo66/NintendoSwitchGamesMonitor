@@ -1,7 +1,8 @@
-import { AppPreferences, CollectorSettings, FamilyProfile, NintendoPlatform, NotificationSettings, Wishlist } from '../models';
+import { AppPreferences, Blacklist, CollectorSettings, FamilyProfile, NintendoPlatform, NotificationSettings, Wishlist } from '../models';
 import { REGION_PROFILES, resolveNintendoRegion } from '../collectors/region';
 import { DEFAULT_GAME_CATALOG_PATH } from '../collectors/nintendo-price-collector';
 import { DEFAULT_NINTENDO_PLATFORM, resolveNintendoPlatform } from '../collectors/platform';
+import { loadBlacklist } from './blacklist';
 import { loadFamilyProfiles } from './family-profiles-loader';
 import { parseEnvNumber } from './settings-loader';
 import { resolveNotificationSettings } from './settings-loader';
@@ -13,6 +14,7 @@ export interface AppConfig {
   collector: CollectorSettings;
   familyProfiles: FamilyProfile[];
   wishlist: Wishlist;
+  blacklist: Blacklist;
   preferences: AppPreferences;
 }
 
@@ -20,6 +22,7 @@ export interface LoadAppConfigOptions {
   settingsFile?: string;
   familyProfileFile?: string;
   wishlistFile?: string;
+  blacklistFile?: string;
 }
 
 export const DEFAULT_COLLECTOR_SETTINGS: CollectorSettings = {
@@ -59,6 +62,7 @@ export function loadAppConfig(options: LoadAppConfigOptions = {}): AppConfig {
     wishlist: loadWishlist(options.wishlistFile, {
       defaultNotifyOnAnyDiscount: notification.defaultNotifyOnAnyDiscount,
     }),
+    blacklist: loadBlacklist(options.blacklistFile),
     preferences,
   };
 }

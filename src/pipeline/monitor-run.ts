@@ -156,7 +156,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   // Wishlist Watch, or notification generation. The "games checked" statistic
   // uses the full collection count, so blacklisting does not skew it.
   const checkedCount = games.length;
-  const analyzedGames = filterBlacklistedGames(games, config.notification.blacklistedGames);
+  const analyzedGames = filterBlacklistedGames(games, config.blacklist);
   const blacklistedCount = checkedCount - analyzedGames.length;
   if (blacklistedCount > 0) {
     console.log(`Excluded ${blacklistedCount} blacklisted game(s) from analysis.`);
