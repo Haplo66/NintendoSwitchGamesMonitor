@@ -308,6 +308,25 @@ export async function validatePreferences(): Promise<void> {
       },
     },
     {
+      name: 'runtime source code contains no EMAIL_TO reference',
+      run: () => {
+        const runtimeFiles = [
+          path.resolve(process.cwd(), 'src', 'notifications', 'gmail-provider.ts'),
+          path.resolve(process.cwd(), 'src', 'notifications', 'email-factory.ts'),
+          path.resolve(process.cwd(), 'src', 'config', 'preferences.ts'),
+          path.resolve(process.cwd(), 'src', 'pipeline', 'monitor-run.ts'),
+          path.resolve(process.cwd(), 'src', 'notifications', 'test-email.ts'),
+        ];
+        for (const file of runtimeFiles) {
+          const content = fs.readFileSync(file, 'utf8');
+          assert.ok(
+            !content.includes('EMAIL_TO'),
+            `${path.basename(file)} must not reference EMAIL_TO`,
+          );
+        }
+      },
+    },
+    {
       name: 'emailTo comes only from settings.json (EMAIL_TO is not honored)',
       run: () => {
         const settingsFile = tempFile({ emailTo: 'settings@example.com' });
