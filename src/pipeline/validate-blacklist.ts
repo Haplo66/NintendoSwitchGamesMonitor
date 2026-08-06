@@ -4,7 +4,7 @@ import * as assert from 'node:assert';
 
 import { analyzeGamesWith } from '../analyzer/analyze';
 import { filterBlacklistedGames, isGameBlacklisted } from '../config/blacklist';
-import { Game, FamilyProfile, GameAnalysis, MonitorResult, Wishlist, WishlistItem } from '../models';
+import { Game, FamilyProfile, GameAnalysis, MonitorResult, Wishlist, WishlistItem, DealHistoryEntry } from '../models';
 import { buildDailyDigest } from '../notifications/daily-digest-builder';
 import { renderDigestEmail } from '../notifications/email-renderer';
 import { isWorthReporting } from '../pipeline/monitor-run';
@@ -197,7 +197,7 @@ export async function validateBlacklist(): Promise<void> {
 
       const bestDealTitles = digest.bestDeals.map((deal) => deal.title);
       assert.ok(!bestDealTitles.includes('Carrot Smash'), 'Blacklisted game must not appear in Best Deals');
-      const recommendationTitles = digest.recommendations.flatMap((r) => r.games.map((g) => g.title));
+      const recommendationTitles = digest.recommendations.map((r) => r.title);
       assert.ok(!recommendationTitles.includes('Carrot Smash'), 'Blacklisted game must not be recommended');
     },
   });
@@ -216,13 +216,117 @@ export async function validateBlacklist(): Promise<void> {
       // Simulate the filter outcome: the blacklisted game never reaches analysis.
       void filterBlacklistedGames([carrot], ['Carrot Smash']);
 
-      const digest = buildDailyDigest(result);
+      const digest = buildDailyDigest(result, { blacklist: ['Carrot Smash'] });
       const html = renderDigestEmail(digest);
       assert.ok(
         !digest.wishlistWatch.some((item) => item.title === 'Carrot Smash'),
         'Blacklisted non-wishlisted game must not appear in Wishlist Watch',
       );
       assert.ok(!html.includes('Carrot Smash'), 'Rendered digest must not contain the blacklisted title');
+    },
+  });
+
+  checks.push({
+    name: 'Still On Sale ignores blacklisted games',
+    run: () => {
+      const carrotEntry: DealHistoryEntry = {
+        gameTitle: 'Carrot Smash',
+        firstSeenOnSale: '2026-07-01T00:00:00.000Z',
+        lastSeenOnSale: '2026-08-05T00:00:00.000Z',
+        firstNotified: '2026-07-02T00:00:00.000Z',
+        lastNotified: '2026-07-02T00:00:00.000Z',
+        lastNotifiedPrice: 3.99,
+        notificationCount: 1,
+        currentlyOnSale: true,
+      };
+      const stardewEntry: DealHistoryEntry = {
+        gameTitle: 'Stardew Valley',
+        firstSeenOnSale: '2026-07-05T00:00:00.000Z',
+        lastSeenOnSale: '2026-08-05T00:00:00.000Z',
+        firstNotified: '2026-07-06T00:00:00.000Z',
+        lastNotified: '2026-07-06T00:00:00.000Z',
+        lastNotifiedPrice: 11.99,
+        notificationCount: 1,
+        currentlyOnSale: true,
+      };
+      const result = resultWith({
+        dealHistory: { entries: [carrotEntry, stardewEntry] },
+        analyses: [
+          makeAnalysis(makeGame({ id: 'game-2', title: 'Stardew Valley' })),
+          makeAnalysis(makeGame({ id: 'game-1', title: 'Carrot Smash' })),
+        ],
+      });
+      const digest = buildDailyDigest(result, { blacklist: ['Carrot Smash'] });
+      const titles = digest.stillOnSale.map((item) => item.title);
+      assert.ok(!titles.includes('Carrot Smash'), 'Blacklisted game must not appear in Still On Sale');
+      assert.ok(titles.includes('Stardew Valley'), 'Non-blacklisted game must remain in Still On Sale');
+      assert.strictEqual(digest.summary.stillActiveDeals, 1, 'Summary must ignore the blacklisted still-active deal');
+    },
+  });
+
+  checks.push({
+    name: 'Today\u2019s Summary Biggest Discount ignores blacklisted games',
+    run: () => {
+      const result = resultWith({
+        analyses: [
+          makeAnalysis(makeGame({ id: 'game-1', title: 'Carrot Smash', currentPrice: 1.0, originalPrice: 60 })),
+          makeAnalysis(makeGame({ id: 'game-2', title: 'Stardew Valley', currentPrice: 19.99, originalPrice: 19.99 })),
+        ],
+      });
+      // Analyses are already blacklist-filtered upstream, but the digest must not
+      // surface a blacklisted biggest-discount game regardless.
+      const digest = buildDailyDigest(result, { blacklist: ['Carrot Smash'] });
+      assert.notStrictEqual(
+        digest.summary.biggestDiscountTitle,
+        'Carrot Smash',
+        'Blacklisted game must never be the biggest discount',
+      );
+    },
+  });
+
+  checks.push({
+    name: 'Best Deals ignores blacklisted games',
+    run: () => {
+      const carrotAnalysis = makeAnalysis(
+        makeGame({ id: 'game-1', title: 'Carrot Smash', currentPrice: 3.99, originalPrice: 39.99 }),
+      );
+      carrotAnalysis.dealScore = { score: 200, reasons: ['Big'] };
+      const stardew = makeAnalysis(
+        makeGame({ id: 'game-2', title: 'Stardew Valley', currentPrice: 11.99, originalPrice: 19.99 }),
+      );
+      const result = resultWith({ analyses: [carrotAnalysis, stardew], reportedAnalyses: [carrotAnalysis, stardew] });
+      const digest = buildDailyDigest(result, { blacklist: ['Carrot Smash'] });
+      const titles = digest.bestDeals.map((deal) => deal.title);
+      assert.ok(!titles.includes('Carrot Smash'), 'Blacklisted game must not appear in Best Deals');
+      assert.ok(titles.includes('Stardew Valley'), 'Non-blacklisted game must remain in Best Deals');
+    },
+  });
+
+  checks.push({
+    name: 'blacklisted-but-wishlisted game stays in Wishlist Watch but is absent elsewhere',
+    run: () => {
+      const carrotGame = makeGame({
+        id: 'game-1',
+        title: 'Carrot Smash',
+        currentPrice: 59.99,
+        originalPrice: 59.99,
+      });
+      const result = resultWith({
+        wishlist: wishlistFrom([{ gameTitle: 'Carrot Smash', targetPrice: 40, notifyOnAnyDiscount: false }]),
+        monitoredTitles: ['Carrot Smash'],
+        wishlistGames: [carrotGame],
+      });
+      const digest = buildDailyDigest(result, { blacklist: ['Carrot Smash'] });
+      const watch = digest.wishlistWatch.find((item) => item.title === 'Carrot Smash');
+      assert.ok(watch, 'Blacklisted-but-wishlisted game must stay in Wishlist Watch');
+      assert.ok(
+        !digest.stillOnSale.some((item) => item.title === 'Carrot Smash'),
+        'Blacklisted game must not appear in Still On Sale',
+      );
+      assert.ok(
+        !digest.recommendations.some((rec) => rec.title === 'Carrot Smash'),
+        'Blacklisted game must not be recommended',
+      );
     },
   });
 

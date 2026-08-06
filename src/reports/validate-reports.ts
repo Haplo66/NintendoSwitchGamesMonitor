@@ -272,8 +272,8 @@ const checks: Check[] = [
     name: 'markdown family recommendations render',
     run: () => {
       assert.ok(markdown.includes('## ⭐ Recommended For Your Family'), 'Recommendations missing');
-      assert.ok(markdown.includes('### Alex (Kid)'), 'Profile name missing');
-      assert.ok(markdown.includes('- ✓ Mario Kart 8 Deluxe'), 'Recommendation game missing');
+      assert.ok(markdown.includes('### Mario Kart 8 Deluxe'), 'Recommended game title missing');
+      assert.ok(markdown.includes('- ✓ Alex (Kid)'), 'Matching member missing');
     },
   },
   {

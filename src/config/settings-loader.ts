@@ -9,6 +9,7 @@ export const DEFAULT_DAILY_DIGEST_SETTINGS: DailyDigestSettings = {
   maxWishlistAlerts: 10,
   showStatistics: true,
   showPriceWatch: true,
+  recommendedFamilyGamesLimit: 10,
 };
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
@@ -95,6 +96,7 @@ export function validateNotificationSettings(settings: unknown): string[] {
       };
       checkDigestNumber('maxBestDeals', 1, true);
       checkDigestNumber('maxWishlistAlerts', 1, true);
+      checkDigestNumber('recommendedFamilyGamesLimit', 1, true);
       checkDigestBoolean('showStatistics');
       checkDigestBoolean('showPriceWatch');
     }

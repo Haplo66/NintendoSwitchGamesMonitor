@@ -91,16 +91,16 @@ function buildSampleDigest(): DailyDigest {
     ],
     recommendations: [
       {
-        profileName: 'Alex (Kid)',
-        games: [
-          {
-            title: 'Mario Kart 8 Deluxe',
-            reasons: ['Racing', 'Age appropriate'],
-            currentPrice: 39.99,
-            originalPrice: 59.99,
-            discountPercent: 33,
-            isFree: false,
-          },
+        title: 'Mario Kart 8 Deluxe',
+        currentPrice: 39.99,
+        originalPrice: 59.99,
+        discountPercent: 33,
+        isFree: false,
+        onWishlist: true,
+        entireFamily: false,
+        members: [
+          { name: 'Alex (Kid)', reasons: ['Racing', 'Age appropriate'] },
+          { name: 'Sam (Teen)', reasons: ['Racing'] },
         ],
       },
     ],
@@ -144,6 +144,75 @@ function emptyDigest(): DailyDigest {
     recommendations: [],
     priceWatch: [],
   };
+}
+
+function manyCardsDigest(overrides: {
+  stillOnSale?: number;
+  bestDeals?: number;
+  recommendations?: 'none' | 'members' | 'entire-family';
+} = {}): DailyDigest {
+  const base = buildSampleDigest();
+  const stillCount = overrides.stillOnSale ?? 0;
+  const dealsCount = overrides.bestDeals ?? 0;
+  base.stillOnSale = Array.from({ length: stillCount }, (_, index) => ({
+    title: `Still Deal ${index + 1}`,
+    currentPrice: 39.99,
+    originalPrice: 59.99,
+    discountPercent: 33,
+    firstReportedAt: '2026-07-20T00:00:00.000Z',
+    daysOnSale: 12,
+    storeUrl: 'https://www.nintendo.com/store/products/demo/',
+  }));
+  base.bestDeals = Array.from({ length: dealsCount }, (_, index) => ({
+    title: `Best Deal ${index + 1}`,
+    currentPrice: 39.99,
+    originalPrice: 59.99,
+    discountPercent: 33,
+    score: 92,
+    reasons: ['Great value'],
+    ageRating: 'E',
+    storeUrl: 'https://www.nintendo.com/store/products/demo/',
+  }));
+  if (overrides.recommendations === 'members') {
+    base.recommendations = [
+      {
+        title: 'Mario Wonder',
+        currentPrice: 49.99,
+        originalPrice: 59.99,
+        discountPercent: 17,
+        isFree: false,
+        onWishlist: false,
+        entireFamily: false,
+        members: [
+          { name: 'Yaara', reasons: ['Adventure'] },
+          { name: 'Barak', reasons: ['Action'] },
+          { name: 'Alon', reasons: ['Action'] },
+        ],
+      },
+    ];
+  } else if (overrides.recommendations === 'entire-family') {
+    base.recommendations = [
+      {
+        title: 'Mario Wonder',
+        currentPrice: 49.99,
+        originalPrice: 59.99,
+        discountPercent: 17,
+        isFree: false,
+        onWishlist: false,
+        entireFamily: true,
+        members: [
+          { name: 'Yaara', reasons: ['Adventure'] },
+          { name: 'Barak', reasons: ['Action'] },
+          { name: 'Alon', reasons: ['Action'] },
+        ],
+      },
+    ];
+  }
+  return base;
+}
+
+function hasTwoColumnLayout(sectionHtml: string): boolean {
+  return sectionHtml.includes('table-layout:fixed') && sectionHtml.includes('width="50%"');
 }
 
 function hasStat(html: string, value: string | number, label: string): boolean {
@@ -280,9 +349,12 @@ export async function validateEmailRendering(): Promise<void> {
       name: 'Recommended For Your Family section renders',
       run: () => {
         assert.ok(html.includes('Recommended For Your Family'), 'Recommended header missing');
+        assert.ok(html.includes('Mario Kart 8 Deluxe'), 'Recommended game title missing');
         assert.ok(html.includes('Alex (Kid)'), 'Profile name missing');
+        assert.ok(html.includes('Sam (Teen)'), 'Second matching member missing');
         assert.ok(html.includes('Racing'), 'Recommendation reason missing');
         assert.ok(html.includes('Age appropriate'), 'Recommendation reason missing');
+        assert.ok(html.includes('Recommended for:'), 'Recommended for label missing');
       },
     },
     {
@@ -330,6 +402,57 @@ export async function validateEmailRendering(): Promise<void> {
           emptyHtml.includes('Generated automatically by'),
           'Footer should always render',
         );
+      },
+    },
+    {
+      name: 'short lists stay single-column',
+      run: () => {
+        const html = renderDigestEmail(manyCardsDigest({ bestDeals: 3, stillOnSale: 3 }));
+        assert.ok(!hasTwoColumnLayout(html), 'Few items must stay single-column');
+      },
+    },
+    {
+      name: 'long Best Deals list switches to two columns',
+      run: () => {
+        const html = renderDigestEmail(manyCardsDigest({ bestDeals: 7 }));
+        assert.ok(hasTwoColumnLayout(html), '7 best deals must use two columns');
+      },
+    },
+    {
+      name: 'long Still On Sale list switches to two columns',
+      run: () => {
+        const html = renderDigestEmail(manyCardsDigest({ stillOnSale: 7 }));
+        assert.ok(hasTwoColumnLayout(html), '7 still-on-sale deals must use two columns');
+      },
+    },
+    {
+      name: 'threshold (6) stays single-column and 7 activates two columns for still on sale',
+      run: () => {
+        const html6 = renderDigestEmail(manyCardsDigest({ stillOnSale: 6 }));
+        const html7 = renderDigestEmail(manyCardsDigest({ stillOnSale: 7 }));
+        assert.ok(!hasTwoColumnLayout(html6), '6 still-on-sale deals must stay single-column');
+        assert.ok(hasTwoColumnLayout(html7), '7 still-on-sale deals must use two columns');
+      },
+    },
+    {
+      name: 'recommendations list every matching member under the game',
+      run: () => {
+        const html = renderDigestEmail(manyCardsDigest({ recommendations: 'members' }));
+        assert.ok(html.includes('Mario Wonder'), 'Recommended game title missing');
+        assert.ok(html.includes('Yaara'), 'Member Yaara missing');
+        assert.ok(html.includes('Barak'), 'Member Barak missing');
+        assert.ok(html.includes('Alon'), 'Member Alon missing');
+        assert.ok(html.includes('Recommended for:'), 'Recommended for label missing');
+        assert.ok(!html.includes('Entire family'), 'Individual members must not show the entire family label');
+      },
+    },
+    {
+      name: 'entire family collapses into a single label',
+      run: () => {
+        const html = renderDigestEmail(manyCardsDigest({ recommendations: 'entire-family' }));
+        assert.ok(html.includes('Entire family'), 'Entire family label missing');
+        assert.ok(!html.includes('Yaara'), 'Individual members must not be repeated when whole family matches');
+        assert.ok(!html.includes('Barak'), 'Individual members must not be repeated when whole family matches');
       },
     },
     {

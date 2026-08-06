@@ -269,6 +269,8 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     maxWishlistAlerts: config.notification.dailyDigest.maxWishlistAlerts,
     showStatistics: config.notification.dailyDigest.showStatistics,
     showPriceWatch: config.notification.dailyDigest.showPriceWatch,
+    recommendedFamilyGamesLimit: config.notification.dailyDigest.recommendedFamilyGamesLimit,
+    blacklist: config.blacklist,
   });
   const html = renderDigestEmail(digest);
 

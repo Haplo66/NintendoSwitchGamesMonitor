@@ -109,38 +109,40 @@ function buildSampleDigest(): DailyDigest {
     ],
     recommendations: [
       {
-        profileName: 'Alex (Kid)',
-        games: [
-          {
-            title: 'Mario Kart 8 Deluxe',
-            reasons: ['Racing', 'Platformer', 'Age appropriate'],
-            currentPrice: 39.99,
-            originalPrice: 59.99,
-            discountPercent: 33,
-            isFree: false,
-          },
-          {
-            title: 'Super Mario Odyssey',
-            reasons: ['Adventure', 'Platformer', 'Age appropriate'],
-            currentPrice: 41.99,
-            originalPrice: 59.99,
-            discountPercent: 30,
-            isFree: false,
-          },
+        title: 'Mario Kart 8 Deluxe',
+        currentPrice: 39.99,
+        originalPrice: 59.99,
+        discountPercent: 33,
+        isFree: false,
+        onWishlist: true,
+        entireFamily: false,
+        members: [
+          { name: 'Alex (Kid)', reasons: ['Racing', 'Platformer', 'Age appropriate'] },
+          { name: 'Maya (Teen)', reasons: ['Racing'] },
         ],
       },
       {
-        profileName: 'Maya (Teen)',
-        games: [
-          {
-            title: 'The Legend of Zelda: Breath of the Wild',
-            reasons: ['Action', 'Adventure', 'Age appropriate'],
-            currentPrice: 39.99,
-            originalPrice: 59.99,
-            discountPercent: 33,
-            isFree: false,
-          },
+        title: 'Super Mario Odyssey',
+        currentPrice: 41.99,
+        originalPrice: 59.99,
+        discountPercent: 30,
+        isFree: false,
+        onWishlist: false,
+        entireFamily: true,
+        members: [
+          { name: 'Alex (Kid)', reasons: ['Adventure', 'Platformer', 'Age appropriate'] },
+          { name: 'Maya (Teen)', reasons: ['Adventure'] },
         ],
+      },
+      {
+        title: 'The Legend of Zelda: Breath of the Wild',
+        currentPrice: 39.99,
+        originalPrice: 59.99,
+        discountPercent: 33,
+        isFree: false,
+        onWishlist: false,
+        entireFamily: false,
+        members: [{ name: 'Maya (Teen)', reasons: ['Action', 'Adventure', 'Age appropriate'] }],
       },
     ],
     priceWatch: [

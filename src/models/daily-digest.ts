@@ -88,18 +88,26 @@ export interface DigestFreeGame {
   storeUrl: string;
 }
 
-export interface DigestRecommendationGame {
-  title: string;
+export interface DigestFamilyRecommendationMember {
+  name: string;
   reasons: string[];
+}
+
+/**
+ * A family recommendation grouped by game. Each recommended game appears
+ * exactly once, with every matching family member listed beneath it (unless
+ * the whole family matches, in which case `entireFamily` is true and the
+ * individual member list is collapsed into a single "Entire family" label).
+ */
+export interface DigestFamilyRecommendation {
+  title: string;
   currentPrice: number;
   originalPrice?: number;
   discountPercent: number;
   isFree: boolean;
-}
-
-export interface DigestFamilyRecommendation {
-  profileName: string;
-  games: DigestRecommendationGame[];
+  onWishlist: boolean;
+  entireFamily: boolean;
+  members: DigestFamilyRecommendationMember[];
 }
 
 export interface DigestPriceWatchItem {

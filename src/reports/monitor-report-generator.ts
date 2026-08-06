@@ -240,17 +240,24 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
     out.push('## ⭐ Recommended For Your Family');
     out.push('');
     for (const recommendation of digest.recommendations) {
-      out.push(`### ${recommendation.profileName}`);
+      out.push(`### ${recommendation.title}`);
       out.push('');
-      for (const game of recommendation.games) {
-        const status = game.isFree
-          ? '🆓 Free to download'
-          : game.discountPercent > 0
-            ? `🔥 -${game.discountPercent}% (${formatAmount(digest.currency, game.currentPrice)})`
-            : '⚪ Full Price';
-        const reason = game.reasons.length > 0 ? ` — ${game.reasons.join(', ')}` : '';
-        out.push(`- ✓ ${game.title}${reason}`);
-        out.push(`  ${status}`);
+      const status = recommendation.isFree
+        ? '🆓 Free to download'
+        : recommendation.discountPercent > 0
+          ? `🔥 -${recommendation.discountPercent}% (${formatAmount(digest.currency, recommendation.currentPrice)})`
+          : '⚪ Full Price';
+      out.push(`- ${status}`);
+      if (recommendation.onWishlist) {
+        out.push('- On wishlist');
+      }
+      if (recommendation.entireFamily) {
+        out.push('- 👨‍👩‍👧‍👦 Entire family');
+      } else {
+        for (const member of recommendation.members) {
+          const reason = member.reasons.length > 0 ? ` — ${member.reasons.join(', ')}` : '';
+          out.push(`- ✓ ${member.name}${reason}`);
+        }
       }
       out.push('');
     }

@@ -79,9 +79,11 @@ function resultWith(overrides: Partial<MonitorResult> = {}): MonitorResult {
 
 function recommendationTitles(result: MonitorResult): string[] {
   const digest = buildDailyDigest(result);
-  return digest.recommendations.flatMap((recommendation) =>
-    recommendation.games.map((game) => game.title),
-  );
+  return digest.recommendations.map((recommendation) => recommendation.title);
+}
+
+function buildDigest(result: MonitorResult): ReturnType<typeof buildDailyDigest> {
+  return buildDailyDigest(result);
 }
 
 export async function validateRecommendations(): Promise<void> {
@@ -180,8 +182,8 @@ export async function validateRecommendations(): Promise<void> {
         const analysis = makeAnalysis(fortnite);
         const result = resultWith({ analyses: [analysis], reportedAnalyses: [analysis] });
         assert.deepStrictEqual(recommendationTitles(result), ['Fortnite']);
-        const digest = buildDailyDigest(result);
-        const game = digest.recommendations[0].games[0];
+        const digest = buildDigest(result);
+        const game = digest.recommendations[0];
         assert.strictEqual(game.isFree, true);
         assert.strictEqual(game.discountPercent, 0);
       },
@@ -194,8 +196,8 @@ export async function validateRecommendations(): Promise<void> {
           analyses: [makeAnalysis(lego)],
           reportedAnalyses: [makeAnalysis(lego)],
         });
-        const digest = buildDailyDigest(result);
-        const game = digest.recommendations[0].games[0];
+        const digest = buildDigest(result);
+        const game = digest.recommendations[0];
         assert.strictEqual(game.currentPrice, 3.99);
         assert.strictEqual(game.originalPrice, 39.99);
         assert.strictEqual(game.discountPercent, 90);
@@ -223,10 +225,148 @@ export async function validateRecommendations(): Promise<void> {
         assert.deepStrictEqual(recommendationTitles(result), []);
       },
     },
+    {
+      name: 'recommendations group by game and list every matching member once',
+      run: () => {
+        const mario = makeGame({ title: 'Mario Wonder', currentPrice: 49.99, originalPrice: 59.99 });
+        const analysis = buildAnalysis(mario, [
+          { profileName: 'Yaara', matched: true, reasons: ['Adventure'] },
+          { profileName: 'Barak', matched: true, reasons: ['Action'] },
+          { profileName: 'Alon', matched: true, reasons: ['Action'] },
+        ]);
+        const result = resultWith({ analyses: [analysis], reportedAnalyses: [analysis] });
+        const digest = buildDigest(result);
+        assert.strictEqual(digest.recommendations.length, 1, 'Each game must appear exactly once');
+        const rec = digest.recommendations[0];
+        assert.strictEqual(rec.title, 'Mario Wonder');
+        assert.deepStrictEqual(
+          rec.members.map((m) => m.name).sort(),
+          ['Alon', 'Barak', 'Yaara'],
+          'Every matching family member must be listed under the game',
+        );
+        assert.deepStrictEqual(
+          rec.members.find((m) => m.name === 'Yaara')?.reasons,
+          ['Adventure'],
+          'Each member must preserve their own match reason',
+        );
+      },
+    },
+    {
+      name: 'entire family collapses into a single label',
+      run: () => {
+        const mario = makeGame({ title: 'Mario Wonder', currentPrice: 49.99, originalPrice: 59.99 });
+        const analysis = buildAnalysis(mario, [
+          { profileName: 'Yaara', matched: true, reasons: ['Adventure'] },
+          { profileName: 'Barak', matched: true, reasons: ['Action'] },
+          { profileName: 'Alon', matched: true, reasons: ['Action'] },
+        ]);
+        const partial = buildAnalysis(makeGame({ title: 'Zelda', currentPrice: 39.99, originalPrice: 59.99 }), [
+          { profileName: 'Yaara', matched: true, reasons: ['Adventure'] },
+          { profileName: 'Barak', matched: false, reasons: [] },
+          { profileName: 'Alon', matched: false, reasons: [] },
+        ]);
+        const result = resultWith({
+          analyses: [analysis, partial],
+          reportedAnalyses: [analysis, partial],
+        });
+        const digest = buildDigest(result);
+        const marioRec = digest.recommendations.find((r) => r.title === 'Mario Wonder');
+        const zeldaRec = digest.recommendations.find((r) => r.title === 'Zelda');
+        assert.strictEqual(marioRec?.entireFamily, true, 'Whole-family game must be flagged');
+        assert.strictEqual(zeldaRec?.entireFamily, false, 'Partial match must not be flagged');
+        const html = renderDigestEmail(digest);
+        assert.ok(html.includes('Entire family'), 'Entire family label missing');
+      },
+    },
+    {
+      name: 'recommendations order: wishlist, entire family, most members, then score',
+      run: () => {
+        const wishlistGame = buildAnalysis(
+          makeGame({ title: 'Wishlist' }),
+          [{ profileName: 'Yaara', matched: true, reasons: ['Adventure'] }],
+          wishlistMatch(),
+        );
+        const entireGame = buildAnalysis(
+          makeGame({ title: 'Every Kid' }),
+          [
+            { profileName: 'Yaara', matched: true, reasons: [] },
+            { profileName: 'Barak', matched: true, reasons: [] },
+            { profileName: 'Alon', matched: true, reasons: [] },
+          ],
+        );
+        const crowdGame = buildAnalysis(
+          makeGame({ title: 'Two Match' }),
+          [
+            { profileName: 'Yaara', matched: true, reasons: [] },
+            { profileName: 'Barak', matched: true, reasons: [] },
+            { profileName: 'Alon', matched: false, reasons: [] },
+          ],
+        );
+        const topScore = buildAnalysis(
+          makeGame({ title: 'High Score' }),
+          [
+            { profileName: 'Yaara', matched: true, reasons: [] },
+            { profileName: 'Barak', matched: false, reasons: [] },
+            { profileName: 'Alon', matched: false, reasons: [] },
+          ],
+        );
+        topScore.dealScore = { score: 500, reasons: [] };
+        const result = resultWith({
+          analyses: [topScore, entireGame, crowdGame, wishlistGame],
+          reportedAnalyses: [topScore, entireGame, crowdGame, wishlistGame],
+        });
+        assert.deepStrictEqual(recommendationTitles(result), [
+          'Wishlist',
+          'Every Kid',
+          'Two Match',
+          'High Score',
+        ]);
+      },
+    },
+    {
+      name: 'recommendedFamilyGamesLimit applies after sorting',
+      run: () => {
+        const games: GameAnalysis[] = [];
+        for (let i = 1; i <= 15; i += 1) {
+          const analysis = buildAnalysis(
+            makeGame({ title: `Game ${i}`, currentPrice: 0, originalPrice: undefined }),
+            [{ profileName: 'Yaara', matched: true, reasons: [] }],
+          );
+          analysis.dealScore = { score: 100 + i, reasons: [] };
+          games.push(analysis);
+        }
+        const result = resultWith({ analyses: games, reportedAnalyses: games });
+        const digest = buildDailyDigest(result, { recommendedFamilyGamesLimit: 4 });
+        assert.strictEqual(digest.recommendations.length, 4, 'Recommendations must be capped at the limit');
+      },
+    },
   ];
 
   await runChecks(checks);
   console.log('\nAll recommendation validation checks passed.');
+}
+
+function buildAnalysis(
+  game: Game,
+  familyMatches: GameAnalysis['familyMatches'],
+  wishlistMatch?: GameAnalysis['wishlistMatch'],
+): GameAnalysis {
+  return {
+    game,
+    familyMatches,
+    wishlistMatch: wishlistMatch ?? { matched: false, wishlistItem: undefined as never, priceTargetReached: false },
+    dealScore: { score: 100, reasons: [] },
+  };
+}
+
+function wishlistMatch(): NonNullable<GameAnalysis['wishlistMatch']> {
+  return {
+    matched: true,
+    wishlistItem: { gameTitle: 'Wishlist', targetPrice: 20, notifyOnAnyDiscount: false },
+    priceTargetReached: true,
+    effectiveTargetPrice: 20,
+    targetPriceOrigin: 'configured',
+  };
 }
 
 if (require.main === module) {

@@ -69,6 +69,7 @@ const checks: Check[] = [
           maxWishlistAlerts: 5,
           showStatistics: false,
           showPriceWatch: true,
+          recommendedFamilyGamesLimit: 8,
         },
       };
       try {
@@ -121,6 +122,10 @@ const checks: Check[] = [
           loaded.dailyDigest.showPriceWatch,
           DEFAULT_NOTIFICATION_SETTINGS.dailyDigest.showPriceWatch,
         );
+        assert.strictEqual(
+          loaded.dailyDigest.recommendedFamilyGamesLimit,
+          DEFAULT_NOTIFICATION_SETTINGS.dailyDigest.recommendedFamilyGamesLimit,
+        );
       } finally {
         fs.rmSync(file, { force: true });
       }
@@ -170,6 +175,8 @@ const checks: Check[] = [
         { dailyDigest: 'nope' },
         { dailyDigest: { maxBestDeals: 0 } },
         { dailyDigest: { maxWishlistAlerts: 2.5 } },
+        { dailyDigest: { recommendedFamilyGamesLimit: 0 } },
+        { dailyDigest: { recommendedFamilyGamesLimit: 2.5 } },
         { dailyDigest: { showStatistics: 'yes' } },
         { dailyDigest: { showPriceWatch: 1 } },
       ];

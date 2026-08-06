@@ -11,7 +11,8 @@
     "maxBestDeals": 12,
     "maxWishlistAlerts": 6,
     "showStatistics": true,
-    "showPriceWatch": true
+    "showPriceWatch": true,
+    "recommendedFamilyGamesLimit": 10
   },
   "platform": "switch1",
   "emailProvider": "gmail",

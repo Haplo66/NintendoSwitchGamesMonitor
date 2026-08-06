@@ -1,5 +1,6 @@
 import { calculateDiscountPercent } from '../analyzer/deal-score';
 import { matchGameToWishlist } from '../analyzer/wishlist-matcher';
+import { BlacklistSource, isGameBlacklisted } from '../config/blacklist';
 import { DEFAULT_DAILY_DIGEST_SETTINGS } from '../config/settings-loader';
 import { evaluateDealQuality } from '../history/deal-quality';
 import { getPriceContext } from '../history/price-intelligence';
@@ -9,6 +10,7 @@ import {
   DigestBestDeal,
   DigestDealQuality,
   DigestFamilyRecommendation,
+  DigestFamilyRecommendationMember,
   DigestPriceContext,
   DigestPriceWatchItem,
   DigestStatistics,
@@ -27,6 +29,11 @@ export interface BuildDailyDigestOptions {
   maxWishlistAlerts?: number;
   showStatistics?: boolean;
   showPriceWatch?: boolean;
+  recommendedFamilyGamesLimit?: number;
+  /** Blacklisted titles must never surface in the digest outside Wishlist Watch.
+   * Passed explicitly so deal-history-derived sections (e.g. Still On Sale) are
+   * filtered even though analysis-based sections already exclude them. */
+  blacklist?: BlacklistSource;
 }
 
 function formatDigestDate(iso: string): string {
@@ -118,7 +125,10 @@ function dealQualityFor(
   return { rating: quality.rating, reason: quality.reason };
 }
 
-function buildStillOnSale(result: MonitorResult): DigestStillOnSale[] {
+function buildStillOnSale(
+  result: MonitorResult,
+  isBlacklisted: (title: string) => boolean,
+): DigestStillOnSale[] {
   const reportedTitles = new Set(result.reportedAnalyses.map((analysis) => titleKey(analysis.game.title)));
   const gameByTitle = new Map(
     result.analyses.map((analysis) => [titleKey(analysis.game.title), analysis.game]),
@@ -127,6 +137,9 @@ function buildStillOnSale(result: MonitorResult): DigestStillOnSale[] {
   const items: DigestStillOnSale[] = [];
   for (const entry of result.dealHistory.entries) {
     if (!entry.currentlyOnSale || !entry.firstNotified) {
+      continue;
+    }
+    if (isBlacklisted(entry.gameTitle)) {
       continue;
     }
     if (reportedTitles.has(titleKey(entry.gameTitle))) {
@@ -233,6 +246,13 @@ function isOnSale(game: Game): boolean {
   return game.originalPrice !== undefined && game.originalPrice > game.currentPrice;
 }
 
+function makeBlacklistGuard(blacklist: BlacklistSource | undefined): (title: string) => boolean {
+  if (blacklist === undefined) {
+    return () => false;
+  }
+  return (title: string) => isGameBlacklisted(title, blacklist);
+}
+
 function isRecommendationEligible(analysis: GameAnalysis, result: MonitorResult): boolean {
   if (analysis.game.currentPrice === 0) {
     return true;
@@ -253,8 +273,23 @@ export function buildDailyDigest(
   const maxWishlistAlerts = options.maxWishlistAlerts ?? DEFAULT_DAILY_DIGEST_SETTINGS.maxWishlistAlerts;
   const showStatistics = options.showStatistics ?? DEFAULT_DAILY_DIGEST_SETTINGS.showStatistics;
   const showPriceWatch = options.showPriceWatch ?? DEFAULT_DAILY_DIGEST_SETTINGS.showPriceWatch;
+  const recommendedFamilyGamesLimit =
+    options.recommendedFamilyGamesLimit ??
+    DEFAULT_DAILY_DIGEST_SETTINGS.recommendedFamilyGamesLimit;
+  const isBlacklisted = makeBlacklistGuard(options.blacklist);
+  const hasBlacklist = options.blacklist !== undefined;
+  // Analysis-based sections are normally already blacklist-filtered upstream at
+  // collection time. Re-filtering here guarantees a blacklisted game never leaks
+  // into Best Deals, Free Games, Wishlist Alerts, recommendations, Price Watch or
+  // the biggest-discount summary regardless of how the digest was invoked.
+  const analyses = hasBlacklist
+    ? result.analyses.filter((analysis) => !isBlacklisted(analysis.game.title))
+    : result.analyses;
+  const reportedAnalyses = hasBlacklist
+    ? result.reportedAnalyses.filter((analysis) => !isBlacklisted(analysis.game.title))
+    : result.reportedAnalyses;
 
-  const stillOnSale = buildStillOnSale(result);
+  const stillOnSale = buildStillOnSale(result, isBlacklisted);
   const wishlistWatch = buildWishlistWatch(result);
   const wishlistGamesOnSale = wishlistWatch.filter(
     (item) => item.status === 'on-sale' || item.status === 'target-reached',
@@ -262,7 +297,7 @@ export function buildDailyDigest(
 
   let biggestDiscountPercent = 0;
   let biggestDiscountTitle: string | undefined;
-  for (const analysis of result.analyses) {
+  for (const analysis of analyses) {
     if (!isOnSale(analysis.game)) {
       continue;
     }
@@ -282,7 +317,7 @@ export function buildDailyDigest(
     gamesChecked: result.analyzedCount,
   };
 
-  const wishlistAlerts: DigestWishlistAlert[] = result.reportedAnalyses
+  const wishlistAlerts: DigestWishlistAlert[] = reportedAnalyses
     .filter(
       (analysis) =>
         analysis.wishlistMatch?.matched === true &&
@@ -311,7 +346,7 @@ export function buildDailyDigest(
     });
 
   const alertTitles = new Set(wishlistAlerts.map((alert) => alert.title));
-  const bestDeals: DigestBestDeal[] = result.reportedAnalyses
+  const bestDeals: DigestBestDeal[] = reportedAnalyses
     .filter(
       (analysis) => analysis.game.currentPrice > 0 && !alertTitles.has(analysis.game.title),
     )
@@ -330,7 +365,7 @@ export function buildDailyDigest(
       quality: dealQualityFor(result, analysis.game.title, analysis.game),
     }));
 
-  const freeGames = result.reportedAnalyses
+  const freeGames = reportedAnalyses
     .filter((analysis) => analysis.game.currentPrice === 0)
     .map((analysis) => ({
       title: analysis.game.title,
@@ -338,35 +373,69 @@ export function buildDailyDigest(
       storeUrl: resolveStoreUrl(analysis.game),
     }));
 
-  const recommendationMap = new Map<string, DigestFamilyRecommendation>();
-  for (const analysis of result.reportedAnalyses) {
+  interface PendingRecommendation {
+    title: string;
+    currentPrice: number;
+    originalPrice?: number;
+    discountPercent: number;
+    isFree: boolean;
+    onWishlist: boolean;
+    entireFamily: boolean;
+    members: DigestFamilyRecommendationMember[];
+    score: number;
+  }
+
+  const pending: PendingRecommendation[] = [];
+  for (const analysis of reportedAnalyses) {
     if (!isRecommendationEligible(analysis, result)) {
       continue;
     }
-    for (const match of analysis.familyMatches) {
-      if (!match.matched) {
-        continue;
-      }
-      let recommendation = recommendationMap.get(match.profileName);
-      if (!recommendation) {
-        recommendation = { profileName: match.profileName, games: [] };
-        recommendationMap.set(match.profileName, recommendation);
-      }
-      recommendation.games.push({
-        title: analysis.game.title,
-        reasons: match.reasons,
-        currentPrice: analysis.game.currentPrice,
-        originalPrice: analysis.game.originalPrice,
-        discountPercent: calculateDiscountPercent(analysis.game),
-        isFree: analysis.game.currentPrice === 0,
-      });
+    const matched = analysis.familyMatches.filter((match) => match.matched);
+    if (matched.length === 0) {
+      continue;
     }
+    const entireFamily =
+      analysis.familyMatches.length > 0 && matched.length === analysis.familyMatches.length;
+    pending.push({
+      title: analysis.game.title,
+      currentPrice: analysis.game.currentPrice,
+      originalPrice: analysis.game.originalPrice,
+      discountPercent: calculateDiscountPercent(analysis.game),
+      isFree: analysis.game.currentPrice === 0,
+      onWishlist: analysis.wishlistMatch?.matched ?? false,
+      entireFamily,
+      members: matched.map((match) => ({ name: match.profileName, reasons: match.reasons })),
+      score: analysis.dealScore.score,
+    });
   }
-  const recommendations = [...recommendationMap.values()];
+
+  pending.sort(
+    (a, b) =>
+      Number(b.onWishlist) - Number(a.onWishlist) ||
+      Number(b.entireFamily) - Number(a.entireFamily) ||
+      b.members.length - a.members.length ||
+      b.score - a.score ||
+      a.title.localeCompare(b.title),
+  );
+
+  const recommendations: DigestFamilyRecommendation[] = pending
+    .slice(0, recommendedFamilyGamesLimit)
+    .map(
+      ({ title, currentPrice, originalPrice, discountPercent, isFree, onWishlist, entireFamily, members }) => ({
+        title,
+        currentPrice,
+        originalPrice,
+        discountPercent,
+        isFree,
+        onWishlist,
+        entireFamily,
+        members,
+      }),
+    );
 
   let priceWatch: DigestPriceWatchItem[] = [];
   if (showPriceWatch) {
-    priceWatch = result.analyses
+    priceWatch = analyses
       .filter(
         (analysis) =>
           analysis.wishlistMatch?.matched === true &&

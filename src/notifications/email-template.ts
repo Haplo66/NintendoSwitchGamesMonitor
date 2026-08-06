@@ -6,7 +6,6 @@ import {
   DigestFamilyRecommendation,
   DigestPriceContext,
   DigestPriceWatchItem,
-  DigestRecommendationGame,
   DigestStatistics,
   DigestStillOnSale,
   DigestSummary,
@@ -105,6 +104,40 @@ function card(inner: string, accentColor?: string): string {
   );
 }
 
+/**
+ * Number of items at or below which a long list is rendered as a single,
+ * full-width column. Above this threshold the section switches to a
+ * responsive two-column table to make long lists easier to scan.
+ */
+const TWO_COLUMN_THRESHOLD = 6;
+
+/**
+ * Renders a list of card HTML strings. Fewer than `threshold` items render as
+ * a single column (preserving the existing look); `threshold` or more render
+ * as a responsive two-column table so long sections are easier to scan.
+ */
+function renderCardGrid(
+  cards: string[],
+  threshold: number = TWO_COLUMN_THRESHOLD,
+): string {
+  if (cards.length <= threshold) {
+    return cards.join('');
+  }
+  const rows: string[] = [];
+  for (let i = 0; i < cards.length; i += 2) {
+    const left = cards[i];
+    const right = cards[i + 1] ?? '';
+    rows.push(
+      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"` +
+      ` style="table-layout:fixed;"><tr>` +
+      `<td width="50%" valign="top" style="padding:0 6px 0 0;">${left}</td>` +
+      `<td width="50%" valign="top" style="padding:0 0 0 6px;">${right}</td>` +
+      `</tr></table>`,
+    );
+  }
+  return rows.join('');
+}
+
 function priceRow(currency: string, original: number | undefined, current: number, accentColor: string): string {
   const originalHtml =
     original !== undefined && original > current
@@ -199,8 +232,8 @@ export function renderStillOnSaleSection(items: DigestStillOnSale[], currency: s
   if (items.length === 0) {
     return '';
   }
-  const cards = items.map((item) => renderStillOnSaleCard(item, currency)).join('');
-  return sectionHeader('🕒', 'Still On Sale', COLORS.time) + cards;
+  const cards = items.map((item) => renderStillOnSaleCard(item, currency));
+  return sectionHeader('🕒', 'Still On Sale', COLORS.time) + renderCardGrid(cards);
 }
 
 /**
@@ -385,8 +418,8 @@ export function renderBestDealsSection(deals: DigestBestDeal[], currency: string
   if (deals.length === 0) {
     return '';
   }
-  const cards = deals.map((deal) => renderBestDealCard(deal, currency)).join('');
-  return sectionHeader('🔥', 'Best Deals', COLORS.accent) + cards;
+  const cards = deals.map((deal) => renderBestDealCard(deal, currency));
+  return sectionHeader('🔥', 'Best Deals', COLORS.accent) + renderCardGrid(cards);
 }
 
 function renderFreeGameCard(game: FreeGame): string {
@@ -412,7 +445,7 @@ export function renderFreeGamesSection(freeGames: FreeGame[]): string {
   return sectionHeader('🆓', 'Free Games', COLORS.free) + cards;
 }
 
-function recommendationPriceStatus(game: DigestRecommendationGame, currency: string): string {
+function recommendationPriceStatus(game: DigestFamilyRecommendation, currency: string): string {
   if (game.isFree) {
     return (
       `<div style="font-family:${FONT}; font-size:13px; font-weight:bold; color:${COLORS.free};">` +
@@ -437,28 +470,32 @@ function recommendationPriceStatus(game: DigestRecommendationGame, currency: str
   );
 }
 
-function renderRecommendationProfile(recommendation: DigestFamilyRecommendation, currency: string): string {
-  const games = recommendation.games
-    .map(
-      (game) =>
-        `<li style="font-family:${FONT}; font-size:14px; color:${COLORS.text}; padding:6px 0;">` +
-        `<span style="color:${COLORS.success}; font-weight:bold;">✓</span> <strong>${escapeHtml(game.title)}</strong>` +
-        recommendationPriceStatus(game, currency) +
-        (game.reasons.length > 0
-          ? `<div style="font-size:12px; color:${COLORS.muted}; margin-top:2px;">Reason: ${game.reasons
-              .map((reason) => escapeHtml(reason))
-              .join(' · ')}</div>`
-          : '') +
-        `</li>`,
-    )
-    .join('');
-  return (
-    `<div style="background-color:${COLORS.panel}; border:1px solid ${COLORS.border};` +
-    ` border-radius:8px; padding:12px 16px; margin:0 0 12px 0;">` +
-    `<h3 style="margin:0 0 4px 0; font-size:15px; color:${COLORS.link}; font-family:${FONT};">` +
-    `${escapeHtml(recommendation.profileName)}</h3>` +
-    `<ul style="margin:0; padding:0; list-style:none;">${games}</ul>` +
-    `</div>`
+function renderRecommendationCard(recommendation: DigestFamilyRecommendation, currency: string): string {
+  const who =
+    recommendation.entireFamily
+      ? `<div style="font-family:${FONT}; font-size:13px; font-weight:bold; color:${COLORS.success};">👨‍👩‍👧‍👦 Entire family</div>`
+      : recommendation.members
+          .map(
+            (member) =>
+              `<div style="font-family:${FONT}; font-size:13px; color:${COLORS.text}; padding:2px 0;">` +
+              `<span style="color:${COLORS.success}; font-weight:bold;">✓</span> <strong>${escapeHtml(member.name)}</strong>` +
+              (member.reasons.length > 0
+                ? ` <span style="color:${COLORS.muted};">· ${member.reasons
+                    .map((reason) => escapeHtml(reason))
+                    .join(', ')}</span>`
+                : '') +
+              `</div>`,
+          )
+          .join('');
+  const wishlistTag = recommendation.onWishlist
+    ? ` <span style="color:${COLORS.muted}; font-size:12px;">(on wishlist)</span>`
+    : '';
+  return card(
+    `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(recommendation.title)}${wishlistTag}</h3>` +
+      recommendationPriceStatus(recommendation, currency) +
+      `<div style="margin-top:8px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">Recommended for:</div>` +
+      `<div style="margin-top:2px;">${who}</div>`,
+    COLORS.free,
   );
 }
 
@@ -469,10 +506,8 @@ export function renderRecommendedSection(
   if (recommendations.length === 0) {
     return '';
   }
-  const blocks = recommendations
-    .map((recommendation) => renderRecommendationProfile(recommendation, currency))
-    .join('');
-  return sectionHeader('⭐', 'Recommended For Your Family', COLORS.free) + blocks;
+  const cards = recommendations.map((recommendation) => renderRecommendationCard(recommendation, currency));
+  return sectionHeader('⭐', 'Recommended For Your Family', COLORS.free) + cards;
 }
 
 function renderPriceWatchCard(item: DigestPriceWatchItem, currency: string): string {

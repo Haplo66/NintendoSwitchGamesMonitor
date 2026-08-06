@@ -3,6 +3,7 @@ export interface DailyDigestSettings {
   maxWishlistAlerts: number;
   showStatistics: boolean;
   showPriceWatch: boolean;
+  recommendedFamilyGamesLimit: number;
 }
 
 export interface NotificationSettings {

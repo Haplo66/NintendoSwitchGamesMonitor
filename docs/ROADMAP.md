@@ -363,3 +363,16 @@ Features:
 - **Validation** — new `npm run validate-deal-quality` suite (wired into `npm test`) covers the empty-history case, each rating rule, the 10% threshold math, the below/at-or-above-average boundary, single-entry histories, and digest rendering of the badge (and its absence)
 - Docs updated (README historical price tracking + deal quality, PRODUCTION.md price history + quality + validation checklist, ROADMAP)
 - Collector behavior, analyzer, family matching, recommendation scoring, wishlist matching, blacklist behavior, notification cooldown behavior, and deal scoring/thresholds unchanged (out of scope for this task)
+
+## v0.32.1 Digest Experience Polish
+
+Features:
+- **Blacklist enforced everywhere** — `buildDailyDigest` now accepts a `blacklist` option and re-filters analysis-based sections (Best Deals, Free Games, Wishlist Alerts, recommendations, Price Watch, biggest-discount summary) plus the deal-history-derived **Still On Sale** section, so a blacklisted game can never appear anywhere in the digest outside **Wishlist Watch** (the existing exception)
+- **Two-column layout for long lists** — **Best Deals** and **Still On Sale** automatically switch to a responsive two-column table when a section holds more than 6 items, making long lists easier to scan; short lists, **Wishlist Watch**, and every other section keep their existing single-column styling, and the Markdown report stays single-column
+- **Recommendations grouped by game** — **Recommended For Your Family** is rebuilt around games instead of family members: each game appears once with every matching member listed beneath it (and each member keeps their own match reason and the game keeps its sale quality + price)
+- **Entire family label** — when every family profile matches a game, the individual member list collapses into a single **👨‍👩‍👧‍👦 Entire family** label
+- **Usefulness ordering** — recommendations sort by: wishlist games first, then whole-family matches, then the most matching members, then the highest deal score (ties broken by title, so ordering is deterministic)
+- **Recommendation limit** — new `dailyDigest.recommendedFamilyGamesLimit` setting (default `10`) caps the section after sorting; validated in `settings-loader`
+- **Validation** — extended `npm run validate-blacklist` (Still On Sale, Today's Summary, Best Deals, Wishlist Watch exception), `npm run validate-recommendations` (grouping, entire-family label, ordering, limit), and `email-validation` (two-column activation + threshold, member listing, entire-family collapse); `npm test` aggregates everything
+- Docs updated (README digest layout, settings, blacklist, validation; PRODUCTION.md blacklist + checklist; ROADMAP)
+- Collector, analyzer, deal scoring, sale quality, wishlist matching, notification cooldown, and notification history unchanged (out of scope for this task)

@@ -47,11 +47,11 @@ The notification email is a **daily digest** written for a busy parent. It opens
 1. **Header** — Nintendo red banner with the app name, formatted date, and the collector used.
 2. **Today's Summary** — a quick stats bar: new deals today, wishlist games on sale, still-active deals, the biggest discount, and games checked.
 3. **Wishlist Watch** — every game on the family wishlist with today's price and its current status: 🔥 **On Sale**, 🎯 **Target Price Reached**, ⚪ **Full Price** (monitored but not currently discounted — its regular price is still shown), or ⚪ **Not Currently Tracked** (not part of the monitored catalog, so no price tracking). Each monitored game shows **Current Price:** (with a struck-through **Regular:** price and 🔥 discount % when on sale) and its target. Each non-tracked game shows *"Add this game to the monitored catalog to enable price tracking."* It always renders, so an empty wishlist is shown explicitly.
-4. **Still On Sale** — deals the family has already been notified about that are *still* discounted (and not re-reported today), with how long each has been on sale (`First reported <date> · N days on sale`). Hidden when there are no still-active tracked deals.
+4. **Still On Sale** — deals the family has already been notified about that are *still* discounted (and not re-reported today), with how long each has been on sale (`First reported <date> · N days on sale`). Hidden when there are no still-active tracked deals. Long lists (more than 6) automatically switch to a two-column layout so they are easier to scan.
 5. **Wishlist Alerts** — games on the family wishlist whose price target was reached (or any discount, when enabled). Each alert shows current/original price, discount %, the target and where it came from (`Configured target` vs `Auto target (N% discount)`), and a store link.
-6. **Best Deals** — the highest-scoring non-wishlist deals, each with price, discount badge, deal score, and why it's recommended.
+6. **Best Deals** — the highest-scoring non-wishlist deals, each with price, discount badge, deal score, and why it's recommended. Long lists (more than 6) automatically switch to a two-column layout.
 7. **Free Games** — free-to-download games, nothing to buy.
-8. **Recommended For Your Family** — one short list per family profile showing which matching games are worth checking **today**. Only actionable games are recommended: currently discounted, free, or active deals still on sale. Each recommended game shows its price status (e.g. 🔥 **-90%** with the current price, or 🆓 **Free to download**). Full-price catalog games are never recommended, even if they match a profile or sit on the wishlist — those stay in **Wishlist Watch** (⚪ Full Price) instead.
+8. **Recommended For Your Family** — matching games worth checking **today**, grouped **by game** rather than by family member. Each game appears once, and every matching family member is listed beneath it with their reason (e.g. "✓ Yaara · Adventure"). When the whole family matches, the individual list collapses into a single **👨‍👩‍👧‍👦 Entire family** label. Only actionable games are recommended: currently discounted, free, or active deals still on sale. Each recommended game shows its price status (e.g. 🔥 **-90%** with the current price, or 🆓 **Free to download**). Full-price catalog games are never recommended, even if they match a profile or sit on the wishlist — those stay in **Wishlist Watch** (⚪ Full Price) instead. Recommendations are sorted by usefulness (wishlist games first, then whole-family matches, then the most matching members, then the highest deal score) and capped at `recommendedFamilyGamesLimit`.
 9. **Price Watch** (optional) — wishlist items currently above their target but within ~10% of it, so you can see which deals are about to happen.
 10. **Monitoring Statistics** (optional) — games checked/reported/skipped, the collector, and execution time.
 11. **Footer** — a muted "generated automatically" note.
@@ -539,7 +539,7 @@ Once a collected game's title matches a wishlist item and its price is at or bel
 - `title` — **required**, unique (case-insensitive). The title string.
 - `reason` — optional note about why the game is hidden (must be a string).
 
-Matching is **exact and case-insensitive** on the normalized title (surrounding whitespace is ignored, so `"Carrot Smash"`, `"carrot smash"`, and `" Carrot Smash "` all match the same entry), and it is applied **after collection and before analysis**: blacklisted games never appear in deal analysis, **Best Deals**, **Recommended For Your Family**, or notifications, and they do not affect the **Games Checked** statistic. If a blacklisted game is also on the wishlist it stays visible in **Wishlist Watch** with today's price/status, but is still excluded from recommendations and general deals. An empty `"games"` array (or an empty blacklist file) hides nothing.
+Matching is **exact and case-insensitive** on the normalized title (surrounding whitespace is ignored, so `"Carrot Smash"`, `"carrot smash"`, and `" Carrot Smash "` all match the same entry), and it is applied **after collection and before analysis**: blacklisted games never appear in deal analysis, **Best Deals**, **Recommended For Your Family**, or notifications, and they do not affect the **Games Checked** statistic. The digest builder also re-applies the blacklist while assembling **every** section (including **Still On Sale** and Today's Summary counts), so a blacklisted game can never surface outside **Wishlist Watch** even when it appears in the historical deal data. If a blacklisted game is also on the wishlist it stays visible in **Wishlist Watch** with today's price/status, but is still excluded from recommendations and general deals. An empty `"games"` array (or an empty blacklist file) hides nothing.
 
 ### Validating configuration
 
@@ -600,7 +600,8 @@ User-editable notification preferences live in `data/settings.json`:
     "maxBestDeals": 5,
     "maxWishlistAlerts": 10,
     "showStatistics": true,
-    "showPriceWatch": true
+    "showPriceWatch": true,
+    "recommendedFamilyGamesLimit": 10
   }
 }
 ```
@@ -618,6 +619,7 @@ User-editable notification preferences live in `data/settings.json`:
   - `maxWishlistAlerts` — how many wishlist alerts (and price-watch items) to show (whole number, default `10`).
   - `showStatistics` — whether to render the **Monitoring Statistics** section (boolean, default `true`).
   - `showPriceWatch` — whether to render the **Price Watch** section (boolean, default `true`).
+  - `recommendedFamilyGamesLimit` — cap on how many games the **Recommended For Your Family** section shows, applied after sorting (whole number, default `10`).
 
 The game blacklist is **not** part of `data/settings.json` — it lives in its own `data/blacklist.json` file (see [Game blacklist](#game-blacklist)).
 
@@ -758,7 +760,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-title-match` | Build and validate conservative fuzzy title matching (exact/normalized/ambiguous cases, analyzer + catalog + collector + digest integration) |
 | `npm run validate-blacklist` | Build and validate the game blacklist (removal, matching, wishlist exception, no notifications) |
 | `npm run validate-blacklist-loader` | Build and validate the blacklist file loader (object/string entries, invalid entries, duplicates, normalization, filtering) |
-| `npm run validate-recommendations` | Build and validate deal-focused family recommendations (discounted/free/active deals included, full-price excluded, price status rendered) |
+| `npm run validate-recommendations` | Build and validate deal-focused family recommendations (discounted/free/active deals included, full-price excluded, price status rendered, grouping by game, whole-family label, usefulness ordering, limit) |
 
 ## Project Structure
 

@@ -17,6 +17,8 @@ export async function generateReport(): Promise<MonitorReportFiles> {
     maxWishlistAlerts: config.notification.dailyDigest.maxWishlistAlerts,
     showStatistics: config.notification.dailyDigest.showStatistics,
     showPriceWatch: config.notification.dailyDigest.showPriceWatch,
+    recommendedFamilyGamesLimit: config.notification.dailyDigest.recommendedFamilyGamesLimit,
+    blacklist: config.blacklist,
   });
   const markdown = generateMonitorReportMarkdown(data);
   const html = generateMonitorReportHtml(data);
