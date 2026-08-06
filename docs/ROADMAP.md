@@ -353,3 +353,13 @@ Features:
 - **Validation** — new `npm run validate-price-intelligence` suite (wired into `npm test`) covers observation recording, same-price duplicate suppression, price-change detection, lowest/highest/average math, empty-history handling, legacy migration + seeding, and digest rendering of the price context
 - Docs updated (README historical price tracking, PRODUCTION.md price history + validation checklist, ROADMAP)
 - Collector behavior, analyzer, family matching, recommendation scoring, wishlist matching, blacklist behavior, and notification cooldown behavior unchanged (out of scope for this task)
+
+## v0.32 Sale Quality Intelligence (v0.32.0)
+
+Features:
+- **Sale quality module** — new `src/history/deal-quality.ts` exposes `evaluateDealQuality({ currentPrice, originalPrice, discountPercent, priceHistory })` which maps the current price against the recorded sale-price history to a one-glance rating and reason, purely informational and independent of email rendering
+- **Rating rules** — `excellent` when the current price is the lowest (or tied lowest) recorded (*"New lowest price"*); `great` when within ~10% of the historical low (*"Near lowest price"*); `good` when below the historical average sale price (*"Below average sale price"*); `weak` when at/above the historical average (*"Usually cheaper"*). Empty history yields no rating, so cards with no useful history show no badge
+- **Digest integration** — Best Deals, Wishlist Alerts, and Still On Sale cards carry a new optional `quality` field; on a card the rating badge takes precedence over the quieter historical price-context line (it already conveys the "new low" signal), rendered in the HTML email and the markdown report
+- **Validation** — new `npm run validate-deal-quality` suite (wired into `npm test`) covers the empty-history case, each rating rule, the 10% threshold math, the below/at-or-above-average boundary, single-entry histories, and digest rendering of the badge (and its absence)
+- Docs updated (README historical price tracking + deal quality, PRODUCTION.md price history + quality + validation checklist, ROADMAP)
+- Collector behavior, analyzer, family matching, recommendation scoring, wishlist matching, blacklist behavior, notification cooldown behavior, and deal scoring/thresholds unchanged (out of scope for this task)

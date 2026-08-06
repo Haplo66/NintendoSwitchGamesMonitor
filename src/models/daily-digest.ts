@@ -19,6 +19,17 @@ export interface DigestPriceContext {
   previousLowest?: number;
 }
 
+export type DealQualityRating = 'excellent' | 'great' | 'good' | 'weak';
+
+/**
+ * Informational sale-quality label for a deal, derived from its price history.
+ * Shown on a card only when there is enough history to judge.
+ */
+export interface DigestDealQuality {
+  rating: DealQualityRating;
+  reason: string;
+}
+
 export interface DigestStillOnSale {
   title: string;
   currentPrice: number;
@@ -28,6 +39,7 @@ export interface DigestStillOnSale {
   daysOnSale: number;
   storeUrl: string;
   priceContext?: DigestPriceContext;
+  quality?: DigestDealQuality;
 }
 
 export type WishlistWatchStatus = 'on-sale' | 'target-reached' | 'full-price' | 'not-monitored';
@@ -54,6 +66,7 @@ export interface DigestWishlistAlert {
   ageRating: string;
   storeUrl: string;
   priceContext?: DigestPriceContext;
+  quality?: DigestDealQuality;
 }
 
 export interface DigestBestDeal {
@@ -66,6 +79,7 @@ export interface DigestBestDeal {
   ageRating: string;
   storeUrl: string;
   priceContext?: DigestPriceContext;
+  quality?: DigestDealQuality;
 }
 
 export interface DigestFreeGame {

@@ -1,6 +1,8 @@
 import {
   DailyDigest,
+  DealQualityRating,
   DigestBestDeal,
+  DigestDealQuality,
   DigestFamilyRecommendation,
   DigestPriceContext,
   DigestPriceWatchItem,
@@ -185,7 +187,7 @@ function renderStillOnSaleCard(item: DigestStillOnSale, currency: string): strin
     `<div>${priceRow(currency, item.originalPrice, item.currentPrice, COLORS.time)}</div>` +
     `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">` +
     `First reported ${formatShortDate(item.firstReportedAt)} · ${daysLabel}</div>` +
-    renderPriceContext(item.priceContext, currency) +
+    renderDealInsight(item.quality, item.priceContext, currency) +
     `</td>` +
     `</tr></table>` +
     actionButton('View Deal', item.storeUrl, COLORS.time),
@@ -228,6 +230,43 @@ function renderPriceContext(context: DigestPriceContext | undefined, currency: s
     `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; font-weight:bold;` +
     ` color:${COLORS.success};">${text}</div>`
   );
+}
+
+const QUALITY_META: Record<DealQualityRating, { label: string; color: string }> = {
+  excellent: { label: '⭐ Excellent deal', color: COLORS.success },
+  great: { label: '⭐ Great deal', color: COLORS.success },
+  good: { label: '👍 Good deal', color: COLORS.link },
+  weak: { label: '⚠️ Weak sale', color: COLORS.danger },
+};
+
+function renderDealQuality(quality: DigestDealQuality | undefined): string {
+  if (!quality) {
+    return '';
+  }
+  const meta = QUALITY_META[quality.rating];
+  return (
+    `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; font-weight:bold;` +
+    ` color:${meta.color};">${meta.label}</div>` +
+    `<div style="font-family:${FONT}; font-size:11px; color:${COLORS.muted};">${escapeHtml(quality.reason)}</div>`
+  );
+}
+
+/**
+ * Renders the deal insight line for a card. A sale-quality badge takes
+ * precedence (it already carries the "new lowest" information); otherwise fall
+ * back to the quieter historical price context. Returns an empty string when
+ * there is neither, so ordinary deals get no extra noise.
+ */
+function renderDealInsight(
+  quality: DigestDealQuality | undefined,
+  priceContext: DigestPriceContext | undefined,
+  currency: string,
+): string {
+  const qualityHtml = renderDealQuality(quality);
+  if (qualityHtml) {
+    return qualityHtml;
+  }
+  return renderPriceContext(priceContext, currency);
 }
 
 export function wishlistStatusMeta(status: DigestWishlistWatch['status']): {
@@ -306,7 +345,7 @@ function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, d
     `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">` +
     `${targetLabel}: <strong>${formatMoney(currency, alert.targetPrice)}</strong> · Reached: ${reachedBadge}` +
     `</div>` +
-    renderPriceContext(alert.priceContext, currency) +
+    renderDealInsight(alert.quality, alert.priceContext, currency) +
     `</td>` +
     `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(alert.ageRating)}</td>` +
     `</tr></table>` +
@@ -333,7 +372,7 @@ function renderBestDealCard(deal: DigestBestDeal, currency: string): string {
     `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
     `<div>${priceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.accent)} ${discount} ${score}</div>` +
     `${reasonsList(deal.reasons)}` +
-    renderPriceContext(deal.priceContext, currency) +
+    renderDealInsight(deal.quality, deal.priceContext, currency) +
     `</td>` +
     `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(deal.ageRating)}</td>` +
     `</tr></table>` +

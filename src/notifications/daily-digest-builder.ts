@@ -1,11 +1,13 @@
 import { calculateDiscountPercent } from '../analyzer/deal-score';
 import { matchGameToWishlist } from '../analyzer/wishlist-matcher';
 import { DEFAULT_DAILY_DIGEST_SETTINGS } from '../config/settings-loader';
+import { evaluateDealQuality } from '../history/deal-quality';
 import { getPriceContext } from '../history/price-intelligence';
 import { matchTitleToCandidates, matchTitlesToCandidates } from '../matching/title-matcher';
 import {
   DailyDigest,
   DigestBestDeal,
+  DigestDealQuality,
   DigestFamilyRecommendation,
   DigestPriceContext,
   DigestPriceWatchItem,
@@ -93,6 +95,29 @@ function priceContextFor(
   return context;
 }
 
+function dealQualityFor(
+  result: MonitorResult,
+  title: string,
+  game: Game,
+): DigestDealQuality | undefined {
+  const entry = result.dealHistory.entries.find(
+    (candidate) => titleKey(candidate.gameTitle) === titleKey(title),
+  );
+  if (!entry || !entry.priceHistory || entry.priceHistory.length === 0) {
+    return undefined;
+  }
+  const quality = evaluateDealQuality({
+    currentPrice: game.currentPrice,
+    originalPrice: game.originalPrice ?? game.currentPrice,
+    discountPercent: calculateDiscountPercent(game),
+    priceHistory: entry.priceHistory,
+  });
+  if (!quality) {
+    return undefined;
+  }
+  return { rating: quality.rating, reason: quality.reason };
+}
+
 function buildStillOnSale(result: MonitorResult): DigestStillOnSale[] {
   const reportedTitles = new Set(result.reportedAnalyses.map((analysis) => titleKey(analysis.game.title)));
   const gameByTitle = new Map(
@@ -120,6 +145,7 @@ function buildStillOnSale(result: MonitorResult): DigestStillOnSale[] {
       daysOnSale: daysBetween(entry.firstSeenOnSale, result.generatedAt),
       storeUrl: resolveStoreUrl(game),
       priceContext: priceContextFor(result, entry.gameTitle, game.currentPrice),
+      quality: dealQualityFor(result, entry.gameTitle, game),
     });
   }
   items.sort((a, b) => b.discountPercent - a.discountPercent);
@@ -280,6 +306,7 @@ export function buildDailyDigest(
           analysis.game.title,
           analysis.game.currentPrice,
         ),
+        quality: dealQualityFor(result, analysis.game.title, analysis.game),
       };
     });
 
@@ -300,6 +327,7 @@ export function buildDailyDigest(
       ageRating: analysis.game.ageRating ?? 'NR',
       storeUrl: resolveStoreUrl(analysis.game),
       priceContext: priceContextFor(result, analysis.game.title, analysis.game.currentPrice),
+      quality: dealQualityFor(result, analysis.game.title, analysis.game),
     }));
 
   const freeGames = result.reportedAnalyses

@@ -426,7 +426,13 @@ The monitor also records a lightweight **price history** per game so the digest 
   - When the current price is the lowest ever seen: **⭐ Lowest price seen** (optionally *· Previous low $X*).
   - Otherwise, when a cheaper price exists in history: **Lowest seen: $X**.
   - Games with no meaningful history get no price line at all.
-- **Validation** — `npm run validate-price-intelligence` covers observation recording, duplicate suppression, price-change detection, lowest/highest/average math, empty-history safety, legacy migration with a seeded price history, and digest rendering of the price context; `npm test` aggregates the suite.
+- **Deal quality** (`src/history/deal-quality.ts`) — `evaluateDealQuality({ currentPrice, originalPrice, discountPercent, priceHistory })` turns the same history into a one-glance **rating** and reason, purely informational and independent of email rendering:
+  - `excellent` — the current price is the lowest (or tied lowest) recorded → *"New lowest price"*.
+  - `great` — the current price is within ~10% of the historical low → *"Near lowest price"*.
+  - `good` — the current price is below the historical average sale price → *"Below average sale price"*.
+  - `weak` — the current price is at or above the historical average → *"Usually cheaper"*.
+  - Empty history yields no rating, so cards with no useful history show no badge. On cards, a rating badge takes precedence over the quieter price-context line (it already conveys the "new low" signal).
+- **Validation** — `npm run validate-price-intelligence` covers observation recording, duplicate suppression, price-change detection, lowest/highest/average math, empty-history safety, legacy migration with a seeded price history, and digest rendering of the price context; `npm run validate-deal-quality` covers the rating rules, threshold math, empty-history safety, and digest rendering of the badge. Both suites are aggregated by `npm test`.
 
 ## Monitoring Reports
 
@@ -737,6 +743,7 @@ cp .env.example .env   # then fill in values
 | `npm run validate-collector` | Build and validate the game collector against real data |
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |
 | `npm run validate-price-intelligence` | Build and validate historical price tracking (observations, lowest/highest/average, migration, digest context) |
+| `npm run validate-deal-quality` | Build and validate sale-quality ratings (excellent/great/good/weak, rendering) |
 | `npm run generate-catalog`   | Build and regenerate the US game catalog from the Nintendo store sitemap + product pages |
 | `npm run refresh-catalog`    | Build, regenerate, and diff the catalog against the committed one (dry run; `--apply` to write) |
 | `npm run validate-refresh`   | Build and validate catalog diff/refresh: added/removed/metadata, stable nsuid comparison, dry-run safety |
@@ -780,9 +787,11 @@ cp .env.example .env   # then fill in values
 │   │   ├── title-matcher.ts
 │   │   ├── wishlist-resolver.ts
 │   │   └── validate-title-match.ts
-│   ├── history/        # Historical price intelligence
+│   ├── history/        # Historical price + sale-quality intelligence
 │   │   ├── price-intelligence.ts
-│   │   └── validate-price-intelligence.ts
+│   │   ├── deal-quality.ts
+│   │   ├── validate-price-intelligence.ts
+│   │   └── validate-deal-quality.ts
 │   ├── notifications/ # Email system: digest builder, templates, renderer, providers
 │   │   ├── daily-digest-builder.ts
 │   │   ├── email-template.ts
