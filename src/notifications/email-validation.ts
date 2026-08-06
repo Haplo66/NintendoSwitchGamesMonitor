@@ -4,6 +4,7 @@ import * as assert from 'node:assert';
 
 import { DailyDigest } from '../models';
 import { renderDigestEmail } from './email-renderer';
+import { renderBestDealsSection } from './email-template';
 import { MockEmailProvider } from './mock-email-provider';
 
 function buildSampleDigest(): DailyDigest {
@@ -215,6 +216,16 @@ function hasTwoColumnLayout(sectionHtml: string): boolean {
   return sectionHtml.includes('table-layout:fixed') && sectionHtml.includes('width="50%"');
 }
 
+function countOccurrences(haystack: string, needle: string): number {
+  let count = 0;
+  let index = haystack.indexOf(needle);
+  while (index !== -1) {
+    count += 1;
+    index = haystack.indexOf(needle, index + needle.length);
+  }
+  return count;
+}
+
 function hasStat(html: string, value: string | number, label: string): boolean {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`>${value}</div><div[^>]*>${escaped}</div>`).test(html);
@@ -334,6 +345,31 @@ export async function validateEmailRendering(): Promise<void> {
         assert.ok(html.includes('Age appropriate for the family'), 'Reason missing');
         assert.ok(html.includes('USD 39.99'), 'Current price missing');
         assert.ok(html.includes('View Deal'), 'Best deal button missing');
+      },
+    },
+    {
+      name: 'discount percentage appears exactly once in a Best Deal card',
+      run: () => {
+        const sectionHtml = renderBestDealsSection(manyCardsDigest({ bestDeals: 1 }).bestDeals, 'USD');
+        assert.ok(sectionHtml.includes('>-33%</span>'), 'Discount badge must be present');
+        assert.strictEqual(
+          countOccurrences(sectionHtml, '>-33%</span>'),
+          1,
+          'Discount percentage must appear exactly once (no duplicate badge)',
+        );
+      },
+    },
+    {
+      name: 'price formatting separates original and current and keeps the score',
+      run: () => {
+        const sectionHtml = renderBestDealsSection(manyCardsDigest({ bestDeals: 1 }).bestDeals, 'USD');
+        assert.ok(sectionHtml.includes('→'), 'Prices must be visually separated');
+        assert.ok(sectionHtml.includes('USD 39.99'), 'Current price must remain visible');
+        assert.ok(sectionHtml.includes('Score 92'), 'Deal score must remain present');
+        assert.ok(
+          !sectionHtml.includes('USD 59.99USD 39.99'),
+          'Prices must not be concatenated without a separator',
+        );
       },
     },
     {

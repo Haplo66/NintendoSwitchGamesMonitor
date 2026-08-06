@@ -387,3 +387,15 @@ Features:
 - **Validation** — extended `npm run validate-blacklist` (LEGO franchise blocking, word-boundary false positives, biggest-discount franchise filtering, Still On Sale keeps non-blacklisted history, Best Deals/recommendations exclusion) and `email-validation` (wide container + 10px gutter, no trailing comma after the entire-family label); `npm test` aggregates everything
 - Docs updated (README + PRODUCTION.md blacklist matching, ROADMAP)
 - Collector, analyzer, deal scoring, sale quality, wishlist matching, recommendation scoring, notification cooldown, and notification history unchanged (out of scope for this task)
+
+## v0.32.3 Digest Price Display Cleanup
+
+Features:
+- **Single discount badge** — `renderBestDealCard` no longer appends a second discount badge next to `priceRow` (which already renders one), so a deal card shows the discount percentage exactly once instead of twice
+- **Clean price formatting** — `priceRow` now separates the struck-through original price from the current price with an arrow (→) instead of concatenating the two values, so prices are readable: `USD 19.99 → USD 4.99` followed by a single discount badge
+- **Recommendation price separators** — `recommendationPriceStatus` also separates the original and current prices with an arrow for the same clean reading
+- **Score preserved** — the **Score NN** badge remains in Best Deals and the HTML/Markdown renderers keep all scoring info; only the duplicate discount rendering was removed
+- **Applied consistently** — Best Deals (duplicate removed), Wishlist Alerts, and Still On Sale (both still show a single discount via the shared `priceRow`), and Recommended For Your Family all render a clean single discount
+- **Validation** — `npm run validate-email` now asserts the discount badge appears exactly once in a Best Deal card, that prices are separated by an arrow (not concatenated), and that the deal score stays present; `npm test` aggregates everything
+- Docs updated (ROADMAP)
+- Collector, analyzer, scoring calculation, deal quality, recommendation logic, and notification history unchanged (out of scope for this task)

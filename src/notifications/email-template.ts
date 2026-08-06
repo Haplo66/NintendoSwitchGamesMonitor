@@ -139,15 +139,15 @@ function renderCardGrid(
 }
 
 function priceRow(currency: string, original: number | undefined, current: number, accentColor: string): string {
-  const originalHtml =
-    original !== undefined && original > current
-      ? `<span style="font-family:${FONT}; font-size:13px; color:${COLORS.muted};` +
-        ` text-decoration:line-through; margin-right:6px;">${formatMoney(currency, original)}</span>`
-      : '';
-  const discount =
-    original !== undefined && original > current
-      ? badge(`-${Math.round(((original - current) / original) * 100)}%`, COLORS.discount)
-      : '';
+  const hasDiscount = original !== undefined && original > current;
+  const originalHtml = hasDiscount
+    ? `<span style="font-family:${FONT}; font-size:13px; color:${COLORS.muted};` +
+      ` text-decoration:line-through;">${formatMoney(currency, original)}</span>` +
+      `<span style="font-family:${FONT}; font-size:13px; color:${COLORS.muted}; padding:0 4px;">→</span>`
+    : '';
+  const discount = hasDiscount
+    ? badge(`-${Math.round(((original - current) / original) * 100)}%`, COLORS.discount)
+    : '';
   return (
     `${originalHtml}<span style="font-family:${FONT}; font-size:18px; font-weight:bold;` +
     ` color:${accentColor};">${formatMoney(currency, current)}</span>${discount}`
@@ -396,14 +396,12 @@ export function renderWishlistAlertsSection(alerts: DigestWishlistAlert[], curre
 }
 
 function renderBestDealCard(deal: DigestBestDeal, currency: string): string {
-  const discount =
-    deal.discountPercent > 0 ? badge(`-${deal.discountPercent}%`, COLORS.discount) : '';
   const score = badge(`Score ${deal.score}`, COLORS.accent);
   return card(
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
     `<td style="padding:0 12px 0 0;">` +
     `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
-    `<div>${priceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.accent)} ${discount} ${score}</div>` +
+    `<div>${priceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.accent)} ${score}</div>` +
     `${reasonsList(deal.reasons)}` +
     renderDealInsight(deal.quality, deal.priceContext, currency) +
     `</td>` +
@@ -455,7 +453,8 @@ function recommendationPriceStatus(game: DigestFamilyRecommendation, currency: s
   if (game.originalPrice !== undefined && game.originalPrice > game.currentPrice) {
     const originalHtml =
       `<span style="font-family:${FONT}; font-size:12px; color:${COLORS.muted};` +
-      ` text-decoration:line-through; margin-right:6px;">${formatMoney(currency, game.originalPrice)}</span>`;
+      ` text-decoration:line-through;">${formatMoney(currency, game.originalPrice)}</span>` +
+      `<span style="font-family:${FONT}; font-size:12px; color:${COLORS.muted}; padding:0 4px;">→</span>`;
     const price =
       `<span style="font-family:${FONT}; font-size:14px; font-weight:bold;` +
       ` color:${COLORS.accent};">${formatMoney(currency, game.currentPrice)}</span>`;
