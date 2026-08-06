@@ -1,4 +1,4 @@
-import { GameAnalysis, MonitorResult } from '../models';
+import { DigestPriceContext, GameAnalysis, MonitorResult } from '../models';
 import {
   BuildDailyDigestOptions,
   buildDailyDigest,
@@ -49,6 +49,26 @@ function statusMeta(stats: string): string {
 
 function formatLink(label: string, url: string): string {
   return `[${label}](${url})`;
+}
+
+function formatPriceContext(
+  context: DigestPriceContext | undefined,
+  currency: string,
+): string[] {
+  if (!context) {
+    return [];
+  }
+  if (context.isLowestRecorded) {
+    const previous =
+      context.previousLowest !== undefined
+        ? ` · Previous low ${formatAmount(currency, context.previousLowest)}`
+        : '';
+    return [`- **Price history:** ⭐ Lowest price seen${previous}`];
+  }
+  if (context.lowestPrice !== undefined) {
+    return [`- **Price history:** Lowest seen ${formatAmount(currency, context.lowestPrice)}`];
+  }
+  return [];
 }
 
 export function generateMonitorReportMarkdown(data: MonitorReportData): string {
@@ -122,6 +142,7 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
       }
       out.push(`- **First reported:** ${item.firstReportedAt}`);
       out.push(`- **On sale for:** ${item.daysOnSale} day(s)`);
+      out.push(...formatPriceContext(item.priceContext, digest.currency));
       out.push('');
       out.push(formatLink('View Deal', item.storeUrl));
       out.push('');
@@ -145,6 +166,7 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
           : `Auto target (${digest.defaultWishlistDiscountPercent}% discount)`;
       out.push(`- **${targetLabel}:** ${formatAmount(digest.currency, alert.targetPrice)}`);
       out.push(`- **Target reached:** ${alert.targetReached ? 'YES' : 'NO'}`);
+      out.push(...formatPriceContext(alert.priceContext, digest.currency));
       out.push('');
       out.push(formatLink('View Deal', alert.storeUrl));
       out.push('');
@@ -166,6 +188,7 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
       if (deal.reasons.length > 0) {
         out.push(`- **Why recommended:** ${deal.reasons.join('; ')}`);
       }
+      out.push(...formatPriceContext(deal.priceContext, digest.currency));
       out.push('');
       out.push(formatLink('View Deal', deal.storeUrl));
       out.push('');

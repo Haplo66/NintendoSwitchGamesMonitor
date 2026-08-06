@@ -83,6 +83,25 @@ export function validateDealHistoryEntry(entry: DealHistoryEntry): string[] {
   if (typeof entry.currentlyOnSale !== 'boolean') {
     errors.push('currentlyOnSale must be a boolean');
   }
+  if (entry.priceHistory !== undefined) {
+    if (!Array.isArray(entry.priceHistory)) {
+      errors.push('priceHistory must be an array when provided');
+    } else {
+      for (let index = 0; index < entry.priceHistory.length; index += 1) {
+        const observation = entry.priceHistory[index];
+        if (
+          observation === null ||
+          typeof observation !== 'object' ||
+          typeof observation.date !== 'string' ||
+          Number.isNaN(Date.parse(observation.date)) ||
+          typeof observation.price !== 'number' ||
+          !Number.isFinite(observation.price)
+        ) {
+          errors.push(`priceHistory[${index}] must be an object with a valid date and finite price`);
+        }
+      }
+    }
+  }
   return errors;
 }
 

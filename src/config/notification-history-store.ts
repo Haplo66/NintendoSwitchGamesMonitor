@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { DealHistory, DealHistoryEntry, Game, GameAnalysis } from '../models';
+import { DealHistory, DealHistoryEntry, Game, GameAnalysis, PriceObservation } from '../models';
 import { ConfigError } from './json-loader';
 import { validateDealHistory } from './validators';
 
@@ -61,6 +61,7 @@ function migrateLegacyHistory(data: { records: LegacyRecord[] }, now: Date): Dea
   }
 
   const entries: DealHistoryEntry[] = [];
+  const nowIso = now.toISOString().slice(0, 10);
   for (const group of byTitle.values()) {
     const gameTitle = group[0].title as string;
     const notifiedAt = group
@@ -70,7 +71,8 @@ function migrateLegacyHistory(data: { records: LegacyRecord[] }, now: Date): Dea
     const first = notifiedAt[0];
     const last = notifiedAt[notifiedAt.length - 1];
     const ref: number = Number.isFinite(first) ? (first as number) : now.getTime();
-    entries.push({
+    const priceHistory = buildLegacyPriceHistory(group);
+    const entry: DealHistoryEntry = {
       gameTitle,
       firstSeenOnSale: new Date(ref).toISOString(),
       lastSeenOnSale: new Date(Number.isFinite(last) ? (last as number) : ref).toISOString(),
@@ -79,9 +81,64 @@ function migrateLegacyHistory(data: { records: LegacyRecord[] }, now: Date): Dea
       lastNotifiedPrice: typeof group[0].price === 'number' ? group[0].price : undefined,
       notificationCount: group.length,
       currentlyOnSale: false,
-    });
+    };
+    if (priceHistory.length > 0) {
+      entry.priceHistory = priceHistory;
+    }
+    entries.push(entry);
   }
   return { entries };
+}
+
+/**
+ * Derives a price history from legacy notification records, ordered by
+ * notification date and de-duplicated so unchanged consecutive prices collapse
+ * into a single observation. Only used during legacy migration.
+ */
+function buildLegacyPriceHistory(records: LegacyRecord[]): PriceObservation[] {
+  const dated = records
+    .filter(
+      (record) =>
+        typeof record.notifiedAt === 'string' &&
+        Number.isFinite(Date.parse(record.notifiedAt)) &&
+        typeof record.price === 'number' &&
+        Number.isFinite(record.price),
+    )
+    .sort((a, b) => Date.parse(a.notifiedAt as string) - Date.parse(b.notifiedAt as string));
+  const observations: PriceObservation[] = [];
+  for (const record of dated) {
+    const price = record.price as number;
+    const last = observations[observations.length - 1];
+    if (last && last.price === price) {
+      continue;
+    }
+    observations.push({ date: (record.notifiedAt as string).slice(0, 10), price });
+  }
+  return observations;
+}
+
+function obsDate(now: Date): string {
+  return now.toISOString().slice(0, 10);
+}
+
+/**
+ * Records a price observation for a game, only when it is a meaningful change.
+ * The first observation seeds the history; subsequent observations are appended
+ * only when the price differs from the last recorded one, so unchanged prices
+ * (e.g. a game still on sale at the same price the next day) are never
+ * duplicated.
+ */
+export function recordPriceObservation(
+  history: PriceObservation[] | undefined,
+  price: number,
+  now: Date,
+): PriceObservation[] {
+  const current = history ?? [];
+  const last = current[current.length - 1];
+  if (last && last.price === price) {
+    return current;
+  }
+  return [...current, { date: obsDate(now), price }];
 }
 
 export function loadDealHistory(filePath?: string): DealHistory {
@@ -173,12 +230,15 @@ export function reconcileDealHistory(
   }
 
   const entries: DealHistoryEntry[] = history.entries.map((entry) => {
-    const present = presentByKey.has(entryKey(entry.gameTitle));
+    const key = entryKey(entry.gameTitle);
+    const present = presentByKey.has(key);
     const updated: DealHistoryEntry = { ...entry, currentlyOnSale: present };
     if (present) {
       updated.lastSeenOnSale = nowIso;
+      const presentValue = presentByKey.get(key) as { game: Game };
+      updated.priceHistory = recordPriceObservation(updated.priceHistory, presentValue.game.currentPrice, now);
     }
-    const notified = notifiedByKey.get(entryKey(entry.gameTitle));
+    const notified = notifiedByKey.get(key);
     if (notified) {
       updated.firstNotified = updated.firstNotified ?? nowIso;
       updated.lastNotified = nowIso;
@@ -199,6 +259,7 @@ export function reconcileDealHistory(
       lastSeenOnSale: nowIso,
       currentlyOnSale: true,
       notificationCount: notified ? 1 : 0,
+      priceHistory: [{ date: obsDate(now), price: value.game.currentPrice }],
     };
     if (notified) {
       entry.firstNotified = nowIso;

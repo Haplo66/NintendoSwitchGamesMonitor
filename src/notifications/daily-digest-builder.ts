@@ -1,11 +1,13 @@
 import { calculateDiscountPercent } from '../analyzer/deal-score';
 import { matchGameToWishlist } from '../analyzer/wishlist-matcher';
 import { DEFAULT_DAILY_DIGEST_SETTINGS } from '../config/settings-loader';
+import { getPriceContext } from '../history/price-intelligence';
 import { matchTitleToCandidates, matchTitlesToCandidates } from '../matching/title-matcher';
 import {
   DailyDigest,
   DigestBestDeal,
   DigestFamilyRecommendation,
+  DigestPriceContext,
   DigestPriceWatchItem,
   DigestStatistics,
   DigestStillOnSale,
@@ -73,6 +75,24 @@ function daysBetween(earlierIso: string, laterIso: string): number {
   return Math.max(0, Math.floor(ms / (24 * 60 * 60 * 1000)));
 }
 
+function priceContextFor(
+  result: MonitorResult,
+  title: string,
+  currentPrice: number,
+): DigestPriceContext | undefined {
+  const entry = result.dealHistory.entries.find(
+    (candidate) => titleKey(candidate.gameTitle) === titleKey(title),
+  );
+  if (!entry || !entry.priceHistory || entry.priceHistory.length === 0) {
+    return undefined;
+  }
+  const context = getPriceContext(entry.priceHistory, currentPrice);
+  if (context.lowestPrice === undefined && !context.isLowestRecorded) {
+    return undefined;
+  }
+  return context;
+}
+
 function buildStillOnSale(result: MonitorResult): DigestStillOnSale[] {
   const reportedTitles = new Set(result.reportedAnalyses.map((analysis) => titleKey(analysis.game.title)));
   const gameByTitle = new Map(
@@ -99,6 +119,7 @@ function buildStillOnSale(result: MonitorResult): DigestStillOnSale[] {
       firstReportedAt: entry.firstNotified,
       daysOnSale: daysBetween(entry.firstSeenOnSale, result.generatedAt),
       storeUrl: resolveStoreUrl(game),
+      priceContext: priceContextFor(result, entry.gameTitle, game.currentPrice),
     });
   }
   items.sort((a, b) => b.discountPercent - a.discountPercent);
@@ -254,6 +275,11 @@ export function buildDailyDigest(
         targetReached: match?.priceTargetReached ?? false,
         ageRating: analysis.game.ageRating ?? 'NR',
         storeUrl: resolveStoreUrl(analysis.game),
+        priceContext: priceContextFor(
+          result,
+          analysis.game.title,
+          analysis.game.currentPrice,
+        ),
       };
     });
 
@@ -273,6 +299,7 @@ export function buildDailyDigest(
       reasons: analysis.dealScore.reasons,
       ageRating: analysis.game.ageRating ?? 'NR',
       storeUrl: resolveStoreUrl(analysis.game),
+      priceContext: priceContextFor(result, analysis.game.title, analysis.game.currentPrice),
     }));
 
   const freeGames = result.reportedAnalyses

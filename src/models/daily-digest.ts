@@ -7,6 +7,18 @@ export interface DigestSummary {
   gamesChecked: number;
 }
 
+/**
+ * Historical price context shown on a deal card. `isLowestRecorded` means the
+ * current price is the lowest ever seen (or tied); `previousLowest` is the low
+ * before that; otherwise `lowestPrice` is the best historical price on record.
+ * Absent entirely when a game has no meaningful price history.
+ */
+export interface DigestPriceContext {
+  lowestPrice?: number;
+  isLowestRecorded: boolean;
+  previousLowest?: number;
+}
+
 export interface DigestStillOnSale {
   title: string;
   currentPrice: number;
@@ -15,6 +27,7 @@ export interface DigestStillOnSale {
   firstReportedAt: string;
   daysOnSale: number;
   storeUrl: string;
+  priceContext?: DigestPriceContext;
 }
 
 export type WishlistWatchStatus = 'on-sale' | 'target-reached' | 'full-price' | 'not-monitored';
@@ -40,6 +53,7 @@ export interface DigestWishlistAlert {
   targetReached: boolean;
   ageRating: string;
   storeUrl: string;
+  priceContext?: DigestPriceContext;
 }
 
 export interface DigestBestDeal {
@@ -51,6 +65,7 @@ export interface DigestBestDeal {
   reasons: string[];
   ageRating: string;
   storeUrl: string;
+  priceContext?: DigestPriceContext;
 }
 
 export interface DigestFreeGame {

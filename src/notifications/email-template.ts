@@ -2,6 +2,7 @@ import {
   DailyDigest,
   DigestBestDeal,
   DigestFamilyRecommendation,
+  DigestPriceContext,
   DigestPriceWatchItem,
   DigestRecommendationGame,
   DigestStatistics,
@@ -184,6 +185,7 @@ function renderStillOnSaleCard(item: DigestStillOnSale, currency: string): strin
     `<div>${priceRow(currency, item.originalPrice, item.currentPrice, COLORS.time)}</div>` +
     `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">` +
     `First reported ${formatShortDate(item.firstReportedAt)} · ${daysLabel}</div>` +
+    renderPriceContext(item.priceContext, currency) +
     `</td>` +
     `</tr></table>` +
     actionButton('View Deal', item.storeUrl, COLORS.time),
@@ -197,6 +199,35 @@ export function renderStillOnSaleSection(items: DigestStillOnSale[], currency: s
   }
   const cards = items.map((item) => renderStillOnSaleCard(item, currency)).join('');
   return sectionHeader('🕒', 'Still On Sale', COLORS.time) + cards;
+}
+
+/**
+ * Renders historical price context under a deal card, only when it is useful:
+ * "⭐ Lowest price seen" (current price is the best ever, optionally with the
+ * previous low) or "Lowest seen: $X" when the current price is not a new low
+ * but a cheaper one exists in history. Returns an empty string when there is
+ * no meaningful history, so no noise is added to ordinary deals.
+ */
+function renderPriceContext(context: DigestPriceContext | undefined, currency: string): string {
+  if (!context) {
+    return '';
+  }
+  let text: string;
+  if (context.isLowestRecorded) {
+    const previous =
+      context.previousLowest !== undefined
+        ? ` · Previous low ${formatMoney(currency, context.previousLowest)}`
+        : '';
+    text = `⭐ Lowest price seen${previous}`;
+  } else if (context.lowestPrice !== undefined) {
+    text = `Lowest seen: ${formatMoney(currency, context.lowestPrice)}`;
+  } else {
+    return '';
+  }
+  return (
+    `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; font-weight:bold;` +
+    ` color:${COLORS.success};">${text}</div>`
+  );
 }
 
 export function wishlistStatusMeta(status: DigestWishlistWatch['status']): {
@@ -275,6 +306,7 @@ function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, d
     `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">` +
     `${targetLabel}: <strong>${formatMoney(currency, alert.targetPrice)}</strong> · Reached: ${reachedBadge}` +
     `</div>` +
+    renderPriceContext(alert.priceContext, currency) +
     `</td>` +
     `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(alert.ageRating)}</td>` +
     `</tr></table>` +
@@ -301,6 +333,7 @@ function renderBestDealCard(deal: DigestBestDeal, currency: string): string {
     `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
     `<div>${priceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.accent)} ${discount} ${score}</div>` +
     `${reasonsList(deal.reasons)}` +
+    renderPriceContext(deal.priceContext, currency) +
     `</td>` +
     `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(deal.ageRating)}</td>` +
     `</tr></table>` +

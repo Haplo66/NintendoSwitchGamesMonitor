@@ -405,6 +405,29 @@ npm run validate-history
 
 Runs checks (no external services) that confirm: empty/missing history initializes correctly, save/load round-trips valid JSON, malformed files fail clearly, legacy records migrate to entries, a new deal creates an entry, a repeated deal updates the same entry instead of duplicating it, a sale ending keeps the entry but marks it off-sale, the cooldown respects same-price notifications (and resets when the price changes or expires), and free games are tracked so they are not re-notified daily.
 
+### Historical price tracking
+
+The monitor also records a lightweight **price history** per game so the digest can say whether a price is historically good. Each deal-history entry carries an optional `priceHistory` — an ordered list of `{ date, price }` observations:
+
+```json
+{
+  "title": "Mario Wonder",
+  "priceHistory": [
+    { "date": "2026-07-01", "price": 39.99 },
+    { "date": "2026-08-05", "price": 34.99 }
+  ]
+}
+```
+
+- **What gets stored** — only *meaningful* changes are appended: the first time a game is seen on sale, a sale price change, or a sale starting again at a different price. Identical unchanged prices are never appended, so the history stays bounded (no per-day duplicates for a game that stays at the same price).
+- **Migration** — existing history files without `priceHistory` load as-is (the field is optional). Legacy `{ records: [...] }` files are migrated into deal entries *and* seed a price history from each recorded notification price, with no data loss.
+- **Price intelligence** (`src/history/price-intelligence.ts`) — reusable, rendering-independent helpers: `getLowestPrice`, `getHighestPrice`, `getAveragePrice`, `isLowestRecordedPrice`, and `getPriceContext` (which returns whether the current price is a new low and the previous low). Empty histories are handled safely (these return `undefined` / `false`).
+- **Digest context** — deal cards (**Best Deals**, **Wishlist Alerts**, **Still On Sale**) show price context only when it is useful and add no noise otherwise:
+  - When the current price is the lowest ever seen: **⭐ Lowest price seen** (optionally *· Previous low $X*).
+  - Otherwise, when a cheaper price exists in history: **Lowest seen: $X**.
+  - Games with no meaningful history get no price line at all.
+- **Validation** — `npm run validate-price-intelligence` covers observation recording, duplicate suppression, price-change detection, lowest/highest/average math, empty-history safety, legacy migration with a seeded price history, and digest rendering of the price context; `npm test` aggregates the suite.
+
 ## Monitoring Reports
 
 Each monitoring run can be captured as a human-readable report alongside the email (`src/reports/`):
@@ -713,6 +736,7 @@ cp .env.example .env   # then fill in values
 | `npm run analyze-games`   | Build and analyze mock games vs profiles + wishlist |
 | `npm run validate-collector` | Build and validate the game collector against real data |
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |
+| `npm run validate-price-intelligence` | Build and validate historical price tracking (observations, lowest/highest/average, migration, digest context) |
 | `npm run generate-catalog`   | Build and regenerate the US game catalog from the Nintendo store sitemap + product pages |
 | `npm run refresh-catalog`    | Build, regenerate, and diff the catalog against the committed one (dry run; `--apply` to write) |
 | `npm run validate-refresh`   | Build and validate catalog diff/refresh: added/removed/metadata, stable nsuid comparison, dry-run safety |
@@ -756,6 +780,9 @@ cp .env.example .env   # then fill in values
 │   │   ├── title-matcher.ts
 │   │   ├── wishlist-resolver.ts
 │   │   └── validate-title-match.ts
+│   ├── history/        # Historical price intelligence
+│   │   ├── price-intelligence.ts
+│   │   └── validate-price-intelligence.ts
 │   ├── notifications/ # Email system: digest builder, templates, renderer, providers
 │   │   ├── daily-digest-builder.ts
 │   │   ├── email-template.ts

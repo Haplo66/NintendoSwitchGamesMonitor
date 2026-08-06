@@ -340,3 +340,16 @@ Features:
 - **Validation coverage** — new `npm run validate-refresh` suite (wired into `npm test`) covers added-game detection, removed-game detection, per-field metadata changes, empty diffs, stable `nsuid` comparison, required-field integrity of added games, duplicate detection still working, array reorder insensitivity, refresh-report formatting, and that the dry run never overwrites the committed catalog
 - Docs updated (README refresh workflow + scripts + structure, PRODUCTION.md collector setup + validation checklist, ROADMAP)
 - Analyzer, scoring, wishlist matching, digest layout, notification history, and collector behavior unchanged (out of scope for this task)
+
+> **Status: ✅ Complete**
+
+## v0.31 Historical Price Intelligence (v0.31.0)
+
+Features:
+- **Price history in deal history** — each `DealHistoryEntry` gains an optional `priceHistory` (`{ date, price }[]`, tracked in `data/notification-history.json`). Reconciliation records only meaningful changes: the first time a game is seen on sale, a sale price change, or a sale restarting at a different price. Identical unchanged prices are never appended, keeping history bounded (no per-day duplicates)
+- **Price intelligence module** — new `src/history/price-intelligence.ts` exposes rendering-independent helpers `getLowestPrice`, `getHighestPrice`, `getAveragePrice`, `isLowestRecordedPrice`, and `getPriceContext` (current price is a new low? previous low?), all safe for empty/single-entry histories
+- **Digest price context** — Best Deals, Wishlist Alerts, and Still On Sale cards show **⭐ Lowest price seen** (optionally · *Previous low $X*) when the current price is the best ever, or **Lowest seen: $X** when a cheaper historical price exists; games with no useful history get no extra line (rendered in HTML email and the markdown report)
+- **Migration compatibility** — existing history files without `priceHistory` load as-is (field optional); legacy `{ records: [...] }` files migrate into entries and additionally seed a bounded price history from the recorded notification prices, with no data loss
+- **Validation** — new `npm run validate-price-intelligence` suite (wired into `npm test`) covers observation recording, same-price duplicate suppression, price-change detection, lowest/highest/average math, empty-history handling, legacy migration + seeding, and digest rendering of the price context
+- Docs updated (README historical price tracking, PRODUCTION.md price history + validation checklist, ROADMAP)
+- Collector behavior, analyzer, family matching, recommendation scoring, wishlist matching, blacklist behavior, and notification cooldown behavior unchanged (out of scope for this task)
