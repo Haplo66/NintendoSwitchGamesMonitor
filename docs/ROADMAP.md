@@ -391,11 +391,10 @@ Features:
 ## v0.32.3 Digest Price Display Cleanup
 
 Features:
-- **Single discount badge** — `renderBestDealCard` no longer appends a second discount badge next to `priceRow` (which already renders one), so a deal card shows the discount percentage exactly once instead of twice
-- **Clean price formatting** — `priceRow` now separates the struck-through original price from the current price with an arrow (→) instead of concatenating the two values, so prices are readable: `USD 19.99 → USD 4.99` followed by a single discount badge
-- **Recommendation price separators** — `recommendationPriceStatus` also separates the original and current prices with an arrow for the same clean reading
-- **Score preserved** — the **Score NN** badge remains in Best Deals and the HTML/Markdown renderers keep all scoring info; only the duplicate discount rendering was removed
-- **Applied consistently** — Best Deals (duplicate removed), Wishlist Alerts, and Still On Sale (both still show a single discount via the shared `priceRow`), and Recommended For Your Family all render a clean single discount
-- **Validation** — `npm run validate-email` now asserts the discount badge appears exactly once in a Best Deal card, that prices are separated by an arrow (not concatenated), and that the deal score stays present; `npm test` aggregates everything
+- **Unified deal price rendering** — the discount badge is no longer attached directly to the current price (no more `USD 4.99→USD 2.49-50%`). All deal cards now split the display into two shared helpers: `renderPriceRow` (struck-through original → arrow → bold current price, e.g. `USD 4.99 → USD 2.49`) and `renderDealSummary` (single discount badge, and the score badge where present, joined on one summary line, e.g. `🔥 50% OFF · Score 90`)
+- **Single discount badge** — `renderBestDealCard` no longer appends a second discount badge, and each card renders the discount exactly once (no `-75% -75%`)
+- **Removed duplicated responsibility** — Best Deals, Wishlist Alerts, Still On Sale, and Recommended For Your Family all call `renderPriceRow` + `renderDealSummary` instead of each building its own price/discount string; the `priceRow` helper was removed
+- **Score preserved** — the **Score NN** badge remains in Best Deals (shown once via `renderDealSummary`), and scoring info is otherwise untouched
+- **Validation** — `npm run validate-email` now renders every deal section (Best Deals, Wishlist Alerts, Still On Sale, Recommended For Your Family) and asserts an arrow separator, that both prices are visible and never concatenated (`USD 4.99USD 2.49`), that the discount badge appears exactly once and is never attached to a price (`USD 2.49-50%`), never duplicated (`-75% -75%`), and that the deal score appears exactly once; `npm test` aggregates everything
 - Docs updated (ROADMAP)
 - Collector, analyzer, scoring calculation, deal quality, recommendation logic, and notification history unchanged (out of scope for this task)

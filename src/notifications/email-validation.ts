@@ -4,7 +4,12 @@ import * as assert from 'node:assert';
 
 import { DailyDigest } from '../models';
 import { renderDigestEmail } from './email-renderer';
-import { renderBestDealsSection } from './email-template';
+import {
+  renderBestDealsSection,
+  renderRecommendedSection,
+  renderStillOnSaleSection,
+  renderWishlistAlertsSection,
+} from './email-template';
 import { MockEmailProvider } from './mock-email-provider';
 
 function buildSampleDigest(): DailyDigest {
@@ -348,14 +353,51 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
-      name: 'discount percentage appears exactly once in a Best Deal card',
+      name: 'every deal section uses a single, separated price and discount format',
+      run: () => {
+        const digest = manyCardsDigest({ bestDeals: 1, stillOnSale: 1, recommendations: 'members' });
+        const sections: string[] = [
+          renderBestDealsSection(digest.bestDeals, 'USD'),
+          renderWishlistAlertsSection(digest.wishlistAlerts, 'USD', digest),
+          renderStillOnSaleSection(digest.stillOnSale, 'USD'),
+          renderRecommendedSection(digest.recommendations, 'USD'),
+        ];
+        for (const html of sections) {
+          assert.ok(html.includes('→'), 'Prices must be separated by an arrow');
+          assert.ok(
+            countOccurrences(html, 'USD ') >= 2,
+            'Both original and current prices must remain visible',
+          );
+          assert.ok(html.includes('-33%') || html.includes('-17%'), 'Discount badge must be present');
+          assert.strictEqual(
+            countOccurrences(html, '>-33%</span>') + countOccurrences(html, '>-17%</span>'),
+            1,
+            'Discount percentage must appear exactly once (no duplicate or attached badge)',
+          );
+          assert.ok(
+            !html.includes('USD 59.99USD 39.99'),
+            'Prices must not be concatenated without a separator',
+          );
+          assert.ok(
+            !/-33%>?\s*-\d+%/.test(html),
+            'Two discount badges must never appear together',
+          );
+          assert.ok(
+            !/USD [\d.]+→USD [\d.]+-\d+%/.test(html),
+            'Discount badge must not be attached directly to the price',
+          );
+        }
+      },
+    },
+    {
+      name: 'Best Deal card keeps its deal score once',
       run: () => {
         const sectionHtml = renderBestDealsSection(manyCardsDigest({ bestDeals: 1 }).bestDeals, 'USD');
-        assert.ok(sectionHtml.includes('>-33%</span>'), 'Discount badge must be present');
+        assert.ok(sectionHtml.includes('Score 92'), 'Deal score must remain present');
         assert.strictEqual(
-          countOccurrences(sectionHtml, '>-33%</span>'),
+          countOccurrences(sectionHtml, '>Score 92</span>'),
           1,
-          'Discount percentage must appear exactly once (no duplicate badge)',
+          'Deal score must appear exactly once',
         );
       },
     },

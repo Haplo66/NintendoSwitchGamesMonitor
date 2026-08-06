@@ -138,20 +138,31 @@ function renderCardGrid(
   return rows.join('');
 }
 
-function priceRow(currency: string, original: number | undefined, current: number, accentColor: string): string {
+function renderPriceRow(currency: string, original: number | undefined, current: number, accentColor: string): string {
   const hasDiscount = original !== undefined && original > current;
   const originalHtml = hasDiscount
     ? `<span style="font-family:${FONT}; font-size:13px; color:${COLORS.muted};` +
       ` text-decoration:line-through;">${formatMoney(currency, original)}</span>` +
       `<span style="font-family:${FONT}; font-size:13px; color:${COLORS.muted}; padding:0 4px;">→</span>`
     : '';
-  const discount = hasDiscount
-    ? badge(`-${Math.round(((original - current) / original) * 100)}%`, COLORS.discount)
-    : '';
   return (
     `${originalHtml}<span style="font-family:${FONT}; font-size:18px; font-weight:bold;` +
-    ` color:${accentColor};">${formatMoney(currency, current)}</span>${discount}`
+    ` color:${accentColor};">${formatMoney(currency, current)}</span>`
   );
+}
+
+function renderDealSummary(discountPercent: number | undefined, score?: number): string {
+  const parts: string[] = [];
+  if (discountPercent !== undefined && discountPercent > 0) {
+    parts.push(`🔥 ${badge(`-${discountPercent}%`, COLORS.discount)}`);
+  }
+  if (score !== undefined) {
+    parts.push(badge(`Score ${score}`, COLORS.accent));
+  }
+  if (parts.length === 0) {
+    return '';
+  }
+  return `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">${parts.join(' · ')}</div>`;
 }
 
 export function renderDigestHeader(digest: DailyDigest): string {
@@ -217,7 +228,8 @@ function renderStillOnSaleCard(item: DigestStillOnSale, currency: string): strin
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
     `<td style="padding:0 12px 0 0;">` +
     `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
-    `<div>${priceRow(currency, item.originalPrice, item.currentPrice, COLORS.time)}</div>` +
+    `<div>${renderPriceRow(currency, item.originalPrice, item.currentPrice, COLORS.time)}</div>` +
+    renderDealSummary(item.discountPercent) +
     `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">` +
     `First reported ${formatShortDate(item.firstReportedAt)} · ${daysLabel}</div>` +
     renderDealInsight(item.quality, item.priceContext, currency) +
@@ -374,7 +386,8 @@ function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, d
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
     `<td style="padding:0 12px 0 0;">` +
     `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(alert.title)}</h3>` +
-    `<div>${priceRow(currency, alert.originalPrice, alert.currentPrice, COLORS.wishlist)}</div>` +
+    `<div>${renderPriceRow(currency, alert.originalPrice, alert.currentPrice, COLORS.wishlist)}</div>` +
+    renderDealSummary(alert.discountPercent) +
     `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">` +
     `${targetLabel}: <strong>${formatMoney(currency, alert.targetPrice)}</strong> · Reached: ${reachedBadge}` +
     `</div>` +
@@ -396,12 +409,12 @@ export function renderWishlistAlertsSection(alerts: DigestWishlistAlert[], curre
 }
 
 function renderBestDealCard(deal: DigestBestDeal, currency: string): string {
-  const score = badge(`Score ${deal.score}`, COLORS.accent);
   return card(
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
     `<td style="padding:0 12px 0 0;">` +
     `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
-    `<div>${priceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.accent)} ${score}</div>` +
+    `<div>${renderPriceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.accent)}</div>` +
+    renderDealSummary(deal.discountPercent, deal.score) +
     `${reasonsList(deal.reasons)}` +
     renderDealInsight(deal.quality, deal.priceContext, currency) +
     `</td>` +
@@ -451,16 +464,9 @@ function recommendationPriceStatus(game: DigestFamilyRecommendation, currency: s
     );
   }
   if (game.originalPrice !== undefined && game.originalPrice > game.currentPrice) {
-    const originalHtml =
-      `<span style="font-family:${FONT}; font-size:12px; color:${COLORS.muted};` +
-      ` text-decoration:line-through;">${formatMoney(currency, game.originalPrice)}</span>` +
-      `<span style="font-family:${FONT}; font-size:12px; color:${COLORS.muted}; padding:0 4px;">→</span>`;
-    const price =
-      `<span style="font-family:${FONT}; font-size:14px; font-weight:bold;` +
-      ` color:${COLORS.accent};">${formatMoney(currency, game.currentPrice)}</span>`;
     return (
-      `<div style="margin-top:4px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">` +
-      `🔥 ${badge(`-${game.discountPercent}%`, COLORS.discount)} ${originalHtml}${price}</div>`
+      `<div style="margin-top:4px;">${renderPriceRow(currency, game.originalPrice, game.currentPrice, COLORS.accent)}</div>` +
+      renderDealSummary(game.discountPercent)
     );
   }
   return (
