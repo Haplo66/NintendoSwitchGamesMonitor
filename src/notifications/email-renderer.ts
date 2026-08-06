@@ -40,15 +40,15 @@ export function wrapDigestDocument(sections: string, header: string): string {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7;">
     <tr>
       <td align="center" style="padding:24px 12px;">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:10px; overflow:hidden;">
+        <table role="presentation" width="720" cellpadding="0" cellspacing="0" style="max-width:720px; width:100%; background-color:#ffffff; border-radius:10px; overflow:hidden;">
           <tr>
             <td>${header}</td>
           </tr>
           <tr>
-            <td style="padding:8px 24px 24px 24px;">${sections}</td>
+            <td style="padding:8px 28px 28px 28px;">${sections}</td>
           </tr>
           <tr>
-            <td style="padding:0 24px 20px 24px;">${renderFooter()}</td>
+            <td style="padding:0 28px 20px 28px;">${renderFooter()}</td>
           </tr>
         </table>
       </td>

@@ -96,12 +96,13 @@ Some titles are never worth showing — shovelware, inappropriate games, or anyt
 {
   "games": [
     "Carrot Smash",
+    "LEGO",
     { "title": "Example Game", "reason": "Not family-friendly" }
   ]
 }
 ```
 
-Matching is **exact and case-insensitive** on the normalized title (trimmed + lowercased), so `"carrot smash"` or `" Carrot Smash "` match the same entry. The filter runs **after collection and before analysis**: blacklisted games are excluded from deal analysis, **Best Deals**, **Recommended For Your Family**, and notifications, and they do not change the **Games Checked** statistic. The digest builder re-applies the blacklist while assembling **every** section (including **Still On Sale** and Today's Summary counts), so a blacklisted game can never appear anywhere in the digest outside **Wishlist Watch**. If you put a blacklisted game on the wishlist it stays visible in **Wishlist Watch** with today's price/status, but it is still never recommended or shown as a general deal. The collector and the price API are untouched — hiding is purely a display-side filter. Run `npm run validate-blacklist` to confirm the behavior.
+Matching is **case-insensitive** on the normalized title (trimmed + lowercased) and uses **whole-word boundaries**, so an entry also blocks its franchise: `"LEGO"` hides `LEGO Jurassic World`, `LEGO Star Wars: The Skywalker Saga`, and the exact title `LEGO`, but it never matches a substring inside another word (e.g. `lego` inside `Allegory Quest`). The filter runs **after collection and before analysis**: blacklisted games are excluded from deal analysis, **Best Deals**, **Recommended For Your Family**, and notifications, and they do not change the **Games Checked** statistic. The digest builder re-applies the blacklist while assembling **every** section (including **Still On Sale** and Today's Summary counts), so a blacklisted game can never appear anywhere in the digest outside **Wishlist Watch**. If you put a blacklisted game on the wishlist it stays visible in **Wishlist Watch** with today's price/status, but it is still never recommended or shown as a general deal. The collector and the price API are untouched — hiding is purely a display-side filter. Run `npm run validate-blacklist` to confirm the behavior.
 
 ### Digest readability
 

@@ -100,7 +100,7 @@ function card(inner: string, accentColor?: string): string {
   const topBorder = accentColor ? ` border-top:3px solid ${accentColor};` : '';
   return (
     `<div style="background-color:${COLORS.panel}; border:1px solid ${COLORS.border};` +
-    `${topBorder} border-radius:8px; padding:14px 16px; margin:0 0 14px 0;">${inner}</div>`
+    `${topBorder} border-radius:8px; padding:16px 18px; margin:0 0 14px 0;">${inner}</div>`
   );
 }
 
@@ -130,8 +130,8 @@ function renderCardGrid(
     rows.push(
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"` +
       ` style="table-layout:fixed;"><tr>` +
-      `<td width="50%" valign="top" style="padding:0 6px 0 0;">${left}</td>` +
-      `<td width="50%" valign="top" style="padding:0 0 0 6px;">${right}</td>` +
+      `<td width="50%" valign="top" style="padding:0 10px 0 0;">${left}</td>` +
+      `<td width="50%" valign="top" style="padding:0 0 0 10px;">${right}</td>` +
       `</tr></table>`,
     );
   }

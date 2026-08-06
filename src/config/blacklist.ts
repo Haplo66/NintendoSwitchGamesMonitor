@@ -117,21 +117,42 @@ function toBlacklistEntries(source: BlacklistSource): BlacklistEntry[] {
   return source.entries;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
- * Returns true when the given game title exactly matches one of the
- * blacklisted titles. Matching is case-insensitive and applied to the
- * normalized (trimmed + lowercased) title, so "Carrot Smash", "carrot
- * smash", and "  Carrot Smash  " all match the same blacklist entry.
+ * Matches a normalized blacklist entry against a normalized game title using
+ * word boundaries, so an entry like "LEGO" blocks the whole LEGO franchise
+ * ("LEGO Jurassic World", "LEGO Star Wars", and the exact title "LEGO") while
+ * never matching a substring inside another word (e.g. "lego" inside
+ * "allegory"). Matching is already case-insensitive because both sides are
+ * normalized (trimmed + lowercased).
+ */
+function matchesBlacklistEntry(normalizedTitle: string, normalizedEntry: string): boolean {
+  if (normalizedEntry === '') {
+    return false;
+  }
+  return new RegExp(`\\b${escapeRegExp(normalizedEntry)}\\b`).test(normalizedTitle);
+}
+
+/**
+ * Returns true when the given game title matches one of the blacklisted titles.
+ * Matching is case-insensitive, applied to the normalized (trimmed + lowercased)
+ * title, and uses whole-word boundaries so an entry blocks its franchise (and
+ * exact matches) without colliding with partial words: "LEGO" matches "LEGO
+ * Jurassic World" and "LEGO", but not "Allegory Quest".
  */
 export function isGameBlacklisted(title: string, blacklist: BlacklistSource): boolean {
   const normalized = normalizeBlacklistTitle(title);
-  return toBlacklistEntries(blacklist).some(
-    (entry) => normalizeBlacklistTitle(entry.title) === normalized,
+  return toBlacklistEntries(blacklist).some((entry) =>
+    matchesBlacklistEntry(normalized, normalizeBlacklistTitle(entry.title)),
   );
 }
 
 /**
- * Filters a collected game list so blacklisted titles never reach analysis,
+ * Filters a collected game list so blacklisted titles (and any title that
+ * contains a blacklisted franchise as a whole word) never reach analysis,
  * recommendations, Best Deals, or notification generation. Games checked
  * statistics keep using the unfiltered collection count. An empty blacklist
  * returns the original array unchanged.

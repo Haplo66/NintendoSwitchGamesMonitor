@@ -435,6 +435,16 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
+      name: 'digest uses a wide container and wider column gutter',
+      run: () => {
+        const html = renderDigestEmail(manyCardsDigest({ stillOnSale: 7 }));
+        assert.ok(html.includes('width="720"'), 'Digest container must be 720px wide');
+        assert.ok(html.includes('max-width:720px'), 'Digest container max-width must be 720px');
+        assert.ok(html.includes('padding:0 10px 0 0') && html.includes('padding:0 0 0 10px'),
+          'Two-column grid must use a 10px gutter');
+      },
+    },
+    {
       name: 'recommendations list every matching member under the game',
       run: () => {
         const html = renderDigestEmail(manyCardsDigest({ recommendations: 'members' }));
@@ -447,12 +457,15 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
-      name: 'entire family collapses into a single label',
+      name: 'entire family collapses into a single label with no trailing comma',
       run: () => {
         const html = renderDigestEmail(manyCardsDigest({ recommendations: 'entire-family' }));
         assert.ok(html.includes('Entire family'), 'Entire family label missing');
         assert.ok(!html.includes('Yaara'), 'Individual members must not be repeated when whole family matches');
         assert.ok(!html.includes('Barak'), 'Individual members must not be repeated when whole family matches');
+        const labelIndex = html.indexOf('Entire family');
+        const after = html.slice(labelIndex + 'Entire family'.length, labelIndex + 'Entire family'.length + 2);
+        assert.ok(!after.includes(','), `Entire family label must not be followed by a comma (got "${after.trim()}")`);
       },
     },
     {

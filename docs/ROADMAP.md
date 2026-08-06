@@ -376,3 +376,14 @@ Features:
 - **Validation** — extended `npm run validate-blacklist` (Still On Sale, Today's Summary, Best Deals, Wishlist Watch exception), `npm run validate-recommendations` (grouping, entire-family label, ordering, limit), and `email-validation` (two-column activation + threshold, member listing, entire-family collapse); `npm test` aggregates everything
 - Docs updated (README digest layout, settings, blacklist, validation; PRODUCTION.md blacklist + checklist; ROADMAP)
 - Collector, analyzer, deal scoring, sale quality, wishlist matching, notification cooldown, and notification history unchanged (out of scope for this task)
+
+## v0.32.2 Blacklist Matching & Digest Layout Fixes
+
+Features:
+- **Word-boundary blacklist franchise matching** — `isGameBlacklisted` now matches each entry against the normalized title using whole-word boundaries (`\b…\b`) instead of exact-equality only, so a single entry like `LEGO` blocks the entire LEGO franchise (`LEGO Jurassic World`, `LEGO Star Wars: The Skywalker Saga`, and the exact title `LEGO`) while never colliding with a substring inside another word (e.g. `lego` inside `Allegory Quest`). Because matching drives every section (Today's Summary biggest discount, Best Deals, Still On Sale, recommendations, notifications), this single fix clears both the "LEGO in Today's Summary" and "LEGO in Still On Sale" leaks from the same root cause
+- **Consistent blacklist application** — `buildDailyDigest` filters `analyses` + `reportedAnalyses` and the biggest-discount loop, and Still On Sale is filtered via deal history, so a blacklisted franchise can never surface anywhere outside **Wishlist Watch**
+- **Recommendation trailing-comma fix** — the entire-family label renders as **👨‍👩‍👧‍👦 Entire family** with no trailing comma in the HTML email (regression-guarded in `email-validation`)
+- **Two-column layout improvements** — the digest container widened from 600px to 720px, section/footer padding increased, card padding increased (`16px 18px`), and the two-column grid gutter widened from 6px to 10px for a more spacious, readable layout; the Markdown report stays single-column
+- **Validation** — extended `npm run validate-blacklist` (LEGO franchise blocking, word-boundary false positives, biggest-discount franchise filtering, Still On Sale keeps non-blacklisted history, Best Deals/recommendations exclusion) and `email-validation` (wide container + 10px gutter, no trailing comma after the entire-family label); `npm test` aggregates everything
+- Docs updated (README + PRODUCTION.md blacklist matching, ROADMAP)
+- Collector, analyzer, deal scoring, sale quality, wishlist matching, recommendation scoring, notification cooldown, and notification history unchanged (out of scope for this task)

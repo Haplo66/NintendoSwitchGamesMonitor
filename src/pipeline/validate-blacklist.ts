@@ -330,6 +330,142 @@ export async function validateBlacklist(): Promise<void> {
     },
   });
 
+  checks.push({
+    name: 'LEGO blocks LEGO franchise titles',
+    run: () => {
+      for (const title of [
+        'LEGO Jurassic World',
+        'LEGO CITY Undercover',
+        'LEGO Marvel Super Heroes',
+        'LEGO Star Wars: The Skywalker Saga',
+        'LEGO Harry Potter Collection',
+        'LEGO',
+      ]) {
+        assert.ok(
+          isGameBlacklisted(title, ['LEGO']),
+          `"LEGO" must block "${title}"`,
+        );
+      }
+      const blocked = filterBlacklistedGames(
+        [
+          makeGame({ id: 'game-1', title: 'LEGO Jurassic World' }),
+          makeGame({ id: 'game-2', title: 'LEGO Star Wars: The Skywalker Saga' }),
+          makeGame({ id: 'game-3', title: 'Mario + Rabbids Kingdom Battle' }),
+        ],
+        ['LEGO'],
+      );
+      assert.deepStrictEqual(
+        blocked.map((game) => game.title),
+        ['Mario + Rabbids Kingdom Battle'],
+      );
+    },
+  });
+
+  checks.push({
+    name: 'blacklist matching uses word boundaries and avoids false positives',
+    run: () => {
+      assert.ok(isGameBlacklisted('LEGO Jurassic World', ['LEGO']), 'LEGO title must match');
+      assert.ok(isGameBlacklisted('LEGO', ['LEGO']), 'Exact title must match');
+      assert.ok(
+        isGameBlacklisted('Super LEGO World', ['LEGO']),
+        'LEGO as a whole word anywhere must match',
+      );
+      assert.strictEqual(
+        isGameBlacklisted('Allegory Quest', ['LEGO']),
+        false,
+        '"lego" inside "Allegory" must not match (word boundaries)',
+      );
+      assert.strictEqual(
+        isGameBlacklisted('Legoland Adventure', ['LEGO']),
+        false,
+        '"lego" glued to another word must not match',
+      );
+    },
+  });
+
+  checks.push({
+    name: 'Today\u2019s Summary biggest discount ignores blacklisted franchise games',
+    run: () => {
+      const lego = makeAnalysis(
+        makeGame({ id: 'game-1', title: 'LEGO Jurassic World', currentPrice: 5.99, originalPrice: 59.99 }),
+      );
+      const mario = makeAnalysis(
+        makeGame({ id: 'game-2', title: 'Mario + Rabbids Kingdom Battle', currentPrice: 14.99, originalPrice: 59.99 }),
+      );
+      const result = resultWith({ analyses: [lego, mario] });
+      const digest = buildDailyDigest(result, { blacklist: ['LEGO'] });
+      assert.strictEqual(
+        digest.summary.biggestDiscountTitle,
+        'Mario + Rabbids Kingdom Battle',
+        'Blacklisted franchise game must not be the biggest discount',
+      );
+    },
+  });
+
+  checks.push({
+    name: 'Still On Sale ignores blacklisted franchise entries but keeps others',
+    run: () => {
+      const legoEntry: DealHistoryEntry = {
+        gameTitle: 'LEGO Star Wars: The Skywalker Saga',
+        firstSeenOnSale: '2026-07-01T00:00:00.000Z',
+        lastSeenOnSale: '2026-08-05T00:00:00.000Z',
+        firstNotified: '2026-07-02T00:00:00.000Z',
+        lastNotified: '2026-07-02T00:00:00.000Z',
+        lastNotifiedPrice: 19.99,
+        notificationCount: 1,
+        currentlyOnSale: true,
+      };
+      const marioEntry: DealHistoryEntry = {
+        gameTitle: 'Mario + Rabbids Kingdom Battle',
+        firstSeenOnSale: '2026-07-05T00:00:00.000Z',
+        lastSeenOnSale: '2026-08-05T00:00:00.000Z',
+        firstNotified: '2026-07-06T00:00:00.000Z',
+        lastNotified: '2026-07-06T00:00:00.000Z',
+        lastNotifiedPrice: 14.99,
+        notificationCount: 1,
+        currentlyOnSale: true,
+      };
+      const result = resultWith({
+        dealHistory: { entries: [legoEntry, marioEntry] },
+        analyses: [
+          makeAnalysis(makeGame({ id: 'game-1', title: 'LEGO Star Wars: The Skywalker Saga' })),
+          makeAnalysis(makeGame({ id: 'game-2', title: 'Mario + Rabbids Kingdom Battle' })),
+        ],
+      });
+      const digest = buildDailyDigest(result, { blacklist: ['LEGO'] });
+      const stillTitles = digest.stillOnSale.map((item) => item.title);
+      assert.ok(
+        !stillTitles.includes('LEGO Star Wars: The Skywalker Saga'),
+        'Blacklisted franchise game must not appear in Still On Sale',
+      );
+      assert.ok(
+        stillTitles.includes('Mario + Rabbids Kingdom Battle'),
+        'Non-blacklisted historical deal must remain in Still On Sale',
+      );
+    },
+  });
+
+  checks.push({
+    name: 'Best Deals and recommendations exclude blacklisted franchise games',
+    run: () => {
+      const legoAnalysis = makeAnalysis(
+        makeGame({ id: 'game-1', title: 'LEGO Jurassic World', currentPrice: 5.99, originalPrice: 59.99 }),
+      );
+      legoAnalysis.dealScore = { score: 300, reasons: [] };
+      legoAnalysis.familyMatches = [{ profileName: 'Yaara', matched: true, reasons: ['Adventure'] }];
+      const result = resultWith({ analyses: [legoAnalysis], reportedAnalyses: [legoAnalysis] });
+      const digest = buildDailyDigest(result, { blacklist: ['LEGO'] });
+      assert.ok(
+        !digest.bestDeals.some((deal) => deal.title === 'LEGO Jurassic World'),
+        'Blacklisted franchise game must not appear in Best Deals',
+      );
+      assert.ok(
+        !digest.recommendations.some((rec) => rec.title === 'LEGO Jurassic World'),
+        'Blacklisted franchise game must not be recommended',
+      );
+    },
+  });
+
   await runChecks(checks);
   console.log('\nAll blacklist validation checks passed.');
 }
