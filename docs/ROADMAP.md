@@ -331,3 +331,12 @@ Features:
 - Collector behavior, analyzer, recommendation logic, digest layout, and notification history unchanged (out of scope for this task)
 
 > **Status: ✅ Complete**
+
+## v0.30 Automated Catalog Maintenance & Diff Reporting (v0.30.0)
+
+Features:
+- **Safe catalog refresh command** — `npm run refresh-catalog` runs the existing `generate-catalog` logic into a temporary file, diffs it against the committed `data/game-catalog.json`, and prints a concise change summary (added / removed / updated games) **without overwriting the file**. Apply changes explicitly with `npm run refresh-catalog -- --apply` (or `CATALOG_APPLY=true`); applied catalogs are re-validated before being written
+- **Reusable diff module** — new `src/collectors/catalog-diff.ts` exposes `diffCatalogs()` (returns `added` / `removed` / `updated`), `formatCatalogRefreshReport()`, and `diffIsEmpty()`. Comparison is keyed by the stable identifier `nsuid`, so a re-titled/re-slugged game is an *update*, never a remove + add. Only `title`, `slug`, `platforms`, `esrbRating`, and `genres` are tracked; array ordering (platforms/genres) is ignored
+- **Validation coverage** — new `npm run validate-refresh` suite (wired into `npm test`) covers added-game detection, removed-game detection, per-field metadata changes, empty diffs, stable `nsuid` comparison, required-field integrity of added games, duplicate detection still working, array reorder insensitivity, refresh-report formatting, and that the dry run never overwrites the committed catalog
+- Docs updated (README refresh workflow + scripts + structure, PRODUCTION.md collector setup + validation checklist, ROADMAP)
+- Analyzer, scoring, wishlist matching, digest layout, notification history, and collector behavior unchanged (out of scope for this task)

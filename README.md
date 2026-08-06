@@ -221,6 +221,35 @@ $env:NINTENDO_PLATFORM = "both";  npm run collect-games      # all cataloged pla
 
 To preview a smaller/larger run: `$env:CATALOG_TARGET = "200"; npm run generate-catalog`. To write elsewhere: `$env:CATALOG_OUT = "data/my-catalog.json"; npm run generate-catalog`.
 
+### Refreshing the existing catalog
+
+`npm run refresh-catalog` keeps `data/game-catalog.json` up to date without blind overwrites. It runs the same generation logic as `generate-catalog`, but writes to a temporary file, diffs it against the committed catalog by `nsuid`, and prints a concise change summary instead of clobbering the file:
+
+```
+Catalog Refresh
+
+Current games: 300
+New games: 12
+Removed games: 2
+Updated games: 5
+
+Added:
++ Example Game
+
+Removed:
+- Example Game
+
+Updated:
+* Example Game
+  genres changed
+```
+
+- **Safe by default** — `refresh-catalog` never overwrites the committed catalog on its own. It runs as a dry run and prints the summary so you can review what changed.
+- **Apply changes** — once the summary looks right, re-run with `npm run refresh-catalog -- --apply` (or `CATALOG_APPLY=true`) to write the generated catalog over `data/game-catalog.json`. Applied catalogs are re-validated (duplicates, required fields, platforms, URLs) before the file is written.
+- **Stable comparison** — entries are matched by `nsuid`, so a re-titled or re-slugged game is reported as an *update*, never as a remove + add. Only `title`, `slug`, `platforms`, `esrbRating`, and `genres` are tracked; array ordering (platforms/genres) is ignored.
+- **Diff module** — `src/collectors/catalog-diff.ts` exposes `diffCatalogs()` (returns `added` / `removed` / `updated`), `formatCatalogRefreshReport()` for the summary text, and `diffIsEmpty()`; reusable by any maintenance tooling.
+- **Validation** — `npm run validate-refresh` covers added/removed/metadata detection, stable `nsuid` comparison, empty diffs, required-field integrity of added games, duplicate detection, and that the dry run never overwrites the committed catalog.
+
 ### Collecting games locally
 
 ```bash
@@ -685,6 +714,8 @@ cp .env.example .env   # then fill in values
 | `npm run validate-collector` | Build and validate the game collector against real data |
 | `npm run validate-history`   | Build and validate notification history + cooldown logic |
 | `npm run generate-catalog`   | Build and regenerate the US game catalog from the Nintendo store sitemap + product pages |
+| `npm run refresh-catalog`    | Build, regenerate, and diff the catalog against the committed one (dry run; `--apply` to write) |
+| `npm run validate-refresh`   | Build and validate catalog diff/refresh: added/removed/metadata, stable nsuid comparison, dry-run safety |
 | `npm run monitor`       | Build and run the full monitor pipeline (collect → analyze → email) |
 | `npm run monitor:dry`   | Build and run the monitor in dry-run mode (one-time `--dry-run`: no email sent, no history written) |
 | `npm run monitor:test-email` | Build and run the monitor in test-email mode (one-time `--force-email`: always send the digest, no history written) |
@@ -711,6 +742,9 @@ cp .env.example .env   # then fill in values
 │   │   ├── collector-factory.ts
 │   │   ├── generate-catalog.ts
 │   │   ├── catalog-validation.ts
+│   │   ├── catalog-diff.ts
+│   │   ├── refresh-catalog.ts
+│   │   ├── validate-refresh.ts
 │   │   ├── validate-collector.ts
 │   │   └── collect-games.ts
 │   ├── analyzer/      # Analysis: family/wishlist matching + deal scoring
