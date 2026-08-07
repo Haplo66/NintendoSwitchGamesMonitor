@@ -382,11 +382,15 @@ export function buildDailyDigest(
 
   const freeGames = reportedAnalyses
     .filter((analysis) => analysis.game.currentPrice === 0)
-    .map((analysis) => ({
-      title: analysis.game.title,
-      ageRating: analysis.game.ageRating ?? 'NR',
-      storeUrl: resolveStoreUrl(analysis.game),
-    }));
+    .map((analysis) => {
+      const matchedProfiles = analysis.familyMatches.filter((match) => match.matched);
+      return {
+        title: analysis.game.title,
+        ageRating: analysis.game.ageRating ?? 'NR',
+        storeUrl: resolveStoreUrl(analysis.game),
+        reasons: matchedProfiles.flatMap((match) => [match.profileName, ...match.reasons]),
+      };
+    });
 
   const historicalLows: DigestHistoricalLow[] = reportedAnalyses
     .filter((analysis) => isOnSale(analysis.game) && isHistoricalLow(result, analysis.game))

@@ -424,4 +424,18 @@ Features:
 - Collector, analyzer, scoring, digest layout, recommendation logic, and notification history unchanged (out of scope for this task)
 
 > **Status: 🔄 In progress**
+
+## v0.35 Family Filter Free Games
+
+Features:
+- **Free games must match a family profile** — `isWorthReporting` now only reports a free-to-play game when it matches at least one family profile (age rating within range, no excluded genre). Previously any free game was reported regardless of family
+- **No score threshold for free games** — a matching free game is still reported even with a `dealScore` of `0`; only family matching (plus `notifyFreeGames`) gates it
+- **`notifyFreeGames` behavior preserved** — `false` → no free games; `true` → include family-matching free games
+- **New `🆓 Free Family Games` digest section** — the free-games section (HTML email + Markdown report) is renamed to **Free Family Games** and now shows the matching family profile + reason (e.g. `Matches: Kids 8-12, Puzzle preference`)
+- **Model** — `DigestFreeGame` gains an optional `reasons` array populated from the matched profiles' names and reasons in `daily-digest-builder`
+- **Validation** — `validate-recommendations` adds: matching free game included with its family reason, a free game in an excluded genre excluded, and a matching free game reported without meeting the score threshold; `npm test` aggregates everything
+- Docs updated (README digest sections, filter step, `notifyFreeGames` preference, ROADMAP)
+- Collector, scoring weights, recommendation logic, and notification history unchanged (out of scope for this task)
+
+> **Status: 🔄 In progress**
 .

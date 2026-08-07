@@ -86,6 +86,8 @@ export interface DigestFreeGame {
   title: string;
   ageRating: string;
   storeUrl: string;
+  /** Family match context, e.g. ["Kids 8-12", "Puzzle preference"]. */
+  reasons?: string[];
 }
 
 /**

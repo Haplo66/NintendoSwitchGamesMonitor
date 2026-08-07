@@ -4,6 +4,7 @@ import * as assert from 'node:assert';
 
 import { DEFAULT_NOTIFICATION_SETTINGS } from '../config/settings-loader';
 import { Game, GameAnalysis, MonitorResult } from '../models';
+import { isWorthReporting } from '../pipeline/monitor-run';
 import { buildDailyDigest } from './daily-digest-builder';
 import { renderDigestEmail } from './email-renderer';
 
@@ -436,6 +437,69 @@ export async function validateRecommendations(): Promise<void> {
         const best = html.indexOf('Best Deals');
         assert.ok(alerts >= 0 && best >= 0, 'sections must render');
         assert.ok(alerts < best, 'Wishlist Alerts must appear before Best Deals');
+      },
+    },
+    {
+      name: 'a matching free game is included with its family reason',
+      run: () => {
+        const fortnite = makeGame({ title: 'Fortnite', currentPrice: 0, originalPrice: undefined });
+        const analysis = buildAnalysis(fortnite, [
+          { profileName: 'Kids 8-12', matched: true, reasons: ['Puzzle preference'] },
+        ]);
+        const result = resultWith({ analyses: [analysis], reportedAnalyses: [analysis] });
+        const digest = buildDailyDigest(result);
+        const game = digest.freeGames.find((g) => g.title === 'Fortnite');
+        assert.ok(game, 'matching free game must be included in Free Family Games');
+        assert.deepStrictEqual(
+          game?.reasons,
+          ['Kids 8-12', 'Puzzle preference'],
+          'family profile + reason must be attached',
+        );
+        const html = renderDigestEmail(digest);
+        assert.ok(html.includes('Free Family Games'), 'Free Family Games header missing');
+        assert.ok(html.includes('Kids 8-12'), 'family profile missing in rendered free card');
+      },
+    },
+    {
+      name: 'a free game in an excluded genre is not included',
+      run: () => {
+        const fortnite = makeGame({ title: 'Fortnite', currentPrice: 0, originalPrice: undefined });
+        const analysis = buildAnalysis(fortnite, [
+          { profileName: 'Kids 8-12', matched: false, reasons: [] },
+        ]);
+        analysis.dealScore = { score: 0, reasons: [] };
+        assert.strictEqual(
+          isWorthReporting(analysis, 100, { notifyFreeGames: true, notifyWishlistMatches: true }),
+          false,
+          'free game matching no family profile must not be reported',
+        );
+        const result = resultWith({ analyses: [analysis], reportedAnalyses: [] });
+        assert.deepStrictEqual(buildDailyDigest(result).freeGames, []);
+      },
+    },
+    {
+      name: 'a matching free game does not need the score threshold',
+      run: () => {
+        const matching = buildAnalysis(
+          makeGame({ title: 'Matching', currentPrice: 0, originalPrice: undefined }),
+          [{ profileName: 'Kids 8-12', matched: true, reasons: [] }],
+        );
+        matching.dealScore = { score: 0, reasons: [] };
+        assert.strictEqual(
+          isWorthReporting(matching, 100, { notifyFreeGames: true, notifyWishlistMatches: true }),
+          true,
+          'matching free game must be reported regardless of score',
+        );
+        const fortnite = buildAnalysis(
+          makeGame({ title: 'Unmatched', currentPrice: 0, originalPrice: undefined }),
+          [{ profileName: 'Kids 8-12', matched: false, reasons: [] }],
+        );
+        fortnite.dealScore = { score: 0, reasons: [] };
+        assert.strictEqual(
+          isWorthReporting(fortnite, 100, { notifyFreeGames: true, notifyWishlistMatches: true }),
+          false,
+          'unmatched free game must not be reported even with a high threshold',
+        );
       },
     },
   ];

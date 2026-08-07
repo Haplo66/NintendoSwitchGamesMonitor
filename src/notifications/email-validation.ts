@@ -419,7 +419,7 @@ export async function validateEmailRendering(): Promise<void> {
     {
       name: 'Free Games section renders',
       run: () => {
-        assert.ok(html.includes('Free Games'), 'Free Games header missing');
+        assert.ok(html.includes('Free Family Games'), 'Free Games header missing');
         assert.ok(html.includes('Fortnite'), 'Free game title missing');
         assert.ok(html.includes('Free to download'), 'Free label missing');
         assert.ok(html.includes('Get It Free'), 'Free game button missing');
@@ -468,7 +468,7 @@ export async function validateEmailRendering(): Promise<void> {
       run: () => {
         assert.ok(!emptyHtml.includes('Wishlist Alerts'), 'Empty Wishlist Alerts still shown');
         assert.ok(!emptyHtml.includes('Best Deals'), 'Empty Best Deals still shown');
-        assert.ok(!emptyHtml.includes('Free Games'), 'Empty Free Games still shown');
+        assert.ok(!emptyHtml.includes('Free Family Games'), 'Empty Free Games still shown');
         assert.ok(
           !emptyHtml.includes('Recommended For Your Family'),
           'Empty Recommended still shown',

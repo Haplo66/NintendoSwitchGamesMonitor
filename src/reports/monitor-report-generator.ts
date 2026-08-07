@@ -206,10 +206,13 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
   }
 
   if (digest.freeGames.length > 0) {
-    out.push('## 🆓 Free Games');
+    out.push('## 🆓 Free Family Games');
     out.push('');
     for (const game of digest.freeGames) {
       out.push(`- **${game.title}** — Free to download`);
+      if (game.reasons && game.reasons.length > 0) {
+        out.push(`  - Matches: ${game.reasons.join(', ')}`);
+      }
       out.push('');
       out.push(`  ${formatLink('Get It Free', game.storeUrl)}`);
       out.push('');

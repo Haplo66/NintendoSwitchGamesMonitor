@@ -12,7 +12,7 @@ import {
   DigestSummary,
   DigestWishlistAlert,
   DigestWishlistWatch,
-  FreeGame,
+  DigestFreeGame,
 } from '../models';
 
 const COLORS = {
@@ -434,13 +434,19 @@ export function renderBestDealsSection(deals: DigestBestDeal[], currency: string
   return sectionHeader('🔥', 'Best Deals', COLORS.accent) + renderCardGrid(cards);
 }
 
-function renderFreeGameCard(game: FreeGame): string {
+function renderFreeGameCard(game: DigestFreeGame): string {
+  const reasons =
+    game.reasons && game.reasons.length > 0
+      ? `<div style="margin-top:4px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">` +
+        `Matches: ${escapeHtml(game.reasons.join(', '))}</div>`
+      : '';
   return card(
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
     `<td style="padding:0 12px 0 0;">` +
     `<h3 style="margin:0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(game.title)}</h3>` +
     `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; font-weight:bold; color:${COLORS.free};">` +
     `🆓 Free to download</div>` +
+    reasons +
     `</td>` +
     `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(game.ageRating)}</td>` +
     `</tr></table>` +
@@ -449,12 +455,12 @@ function renderFreeGameCard(game: FreeGame): string {
   );
 }
 
-export function renderFreeGamesSection(freeGames: FreeGame[]): string {
+export function renderFreeGamesSection(freeGames: DigestFreeGame[]): string {
   if (freeGames.length === 0) {
     return '';
   }
   const cards = freeGames.map(renderFreeGameCard).join('');
-  return sectionHeader('🆓', 'Free Games', COLORS.free) + cards;
+  return sectionHeader('🆓', 'Free Family Games', COLORS.free) + cards;
 }
 
 function renderHistoricalLowCard(deal: DigestHistoricalLow, currency: string): string {

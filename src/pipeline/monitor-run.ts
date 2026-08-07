@@ -78,8 +78,12 @@ export function isWorthReporting(
   options: ReportingOptions = { notifyFreeGames: true, notifyWishlistMatches: true },
 ): boolean {
   const isFree = analysis.game.currentPrice === 0;
+  // Free games are only surfaced when they match at least one family profile
+  // (existing family analysis: age rating within range, no excluded genre). They
+  // never need `minDealScore`, but an unmatched free game is not reported.
+  const matchesFamily = analysis.familyMatches.some((match) => match.matched);
   const onWishlist = (analysis.wishlistMatch?.matched ?? false) && options.notifyWishlistMatches;
-  if (isFree && options.notifyFreeGames) {
+  if (isFree && options.notifyFreeGames && matchesFamily) {
     return true;
   }
   if (onWishlist) {
@@ -202,7 +206,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   }
 
   console.log(
-    `${reported.length} of ${analyses.length} game(s) meet the reporting threshold (score >= ${minDealScore}, free, or on wishlist):`,
+    `${reported.length} of ${analyses.length} game(s) meet the reporting threshold (score >= ${minDealScore}, free matching a family, or on wishlist):`,
   );
   for (const analysis of reported) {
     console.log(`  - ${analysis.game.title} (score ${analysis.dealScore.score})`);

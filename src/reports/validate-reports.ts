@@ -263,7 +263,7 @@ const checks: Check[] = [
   {
     name: 'markdown free games render',
     run: () => {
-      assert.ok(markdown.includes('## 🆓 Free Games'), 'Free Games section missing');
+      assert.ok(markdown.includes('## 🆓 Free Family Games'), 'Free Family Games section missing');
       assert.ok(markdown.includes('Fortnite'), 'Free game missing');
       assert.ok(markdown.includes('Free to download'), 'Free label missing');
     },
@@ -308,7 +308,7 @@ const checks: Check[] = [
       assert.ok(html.includes('Wishlist Watch'), 'Wishlist Watch missing in HTML');
       assert.ok(html.includes('Still On Sale'), 'Still On Sale missing in HTML');
       assert.ok(html.includes('Best Deals'), 'Best Deals missing in HTML');
-      assert.ok(html.includes('Free Games'), 'Free Games missing in HTML');
+      assert.ok(html.includes('Free Family Games'), 'Free Family Games missing in HTML');
       assert.ok(html.includes('Recommended For Your Family'), 'Recommendations missing in HTML');
       assert.ok(html.includes('Price Watch'), 'Price Watch missing in HTML');
       assert.ok(html.includes('Monitoring Statistics'), 'Statistics missing in HTML');
@@ -348,7 +348,7 @@ const checks: Check[] = [
       assert.ok(md.includes("## 👀 Wishlist Watch"), 'Wishlist Watch must always show');
       assert.ok(!md.includes('## 🕒 Still On Sale'), 'Empty still on sale shown');
       assert.ok(!md.includes('## 🔥 Best Deals'), 'Empty best deals shown');
-      assert.ok(!md.includes('## 🆓 Free Games'), 'Empty free games shown');
+      assert.ok(!md.includes('## 🆓 Free Family Games'), 'Empty free family games shown');
       assert.ok(!md.includes('## ⭐ Recommended For Your Family'), 'Empty recommendations shown');
       assert.ok(!md.includes('## 📉 Price Watch'), 'Empty price watch shown');
       assert.ok(h.trim().startsWith('<!DOCTYPE html>'), 'Empty HTML missing doctype');
