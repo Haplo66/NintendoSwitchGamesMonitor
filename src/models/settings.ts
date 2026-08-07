@@ -1,6 +1,7 @@
 export interface DailyDigestSettings {
   maxBestDeals: number;
   maxWishlistAlerts: number;
+  maxHistoricalLows: number;
   showStatistics: boolean;
   showPriceWatch: boolean;
   recommendedFamilyGamesLimit: number;

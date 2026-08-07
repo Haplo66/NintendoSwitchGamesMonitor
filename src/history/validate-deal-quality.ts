@@ -50,7 +50,7 @@ const checks: Check[] = [
     run: () => {
       const quality = evaluateDealQuality({ ...base, currentPrice: 39.99, priceHistory: history(59.99, 49.99, 39.99) });
       assert.strictEqual(quality?.rating, 'excellent');
-      assert.strictEqual(quality?.reason, 'New lowest price');
+      assert.strictEqual(quality?.reason, 'At its historical low');
     },
   },
   {
@@ -65,7 +65,7 @@ const checks: Check[] = [
     run: () => {
       const quality = evaluateDealQuality({ ...base, currentPrice: 43.0, priceHistory: history(59.99, 39.99) });
       assert.strictEqual(quality?.rating, 'great');
-      assert.strictEqual(quality?.reason, 'Near lowest price');
+      assert.strictEqual(quality?.reason, 'Near its historical low');
     },
   },
   {
@@ -125,13 +125,13 @@ const checks: Check[] = [
             reasons: [],
             ageRating: 'E',
             storeUrl: 'https://store/',
-            quality: { rating: 'excellent', reason: 'New lowest price' },
+            quality: { rating: 'excellent', reason: 'At its historical low' },
           },
         ],
         'USD',
       );
       assert.ok(html.includes('Excellent deal'), 'quality badge not rendered');
-      assert.ok(html.includes('New lowest price'), 'quality reason not rendered');
+      assert.ok(html.includes('At its historical low'), 'quality reason not rendered');
     },
   },
   {

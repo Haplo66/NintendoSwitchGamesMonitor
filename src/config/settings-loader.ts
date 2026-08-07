@@ -7,6 +7,7 @@ import { ConfigError } from './json-loader';
 export const DEFAULT_DAILY_DIGEST_SETTINGS: DailyDigestSettings = {
   maxBestDeals: 5,
   maxWishlistAlerts: 10,
+  maxHistoricalLows: 5,
   showStatistics: true,
   showPriceWatch: true,
   recommendedFamilyGamesLimit: 10,
@@ -98,6 +99,7 @@ export function validateNotificationSettings(settings: unknown): string[] {
       };
       checkDigestNumber('maxBestDeals', 1, true);
       checkDigestNumber('maxWishlistAlerts', 1, true);
+      checkDigestNumber('maxHistoricalLows', 1, true);
       checkDigestNumber('recommendedFamilyGamesLimit', 1, true);
       checkDigestBoolean('showStatistics');
       checkDigestBoolean('showPriceWatch');

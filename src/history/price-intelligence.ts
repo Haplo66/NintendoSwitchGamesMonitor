@@ -58,7 +58,7 @@ export function isLowestRecordedPrice(history: PriceHistory, currentPrice: numbe
  * - `previousLowest`: the lowest price strictly below the current one, useful
  *   as the "previous low" message when the current price is a new low.
  * - `lowestPrice`: the lowest price ever recorded (set only when the current
- *   price is NOT a new low, so the digest can say "Lowest seen: $X").
+ *   price is NOT a new low, so the digest can say "Historical low: $X").
  */
 export interface PriceContext {
   lowestPrice?: number;

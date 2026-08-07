@@ -93,10 +93,10 @@ function formatPriceContext(
       context.previousLowest !== undefined
         ? ` · Previous low ${formatAmount(currency, context.previousLowest)}`
         : '';
-    return [`- **Price history:** ⭐ Lowest price seen${previous}`];
+    return [`- **Price history:** ⭐ At its historical low${previous}`];
   }
   if (context.lowestPrice !== undefined) {
-    return [`- **Price history:** Lowest seen ${formatAmount(currency, context.lowestPrice)}`];
+    return [`- **Price history:** Historical low ${formatAmount(currency, context.lowestPrice)}`];
   }
   return [];
 }
@@ -232,7 +232,7 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
         out.push(`- **Original price:** ${formatAmount(digest.currency, item.originalPrice)}`);
         out.push(`- **Discount:** ${item.discountPercent}%`);
       }
-      out.push(`- **Lowest price seen:** ${formatAmount(digest.currency, item.lowPrice)}`);
+      out.push(`- **Historical low:** ${formatAmount(digest.currency, item.lowPrice)}`);
       out.push('');
       out.push(formatLink('View Deal', item.storeUrl));
       out.push('');

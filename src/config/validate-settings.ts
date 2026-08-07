@@ -68,6 +68,7 @@ const checks: Check[] = [
         dailyDigest: {
           maxBestDeals: 3,
           maxWishlistAlerts: 5,
+          maxHistoricalLows: 4,
           showStatistics: false,
           showPriceWatch: true,
           recommendedFamilyGamesLimit: 8,
@@ -118,6 +119,10 @@ const checks: Check[] = [
         assert.strictEqual(
           loaded.dailyDigest.maxWishlistAlerts,
           DEFAULT_NOTIFICATION_SETTINGS.dailyDigest.maxWishlistAlerts,
+        );
+        assert.strictEqual(
+          loaded.dailyDigest.maxHistoricalLows,
+          DEFAULT_NOTIFICATION_SETTINGS.dailyDigest.maxHistoricalLows,
         );
         assert.strictEqual(
           loaded.dailyDigest.showStatistics,
@@ -182,6 +187,8 @@ const checks: Check[] = [
         { dailyDigest: 'nope' },
         { dailyDigest: { maxBestDeals: 0 } },
         { dailyDigest: { maxWishlistAlerts: 2.5 } },
+        { dailyDigest: { maxHistoricalLows: 0 } },
+        { dailyDigest: { maxHistoricalLows: 2.5 } },
         { dailyDigest: { recommendedFamilyGamesLimit: 0 } },
         { dailyDigest: { recommendedFamilyGamesLimit: 2.5 } },
         { dailyDigest: { showStatistics: 'yes' } },

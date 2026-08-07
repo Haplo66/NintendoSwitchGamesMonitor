@@ -295,7 +295,7 @@ export async function validateAnalyzer(): Promise<void> {
         const augmented = applyHistoricalLowScore({ score: 100, reasons: [] }, true);
         assert.strictEqual(augmented.score, 115, 'applyHistoricalLowScore must add the bonus');
         assert.ok(
-          augmented.reasons.includes('At its historical low price'),
+          augmented.reasons.includes('At its historical low'),
           'applyHistoricalLowScore must add the historical-low reason',
         );
         assert.strictEqual(

@@ -403,7 +403,7 @@ export async function validateRecommendations(): Promise<void> {
         assert.strictEqual(digest.historicalLows[0].lowPrice, 39.99);
         const html = renderDigestEmail(digest);
         assert.ok(html.includes('Historical Lows'), 'Historical Lows section missing');
-        assert.ok(html.includes('lowest recorded price'), 'Historical Lows badge missing');
+        assert.ok(html.includes('At its historical low'), 'Historical Lows badge missing');
       },
     },
     {
@@ -652,6 +652,47 @@ export async function validateRecommendations(): Promise<void> {
           assert.ok(html.includes('Best Deals'), 'Best Deals stat must render');
           assert.ok(html.includes('Free Games'), 'Free Games stat must render');
           assert.ok(html.includes('Historical Lows'), 'Historical Lows stat must render');
+        },
+      },
+      {
+        name: 'maxHistoricalLows limits the Historical Lows section',
+        run: () => {
+          const games = [
+            { title: 'Game A', currentPrice: 10, originalPrice: 50 },
+            { title: 'Game B', currentPrice: 30, originalPrice: 40 },
+            { title: 'Game C', currentPrice: 5, originalPrice: 10 },
+          ].map((g) =>
+            buildAnalysis(makeGame(g), []),
+          );
+          const entries = games.map((analysis, index) => ({
+            gameTitle: analysis.game.title,
+            firstSeenOnSale: '2026-07-20T00:00:00.000Z',
+            lastSeenOnSale: '2026-08-05T00:00:00.000Z',
+            firstNotified: '2026-07-20T00:00:00.000Z',
+            lastNotified: '2026-07-20T00:00:00.000Z',
+            lastNotifiedPrice: 60,
+            notificationCount: 1,
+            currentlyOnSale: true,
+            priceHistory: [
+              { date: '2026-07-20', price: 60 },
+              { date: '2026-08-05', price: analysis.game.currentPrice },
+            ],
+          }));
+          const result = resultWith({
+            analyses: games,
+            reportedAnalyses: games,
+            dealHistory: { entries },
+          });
+          const digest = buildDailyDigest(result, { maxHistoricalLows: 2 });
+          assert.strictEqual(digest.historicalLows.length, 2, 'Historical Lows must be limited');
+          const lowTitles = new Set(digest.historicalLows.map((item) => item.title));
+          assert.ok(lowTitles.has('Game A'), 'highest discount historical low included');
+          assert.ok(lowTitles.has('Game C'), 'second historical low included');
+          assert.ok(!lowTitles.has('Game B'), 'Game B must be cut by the limit');
+          assert.ok(
+            digest.bestDeals.some((item) => item.title === 'Game B'),
+            'a historical-low deal cut by the limit falls back to Best Deals',
+          );
         },
       },
   ];

@@ -282,7 +282,7 @@ const checks: Check[] = [
         ],
         'USD',
       );
-      assert.ok(html.includes('Lowest price seen'), 'new-low badge not rendered');
+      assert.ok(html.includes('At its historical low'), 'new-low badge not rendered');
       assert.ok(html.includes('Previous low'), 'previous low not rendered');
     },
   },
@@ -305,7 +305,7 @@ const checks: Check[] = [
         ],
         'USD',
       );
-      assert.ok(html.includes('Lowest seen'), 'historical-low line not rendered');
+      assert.ok(html.includes('Historical low'), 'historical-low line not rendered');
     },
   },
   {

@@ -48,9 +48,9 @@ The notification email is a **daily digest** written for a busy parent. It opens
 2. **Today's Summary** — a quick stats bar: new deals today, wishlist games on sale, still-active deals, the biggest discount, and games checked.
 3. **Wishlist Alerts** — games on the family wishlist whose price target was reached (or any discount, when enabled). Each alert shows current/original price, discount %, the target and where it came from (`Configured target` vs `Auto target (N% discount)`), and a store link. This is the first deal section so wishlist wins are never buried.
 4. **Wishlist Watch** — every game on the family wishlist with today's price and its current status: 🔥 **On Sale**, 🎯 **Target Price Reached**, ⚪ **Full Price** (monitored but not currently discounted — its regular price is still shown), or ⚪ **Not Currently Tracked** (not part of the monitored catalog, so no price tracking). Each monitored game shows **Current Price:** (with a struck-through **Regular:** price and 🔥 discount % when on sale) and its target. Each non-tracked game shows *"Add this game to the monitored catalog to enable price tracking."* It always renders, so an empty wishlist is shown explicitly.
-5. **Best Deals** — the highest-scoring non-wishlist deals, ordered by deal score (ties resolved deterministically). Each shows price, discount badge, deal score, and why it's recommended. Deals sitting at their lowest-ever price score higher and add an "At its historical low price" note. Long lists (more than 6) automatically switch to a two-column layout.
+5. **Best Deals** — the highest-scoring non-wishlist deals, ordered by deal score (ties resolved deterministically). Each shows price, discount badge, deal score, and why it's recommended. Deals sitting at their lowest-ever price score higher and add an "At its historical low" note. Long lists (more than 6) automatically switch to a two-column layout.
 6. **Free Family Games** — free-to-download games that match at least one family profile (nothing to buy), shown with the matching profile/reason.
-7. **Historical Lows** — every reported on-sale deal currently at (or below) its lowest-ever recorded price, with a ⭐ **At its lowest price ($X)** badge and a store link. Hidden when no reported deal is at a historical low. Long lists (more than 6) switch to a two-column layout.
+7. **Historical Lows** — reported on-sale deals currently at (or below) their lowest-ever recorded price, with a ⭐ **At its historical low ($X)** badge and a store link. Capped at `maxHistoricalLows` (default `5`). Hidden when no reported deal is at a historical low. Long lists (more than 6) switch to a two-column layout. A game shown here is never repeated under **Best Deals**.
 8. **Still On Sale** — deals the family has already been notified about that are *still* discounted (and not re-reported today), with how long each has been on sale (`First reported <date> · N days on sale`). Hidden when there are no still-active tracked deals. Long lists (more than 6) automatically switch to a two-column layout so they are easier to scan.
 9. **Recommended For Your Family** — matching games worth checking **today**, grouped **by game** rather than by family member. Each game appears once, and every matching family member is listed beneath it with their reason (e.g. "✓ Yaara · Adventure"). When the whole family matches, the individual list collapses into a single **👨‍👩‍👧‍👦 Entire family** label. Only actionable games are recommended: currently discounted, free, or active deals still on sale. Each recommended game shows its price status (e.g. 🔥 **-90%** with the current price, or 🆓 **Free to download**). Full-price catalog games are never recommended, even if they match a profile or sit on the wishlist — those stay in **Wishlist Watch** (⚪ Full Price) instead. Recommendations are sorted by usefulness (wishlist games first, then whole-family matches, then the most matching members, then the highest deal score) and capped at `recommendedFamilyGamesLimit`.
 10. **Price Watch** (optional) — wishlist items currently above their target but within ~10% of it, so you can see which deals are about to happen.
@@ -424,13 +424,13 @@ The monitor also records a lightweight **price history** per game so the digest 
 - **Migration** — existing history files without `priceHistory` load as-is (the field is optional). Legacy `{ records: [...] }` files are migrated into deal entries *and* seed a price history from each recorded notification price, with no data loss.
 - **Price intelligence** (`src/history/price-intelligence.ts`) — reusable, rendering-independent helpers: `getLowestPrice`, `getHighestPrice`, `getAveragePrice`, `isLowestRecordedPrice`, and `getPriceContext` (which returns whether the current price is a new low and the previous low). Empty histories are handled safely (these return `undefined` / `false`).
 - **Digest context** — deal cards (**Best Deals**, **Wishlist Alerts**, **Still On Sale**) show price context only when it is useful and add no noise otherwise:
-  - When the current price is the lowest ever seen: **⭐ Lowest price seen** (optionally *· Previous low $X*).
-  - Otherwise, when a cheaper price exists in history: **Lowest seen: $X**.
+  - When the current price is the lowest ever seen: **⭐ At its historical low** (optionally *· Previous low $X*).
+  - Otherwise, when a cheaper price exists in history: **Historical low: $X**.
   - Games with no meaningful history get no price line at all.
-- **Historical Lows section** — reported on-sale deals sitting at (or below) their lowest-ever recorded price are collected into a dedicated **Historical Lows** digest section (and markdown report), each with a ⭐ **At its lowest price ($X)** badge; the same signal also bumps a deal's score for the **Best Deals** ranking.
+- **Historical Lows section** — reported on-sale deals sitting at (or below) their lowest-ever recorded price are collected into a dedicated **Historical Lows** digest section (and markdown report), each with a ⭐ **At its historical low ($X)** badge, capped at `maxHistoricalLows` (default `5`); the same signal also bumps a deal's score for the **Best Deals** ranking.
 - **Deal quality** (`src/history/deal-quality.ts`) — `evaluateDealQuality({ currentPrice, originalPrice, discountPercent, priceHistory })` turns the same history into a one-glance **rating** and reason, purely informational and independent of email rendering:
-  - `excellent` — the current price is the lowest (or tied lowest) recorded → *"New lowest price"*.
-  - `great` — the current price is within ~10% of the historical low → *"Near lowest price"*.
+  - `excellent` — the current price is the lowest (or tied lowest) recorded → *"At its historical low"*.
+  - `great` — the current price is within ~10% of the historical low → *"Near its historical low"*.
   - `good` — the current price is below the historical average sale price → *"Below average sale price"*.
   - `weak` — the current price is at or above the historical average → *"Usually cheaper"*.
   - Empty history yields no rating, so cards with no useful history show no badge. On cards, a rating badge takes precedence over the quieter price-context line (it already conveys the "new low" signal).
@@ -602,6 +602,7 @@ User-editable notification preferences live in `data/settings.json`:
   "dailyDigest": {
     "maxBestDeals": 5,
     "maxWishlistAlerts": 10,
+    "maxHistoricalLows": 5,
     "showStatistics": true,
     "showPriceWatch": true,
     "recommendedFamilyGamesLimit": 10
@@ -621,6 +622,7 @@ User-editable notification preferences live in `data/settings.json`:
 - `dailyDigest` — layout preferences for the digest email:
   - `maxBestDeals` — how many non-wishlist deals to show in the **Best Deals** section (whole number, default `5`).
   - `maxWishlistAlerts` — how many wishlist alerts (and price-watch items) to show (whole number, default `10`).
+  - `maxHistoricalLows` — how many on-sale deals at their lowest-ever recorded price to show in the **Historical Lows** section (whole number, default `5`). A deal cut by this cap falls back to **Best Deals**.
   - `showStatistics` — whether to render the **Monitoring Statistics** section (boolean, default `true`).
   - `showPriceWatch` — whether to render the **Price Watch** section (boolean, default `true`).
   - `recommendedFamilyGamesLimit` — cap on how many games the **Recommended For Your Family** section shows, applied after sorting (whole number, default `10`).

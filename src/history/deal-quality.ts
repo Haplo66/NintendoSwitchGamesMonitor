@@ -47,10 +47,10 @@ export function evaluateDealQuality(input: DealQualityInput): DealQuality | unde
   }
 
   if (input.currentPrice <= lowest) {
-    return { rating: 'excellent', reason: 'New lowest price' };
+    return { rating: 'excellent', reason: 'At its historical low' };
   }
   if (input.currentPrice <= lowest * GREAT_THRESHOLD) {
-    return { rating: 'great', reason: 'Near lowest price' };
+    return { rating: 'great', reason: 'Near its historical low' };
   }
 
   const average = getAveragePrice(input.priceHistory);

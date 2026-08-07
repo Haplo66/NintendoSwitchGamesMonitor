@@ -253,8 +253,8 @@ export function renderStillOnSaleSection(items: DigestStillOnSale[], currency: s
 
 /**
  * Renders historical price context under a deal card, only when it is useful:
- * "⭐ Lowest price seen" (current price is the best ever, optionally with the
- * previous low) or "Lowest seen: $X" when the current price is not a new low
+ * "⭐ At its historical low" (current price is the best ever, optionally with the
+ * previous low) or "Historical low: $X" when the current price is not a new low
  * but a cheaper one exists in history. Returns an empty string when there is
  * no meaningful history, so no noise is added to ordinary deals.
  */
@@ -268,9 +268,9 @@ function renderPriceContext(context: DigestPriceContext | undefined, currency: s
       context.previousLowest !== undefined
         ? ` · Previous low ${formatMoney(currency, context.previousLowest)}`
         : '';
-    text = `⭐ Lowest price seen${previous}`;
+    text = `⭐ At its historical low${previous}`;
   } else if (context.lowestPrice !== undefined) {
-    text = `Lowest seen: ${formatMoney(currency, context.lowestPrice)}`;
+    text = `Historical low: ${formatMoney(currency, context.lowestPrice)}`;
   } else {
     return '';
   }
@@ -473,7 +473,7 @@ function renderHistoricalLowCard(deal: DigestHistoricalLow, currency: string): s
     `<div>${renderPriceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.time)}</div>` +
     renderDealSummary(deal.discountPercent) +
     `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; font-weight:bold;` +
-    ` color:${COLORS.success};">⭐ At its lowest recorded price (${formatMoney(currency, deal.lowPrice)})</div>` +
+    ` color:${COLORS.success};">⭐ At its historical low (${formatMoney(currency, deal.lowPrice)})</div>` +
     `</td>` +
     `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(deal.ageRating)}</td>` +
     `</tr></table>` +

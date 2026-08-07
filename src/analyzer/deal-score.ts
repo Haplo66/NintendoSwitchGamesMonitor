@@ -53,7 +53,7 @@ export function scoreDeal(input: DealScoreInput): DealScoreResult {
 
   if (historicalLowReached) {
     score += HISTORICAL_LOW_BONUS;
-    reasons.push('At its historical low price');
+    reasons.push('At its historical low');
   }
 
   if (familyMatchCount > 0) {
@@ -83,6 +83,6 @@ export function applyHistoricalLowScore(
   }
   return {
     score: base.score + HISTORICAL_LOW_BONUS,
-    reasons: [...base.reasons, 'At its historical low price'],
+    reasons: [...base.reasons, 'At its historical low'],
   };
 }

@@ -271,6 +271,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const digest = buildDailyDigest(result, {
     maxBestDeals: config.notification.dailyDigest.maxBestDeals,
     maxWishlistAlerts: config.notification.dailyDigest.maxWishlistAlerts,
+    maxHistoricalLows: config.notification.dailyDigest.maxHistoricalLows,
     showStatistics: config.notification.dailyDigest.showStatistics,
     showPriceWatch: config.notification.dailyDigest.showPriceWatch,
     recommendedFamilyGamesLimit: config.notification.dailyDigest.recommendedFamilyGamesLimit,

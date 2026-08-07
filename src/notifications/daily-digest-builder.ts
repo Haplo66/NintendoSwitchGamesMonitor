@@ -28,6 +28,7 @@ import {
 export interface BuildDailyDigestOptions {
   maxBestDeals?: number;
   maxWishlistAlerts?: number;
+  maxHistoricalLows?: number;
   showStatistics?: boolean;
   showPriceWatch?: boolean;
   recommendedFamilyGamesLimit?: number;
@@ -277,6 +278,8 @@ export function buildDailyDigest(
 ): DailyDigest {
   const maxBestDeals = options.maxBestDeals ?? DEFAULT_DAILY_DIGEST_SETTINGS.maxBestDeals;
   const maxWishlistAlerts = options.maxWishlistAlerts ?? DEFAULT_DAILY_DIGEST_SETTINGS.maxWishlistAlerts;
+  const maxHistoricalLows =
+    options.maxHistoricalLows ?? DEFAULT_DAILY_DIGEST_SETTINGS.maxHistoricalLows;
   const showStatistics = options.showStatistics ?? DEFAULT_DAILY_DIGEST_SETTINGS.showStatistics;
   const showPriceWatch = options.showPriceWatch ?? DEFAULT_DAILY_DIGEST_SETTINGS.showPriceWatch;
   const recommendedFamilyGamesLimit =
@@ -372,7 +375,7 @@ export function buildDailyDigest(
       };
     })
     .sort((a, b) => b.discountPercent - a.discountPercent)
-    .slice(0, maxBestDeals);
+    .slice(0, maxHistoricalLows);
 
   const alertTitles = new Set(wishlistAlerts.map((alert) => alert.title));
   // A game already shown in Historical Lows (a stronger claim: lowest recorded

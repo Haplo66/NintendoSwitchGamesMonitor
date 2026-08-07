@@ -15,6 +15,7 @@ export async function generateReport(): Promise<MonitorReportFiles> {
   const data = buildMonitorReportData(result, {
     maxBestDeals: config.notification.dailyDigest.maxBestDeals,
     maxWishlistAlerts: config.notification.dailyDigest.maxWishlistAlerts,
+    maxHistoricalLows: config.notification.dailyDigest.maxHistoricalLows,
     showStatistics: config.notification.dailyDigest.showStatistics,
     showPriceWatch: config.notification.dailyDigest.showPriceWatch,
     recommendedFamilyGamesLimit: config.notification.dailyDigest.recommendedFamilyGamesLimit,

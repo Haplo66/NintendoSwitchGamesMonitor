@@ -462,4 +462,15 @@ Features:
 - Scoring, recommendation logic, and notification history unchanged (out of scope for this task)
 
 > **Status: 🔄 In progress**
+
+## v0.38 Polish Digest Sections
+
+Features:
+- **Configurable Historical Lows limit** — new `dailyDigest.maxHistoricalLows` setting (default `5`) caps how many on-sale deals at their lowest-ever recorded price appear in the **Historical Lows** section (email + markdown). A deal cut by the cap falls back to **Best Deals** rather than vanishing.
+- **Consistent historical-low terminology** — the phrasing "New lowest price" and "At its historical low price" is unified across the app to **"At its historical low"** (and **"Near its historical low"** for a near-low). Applied to the deal-quality reasons (`deal-quality.ts`), the deal-score reason (`deal-score.ts`), the Historical Lows card badge, and the "Lowest price seen / Lowest seen" price-context lines in both the HTML email and Markdown report. Scoring weights unchanged.
+- **Best Deals / Historical Lows separation preserved** — a game shown in Historical Lows is still not repeated in Best Deals, now verified for the cap boundary (a historical-low deal cut by `maxHistoricalLows` correctly lands in Best Deals).
+- **Validation** — `validate-recommendations` adds a regression test that `maxHistoricalLows` limits the section and re-lands the overflow in Best Deals; `validate-settings` covers the new field's default, round-trip, and validation. Wording assertions updated in `validate-analyzer`, `validate-deal-quality`, `validate-price-intelligence`, and `validate-recommendations`.
+- Scoring weights, recommendation logic, and notification history unchanged (out of scope for this task)
+
+> **Status: 🔄 In progress**
 .
