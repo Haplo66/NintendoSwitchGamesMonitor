@@ -200,7 +200,9 @@ const checks: Check[] = [
   {
     name: 'markdown summary table has correct values',
     run: () => {
-      assert.ok(markdown.includes('| 🔥 New Deals | 3 |'), 'New Deals wrong');
+      assert.ok(markdown.includes('| 🔥 Best Deals | 2 |'), 'Best Deals wrong');
+      assert.ok(markdown.includes('| ⭐ Historical Lows | 0 |'), 'Historical Lows wrong');
+      assert.ok(markdown.includes('| 🆓 Free Games | 1 |'), 'Free Games wrong');
       assert.ok(markdown.includes('| ⭐ Wishlist Games on Sale | 1 |'), 'Wishlist on Sale wrong');
       assert.ok(markdown.includes('| 🕒 Still Active Deals | 1 |'), 'Still Active wrong');
       assert.ok(markdown.includes('| 🏷 Biggest Discount | -83% (Chess) |'), 'Biggest Discount wrong');
@@ -321,7 +323,9 @@ const checks: Check[] = [
     run: () => {
       const data = buildMonitorReportData(sampleResult());
       assert.strictEqual(data.digest.summary.gamesChecked, 6);
-      assert.strictEqual(data.digest.summary.newDeals, 3);
+      assert.strictEqual(data.digest.summary.bestDeals, 2);
+      assert.strictEqual(data.digest.summary.historicalLows, 0);
+      assert.strictEqual(data.digest.summary.freeGames, 1);
       assert.strictEqual(data.digest.wishlistWatch.length, 3);
       assert.strictEqual(data.digest.wishlistWatch[0].status, 'on-sale');
       assert.strictEqual(data.digest.wishlistWatch[1].status, 'not-monitored');

@@ -329,15 +329,6 @@ export function buildDailyDigest(
     }
   }
 
-  const summary: DigestSummary = {
-    newDeals: result.reportedCount,
-    wishlistGamesOnSale,
-    stillActiveDeals: stillOnSale.length,
-    biggestDiscountPercent,
-    biggestDiscountTitle,
-    gamesChecked: result.analyzedCount,
-  };
-
   const wishlistAlerts: DigestWishlistAlert[] = reportedAnalyses
     .filter(
       (analysis) =>
@@ -366,13 +357,36 @@ export function buildDailyDigest(
       };
     });
 
+  const historicalLows: DigestHistoricalLow[] = reportableAnalyses
+    .filter((analysis) => isOnSale(analysis.game) && isHistoricalLow(result, analysis.game))
+    .map((analysis) => {
+      const context = priceContextFor(result, analysis.game.title, analysis.game.currentPrice);
+      return {
+        title: analysis.game.title,
+        currentPrice: analysis.game.currentPrice,
+        originalPrice: analysis.game.originalPrice,
+        discountPercent: calculateDiscountPercent(analysis.game),
+        lowPrice: context?.lowestPrice ?? analysis.game.currentPrice,
+        ageRating: analysis.game.ageRating ?? 'NR',
+        storeUrl: resolveStoreUrl(analysis.game),
+      };
+    })
+    .sort((a, b) => b.discountPercent - a.discountPercent)
+    .slice(0, maxBestDeals);
+
   const alertTitles = new Set(wishlistAlerts.map((alert) => alert.title));
+  // A game already shown in Historical Lows (a stronger claim: lowest recorded
+  // price) is not repeated in Best Deals to avoid duplicate entries.
+  const historicalLowTitles = new Set(historicalLows.map((item) => titleKey(item.title)));
   // The analyzer scores deals without the price history; re-apply the
   // historical-low bonus here (where history is available) so a deal at its
   // lowest recorded price ranks higher in Best Deals and carries the reason.
   const bestDeals: DigestBestDeal[] = reportableAnalyses
     .filter(
-      (analysis) => analysis.game.currentPrice > 0 && !alertTitles.has(analysis.game.title),
+      (analysis) =>
+        analysis.game.currentPrice > 0 &&
+        !alertTitles.has(analysis.game.title) &&
+        !historicalLowTitles.has(titleKey(analysis.game.title)),
     )
     .map((analysis) => ({
       analysis,
@@ -407,23 +421,6 @@ export function buildDailyDigest(
         reasons: matchedProfiles.flatMap((match) => [match.profileName, ...match.reasons]),
       };
     });
-
-  const historicalLows: DigestHistoricalLow[] = reportableAnalyses
-    .filter((analysis) => isOnSale(analysis.game) && isHistoricalLow(result, analysis.game))
-    .map((analysis) => {
-      const context = priceContextFor(result, analysis.game.title, analysis.game.currentPrice);
-      return {
-        title: analysis.game.title,
-        currentPrice: analysis.game.currentPrice,
-        originalPrice: analysis.game.originalPrice,
-        discountPercent: calculateDiscountPercent(analysis.game),
-        lowPrice: context?.lowestPrice ?? analysis.game.currentPrice,
-        ageRating: analysis.game.ageRating ?? 'NR',
-        storeUrl: resolveStoreUrl(analysis.game),
-      };
-    })
-    .sort((a, b) => b.discountPercent - a.discountPercent)
-    .slice(0, maxBestDeals);
 
   interface PendingRecommendation {
     title: string;
@@ -518,6 +515,17 @@ export function buildDailyDigest(
         executionTime: formatExecutionTime(result.executionTimeMs),
       }
     : undefined;
+
+  const summary: DigestSummary = {
+    bestDeals: bestDeals.length,
+    historicalLows: historicalLows.length,
+    freeGames: freeGames.length,
+    wishlistGamesOnSale,
+    stillActiveDeals: stillOnSale.length,
+    biggestDiscountPercent,
+    biggestDiscountTitle,
+    gamesChecked: result.analyzedCount,
+  };
 
   return {
     generatedAt: result.generatedAt,

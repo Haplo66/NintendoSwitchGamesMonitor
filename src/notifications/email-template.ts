@@ -158,7 +158,7 @@ function renderDealSummary(discountPercent: number | undefined, score?: number):
     parts.push(`🔥 ${badge(`-${discountPercent}%`, COLORS.discount)}`);
   }
   if (score !== undefined) {
-    parts.push(badge(`Score ${score}`, COLORS.accent));
+    parts.push(badge(`Deal Score ${score}`, COLORS.accent));
   }
   if (parts.length === 0) {
     return '';
@@ -181,7 +181,9 @@ export function renderDigestHeader(digest: DailyDigest): string {
 
 export function renderDigestSummary(summary: DigestSummary): string {
   const stats: Array<[string, string]> = [
-    ['🔥 New Deals', String(summary.newDeals)],
+    ['🔥 Best Deals', String(summary.bestDeals)],
+    ['⭐ Historical Lows', String(summary.historicalLows)],
+    ['🆓 Free Games', String(summary.freeGames)],
     ['⭐ Wishlist on Sale', String(summary.wishlistGamesOnSale)],
     ['🕒 Still Active', String(summary.stillActiveDeals)],
     [
@@ -580,7 +582,7 @@ function renderStatisticsRow(label: string, value: string): string {
 export function renderStatisticsSection(statistics: DigestStatistics): string {
   const rows =
     renderStatisticsRow('Games checked', String(statistics.gamesChecked)) +
-    renderStatisticsRow('Reported', String(statistics.reported)) +
+    renderStatisticsRow('Newly notified', String(statistics.reported)) +
     renderStatisticsRow('Skipped', String(statistics.skipped)) +
     renderStatisticsRow('Collector', statistics.collector) +
     renderStatisticsRow('Execution time', statistics.executionTime);

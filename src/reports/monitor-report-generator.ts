@@ -115,7 +115,9 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
   out.push('');
   out.push('| Metric | Value |');
   out.push('| --- | ---: |');
-  out.push(`| 🔥 New Deals | ${digest.summary.newDeals} |`);
+  out.push(`| 🔥 Best Deals | ${digest.summary.bestDeals} |`);
+  out.push(`| ⭐ Historical Lows | ${digest.summary.historicalLows} |`);
+  out.push(`| 🆓 Free Games | ${digest.summary.freeGames} |`);
   out.push(`| ⭐ Wishlist Games on Sale | ${digest.summary.wishlistGamesOnSale} |`);
   out.push(`| 🕒 Still Active Deals | ${digest.summary.stillActiveDeals} |`);
   out.push(
@@ -303,7 +305,7 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
     out.push('| Metric | Value |');
     out.push('| --- | --- |');
     out.push(`| Games checked | ${digest.statistics.gamesChecked} |`);
-    out.push(`| Reported | ${digest.statistics.reported} |`);
+    out.push(`| Newly notified | ${digest.statistics.reported} |`);
     out.push(`| Skipped | ${digest.statistics.skipped} |`);
     out.push(`| Collector | ${digest.statistics.collector} |`);
     out.push(`| Execution time | ${digest.statistics.executionTime} |`);

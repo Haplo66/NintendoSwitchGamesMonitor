@@ -20,7 +20,9 @@ function buildSampleDigest(): DailyDigest {
     currency: 'USD',
     defaultWishlistDiscountPercent: 40,
     summary: {
-      newDeals: 3,
+      bestDeals: 3,
+      historicalLows: 1,
+      freeGames: 1,
       wishlistGamesOnSale: 1,
       stillActiveDeals: 1,
       biggestDiscountPercent: 33,
@@ -137,7 +139,9 @@ function emptyDigest(): DailyDigest {
     currency: 'USD',
     defaultWishlistDiscountPercent: 40,
     summary: {
-      newDeals: 0,
+      bestDeals: 0,
+      historicalLows: 0,
+      freeGames: 0,
       wishlistGamesOnSale: 0,
       stillActiveDeals: 0,
       biggestDiscountPercent: 0,
@@ -296,7 +300,9 @@ export async function validateEmailRendering(): Promise<void> {
       name: 'Summary section renders with correct values',
       run: () => {
         assert.ok(html.includes('Today\u2019s Summary'), 'Summary section missing');
-        assert.ok(hasStat(html, 3, '🔥 New Deals'), 'New Deals value wrong');
+        assert.ok(hasStat(html, 3, '🔥 Best Deals'), 'Best Deals value wrong');
+        assert.ok(hasStat(html, 1, '⭐ Historical Lows'), 'Historical Lows value wrong');
+        assert.ok(hasStat(html, 1, '🆓 Free Games'), 'Free Games value wrong');
         assert.ok(hasStat(html, 1, '⭐ Wishlist on Sale'), 'Wishlist on Sale value wrong');
         assert.ok(hasStat(html, 1, '🕒 Still Active'), 'Still Active value wrong');
         assert.ok(hasStat(html, '-33% Breath of the Wild', '🏷 Biggest Discount'), 'Biggest Discount value wrong');
@@ -348,7 +354,7 @@ export async function validateEmailRendering(): Promise<void> {
         assert.ok(html.includes('Best Deals'), 'Best Deals header missing');
         assert.ok(html.includes('Breath of the Wild'), 'Best deal title missing');
         assert.ok(html.includes('-33%'), 'Discount badge missing');
-        assert.ok(html.includes('Score 92'), 'Deal score missing');
+        assert.ok(html.includes('Deal Score 92'), 'Deal score missing');
         assert.ok(html.includes('Age appropriate for the family'), 'Reason missing');
         assert.ok(html.includes('USD 39.99'), 'Current price missing');
         assert.ok(html.includes('View Deal'), 'Best deal button missing');
@@ -395,9 +401,9 @@ export async function validateEmailRendering(): Promise<void> {
       name: 'Best Deal card keeps its deal score once',
       run: () => {
         const sectionHtml = renderBestDealsSection(manyCardsDigest({ bestDeals: 1 }).bestDeals, 'USD');
-        assert.ok(sectionHtml.includes('Score 92'), 'Deal score must remain present');
+        assert.ok(sectionHtml.includes('Deal Score 92'), 'Deal score must remain present');
         assert.strictEqual(
-          countOccurrences(sectionHtml, '>Score 92</span>'),
+          countOccurrences(sectionHtml, '>Deal Score 92</span>'),
           1,
           'Deal score must appear exactly once',
         );
@@ -409,7 +415,7 @@ export async function validateEmailRendering(): Promise<void> {
         const sectionHtml = renderBestDealsSection(manyCardsDigest({ bestDeals: 1 }).bestDeals, 'USD');
         assert.ok(sectionHtml.includes('→'), 'Prices must be visually separated');
         assert.ok(sectionHtml.includes('USD 39.99'), 'Current price must remain visible');
-        assert.ok(sectionHtml.includes('Score 92'), 'Deal score must remain present');
+        assert.ok(sectionHtml.includes('Deal Score 92'), 'Deal score must remain present');
         assert.ok(
           !sectionHtml.includes('USD 59.99USD 39.99'),
           'Prices must not be concatenated without a separator',
@@ -467,7 +473,8 @@ export async function validateEmailRendering(): Promise<void> {
       name: 'empty sections disappear gracefully',
       run: () => {
         assert.ok(!emptyHtml.includes('Wishlist Alerts'), 'Empty Wishlist Alerts still shown');
-        assert.ok(!emptyHtml.includes('Best Deals'), 'Empty Best Deals still shown');
+        assert.ok(!emptyHtml.includes('>🔥 Best Deals</td>'), 'Empty Best Deals still shown');
+        assert.ok(!emptyHtml.includes('>⭐ Historical Lows</td>'), 'Empty Historical Lows still shown');
         assert.ok(!emptyHtml.includes('Free Family Games'), 'Empty Free Games still shown');
         assert.ok(
           !emptyHtml.includes('Recommended For Your Family'),

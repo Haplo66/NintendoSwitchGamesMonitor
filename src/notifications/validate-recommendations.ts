@@ -434,7 +434,7 @@ export async function validateRecommendations(): Promise<void> {
         );
         const html = renderDigestEmail(digest);
         const alerts = html.indexOf('Wishlist Alerts');
-        const best = html.indexOf('Best Deals');
+        const best = html.indexOf('>🔥 Best Deals</td>');
         assert.ok(alerts >= 0 && best >= 0, 'sections must render');
         assert.ok(alerts < best, 'Wishlist Alerts must appear before Best Deals');
       },
@@ -581,6 +581,77 @@ export async function validateRecommendations(): Promise<void> {
           assert.ok(deal, 'cooldown-skipped best-scored deal must appear in Best Deals');
           const html = renderDigestEmail(digest);
           assert.ok(html.includes('Best Deals'), 'Best Deals section missing');
+        },
+      },
+      {
+        name: 'a game at its historical low is not duplicated in Best Deals',
+        run: () => {
+          const zelda = buildAnalysis(
+            makeGame({
+              title: 'The Legend of Zelda: Breath of the Wild',
+              currentPrice: 39.99,
+              originalPrice: 59.99,
+            }),
+            [],
+          );
+          const result = resultWith({
+            analyses: [zelda],
+            reportedAnalyses: [zelda],
+            dealHistory: {
+              entries: [
+                {
+                  gameTitle: 'The Legend of Zelda: Breath of the Wild',
+                  firstSeenOnSale: '2026-07-20T00:00:00.000Z',
+                  lastSeenOnSale: '2026-08-05T00:00:00.000Z',
+                  firstNotified: '2026-07-20T00:00:00.000Z',
+                  lastNotified: '2026-07-20T00:00:00.000Z',
+                  lastNotifiedPrice: 49.99,
+                  notificationCount: 1,
+                  currentlyOnSale: true,
+                  priceHistory: [
+                    { date: '2026-07-20', price: 49.99 },
+                    { date: '2026-08-05', price: 39.99 },
+                  ],
+                },
+              ],
+            },
+          });
+          const digest = buildDailyDigest(result);
+          const low = digest.historicalLows.find((item) => item.title === zelda.game.title);
+          assert.ok(low, 'the historical-low deal must appear in Historical Lows');
+          assert.ok(
+            !digest.bestDeals.some((item) => item.title === zelda.game.title),
+            'the same deal must not be repeated in Best Deals',
+          );
+        },
+      },
+      {
+        name: 'Today\'s Summary reflects the digest content counts',
+        run: () => {
+          const fortnite = buildAnalysis(
+            makeGame({ title: 'Fortnite', currentPrice: 0, originalPrice: undefined }),
+            [{ profileName: 'Kids 8-12', matched: true, reasons: ['Puzzle preference'] }],
+          );
+          const zelda = buildAnalysis(
+            makeGame({
+              title: 'The Legend of Zelda: Breath of the Wild',
+              currentPrice: 39.99,
+              originalPrice: 59.99,
+            }),
+            [],
+          );
+          const result = resultWith({
+            analyses: [fortnite, zelda],
+            reportedAnalyses: [fortnite, zelda],
+          });
+          const digest = buildDailyDigest(result);
+          assert.strictEqual(digest.summary.bestDeals, digest.bestDeals.length);
+          assert.strictEqual(digest.summary.freeGames, digest.freeGames.length);
+          assert.strictEqual(digest.summary.historicalLows, digest.historicalLows.length);
+          const html = renderDigestEmail(digest);
+          assert.ok(html.includes('Best Deals'), 'Best Deals stat must render');
+          assert.ok(html.includes('Free Games'), 'Free Games stat must render');
+          assert.ok(html.includes('Historical Lows'), 'Historical Lows stat must render');
         },
       },
   ];

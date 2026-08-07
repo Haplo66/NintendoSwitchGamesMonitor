@@ -449,4 +449,17 @@ Features:
 - Collector, scoring, recommendation logic, and notification history unchanged (out of scope for this task)
 
 > **Status: 🔄 In progress**
+
+## v0.37 Improve Digest Presentation
+
+Features:
+- **Today's Summary reflects digest content** — the summary now shows **Best Deals**, **Historical Lows**, and **Free Games** counts (in both the HTML email and Markdown report) instead of a "New Deals" count that only reflected newly notified games and read as `0` even when the digest had deals. Wishlist, Still Active, Biggest Discount, and Games Checked remain
+- **No duplicate deals** — a game at its **Historical Lows** (a stronger claim: lowest recorded price) is no longer repeated under **Best Deals**, so it appears in exactly one section
+- **Deal score label** — the email deal badge is renamed from `Score N` to **`Deal Score N`**, matching the Markdown report's existing "Deal score" wording; scoring logic unchanged
+- **Clearer statistics wording** — Monitoring Statistics "Reported" is renamed to **"Newly notified"** in both the HTML email and Markdown report, so it is not read as the total digest content
+- **Model** — `DigestSummary` replaces `newDeals` with `bestDeals`, `historicalLows`, and `freeGames`
+- **Validation** — `validate-recommendations` adds a regression test that a historical-low game is not duplicated in Best Deals and that the summary reflects the content counts; `validate-email` and `validate-reports` updated for the new labels
+- Scoring, recommendation logic, and notification history unchanged (out of scope for this task)
+
+> **Status: 🔄 In progress**
 .

@@ -19,7 +19,9 @@ function buildSampleDigest(): DailyDigest {
     currency: 'USD',
     defaultWishlistDiscountPercent: 40,
     summary: {
-      newDeals: 3,
+      bestDeals: 3,
+      historicalLows: 1,
+      freeGames: 1,
       wishlistGamesOnSale: 2,
       stillActiveDeals: 1,
       biggestDiscountPercent: 42,

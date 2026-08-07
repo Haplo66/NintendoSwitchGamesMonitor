@@ -1,5 +1,7 @@
 export interface DigestSummary {
-  newDeals: number;
+  bestDeals: number;
+  historicalLows: number;
+  freeGames: number;
   wishlistGamesOnSale: number;
   stillActiveDeals: number;
   biggestDiscountPercent: number;
