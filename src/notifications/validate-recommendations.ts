@@ -363,6 +363,34 @@ export async function validateRecommendations(): Promise<void> {
       },
     },
     {
+      name: 'displayed Deal Score is capped at 100 while ranking uses the internal score',
+      run: () => {
+        const high = makeAnalysis(makeGame({ title: 'High', currentPrice: 30, originalPrice: 60 }));
+        high.dealScore = { score: 150, reasons: ['x'] };
+        const mid = makeAnalysis(makeGame({ title: 'Mid', currentPrice: 30, originalPrice: 60 }));
+        mid.dealScore = { score: 105, reasons: ['x'] };
+        const low = makeAnalysis(makeGame({ title: 'Low', currentPrice: 30, originalPrice: 60 }));
+        low.dealScore = { score: 90, reasons: ['x'] };
+        const result = resultWith({
+          analyses: [low, high, mid],
+          reportedAnalyses: [low, high, mid],
+        });
+        const digest = buildDailyDigest(result);
+        const internal = digest.bestDeals.map((deal) => deal.score);
+        assert.ok(
+          internal[0] > internal[1] && internal[1] > internal[2],
+          'high-value deals must still rank above weaker deals by internal score',
+        );
+        const html = renderDigestEmail(digest);
+        assert.ok(html.includes('Deal Score: 100'), 'high deals must clamp to 100');
+        assert.ok(html.includes('Deal Score: 90'), 'sub-100 scores must be shown as-is');
+        assert.ok(
+          !html.includes('Deal Score: 105') && !html.includes('Deal Score: 150'),
+          'displayed score must never exceed 100',
+        );
+      },
+    },
+    {
       name: 'a deal at its historical low renders in Historical Lows',
       run: () => {
         const zelda = makeAnalysis(

@@ -354,7 +354,7 @@ export async function validateEmailRendering(): Promise<void> {
         assert.ok(html.includes('Best Deals'), 'Best Deals header missing');
         assert.ok(html.includes('Breath of the Wild'), 'Best deal title missing');
         assert.ok(html.includes('-33%'), 'Discount badge missing');
-        assert.ok(html.includes('Deal Score 92'), 'Deal score missing');
+        assert.ok(html.includes('Deal Score: 92'), 'Deal score missing');
         assert.ok(html.includes('Age appropriate for the family'), 'Reason missing');
         assert.ok(html.includes('USD 39.99'), 'Current price missing');
         assert.ok(html.includes('View Deal'), 'Best deal button missing');
@@ -401,9 +401,9 @@ export async function validateEmailRendering(): Promise<void> {
       name: 'Best Deal card keeps its deal score once',
       run: () => {
         const sectionHtml = renderBestDealsSection(manyCardsDigest({ bestDeals: 1 }).bestDeals, 'USD');
-        assert.ok(sectionHtml.includes('Deal Score 92'), 'Deal score must remain present');
+        assert.ok(sectionHtml.includes('Deal Score: 92'), 'Deal score must remain present');
         assert.strictEqual(
-          countOccurrences(sectionHtml, '>Deal Score 92</span>'),
+          countOccurrences(sectionHtml, '>Deal Score: 92</span>'),
           1,
           'Deal score must appear exactly once',
         );
@@ -415,7 +415,7 @@ export async function validateEmailRendering(): Promise<void> {
         const sectionHtml = renderBestDealsSection(manyCardsDigest({ bestDeals: 1 }).bestDeals, 'USD');
         assert.ok(sectionHtml.includes('→'), 'Prices must be visually separated');
         assert.ok(sectionHtml.includes('USD 39.99'), 'Current price must remain visible');
-        assert.ok(sectionHtml.includes('Deal Score 92'), 'Deal score must remain present');
+        assert.ok(sectionHtml.includes('Deal Score: 92'), 'Deal score must remain present');
         assert.ok(
           !sectionHtml.includes('USD 59.99USD 39.99'),
           'Prices must not be concatenated without a separator',

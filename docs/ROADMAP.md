@@ -473,4 +473,15 @@ Features:
 - Scoring weights, recommendation logic, and notification history unchanged (out of scope for this task)
 
 > **Status: 🔄 In progress**
+
+## v0.39 Normalize Deal Score Display
+
+Features:
+- **Capped displayed Deal Score** — the user-facing score (email **Deal Score:** badge and Markdown **Deal score:**) is capped at **100** via a new `displayScore()` helper, so a value like `Deal Score: 105` reads as `Deal Score: 100`. Internal scoring is unchanged.
+- **Ranking preserved** — all bonuses (discount, free-game, wishlist, price-target-reached, historical-low, family-match) still contribute to the internal score, which remains the basis for **Best Deals** ordering; only the *display* is clamped, so a 150-score deal still outranks a 105-score deal while both read `100`.
+- **Consistent label** — the email badge is now `Deal Score: 100` (with a colon), matching the Markdown report's existing `Deal score:` label.
+- **Validation** — `validate-analyzer` verifies `displayScore()` never exceeds 100 (50→50, 100→100, 105→100, 150→100); `validate-recommendations` verifies the rendered email shows `Deal Score: 100` for over-cap deals, `Deal Score: 90` for sub-100 deals, never emits a `Deal Score: >100`, and that high-value deals still rank above weaker ones by internal score.
+- Digest sections, scoring weights, recommendation logic, and notification history unchanged (out of scope for this task)
+
+> **Status: 🔄 In progress**
 .

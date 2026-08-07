@@ -13,6 +13,7 @@ import {
   wrapDigestDocument,
 } from '../notifications/email-renderer';
 import { escapeHtml, renderDigestHeader } from '../notifications/email-template';
+import { displayScore } from '../analyzer/deal-score';
 
 const FONT = 'Arial, Helvetica, sans-serif';
 
@@ -196,7 +197,7 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
         out.push(`- **Original price:** ${formatAmount(digest.currency, deal.originalPrice)}`);
         out.push(`- **Discount:** ${deal.discountPercent}%`);
       }
-      out.push(`- **Deal score:** ${deal.score}`);
+      out.push(`- **Deal score:** ${displayScore(deal.score)}`);
       if (deal.reasons.length > 0) {
         out.push(`- **Why recommended:** ${deal.reasons.join('; ')}`);
       }

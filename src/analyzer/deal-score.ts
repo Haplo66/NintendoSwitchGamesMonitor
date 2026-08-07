@@ -7,6 +7,22 @@ const PRICE_TARGET_REACHED_BONUS = 20;
 const FAMILY_MATCH_BONUS = 10;
 const HISTORICAL_LOW_BONUS = 15;
 
+/**
+ * The highest user-facing score shown to readers. Internal scoring may exceed
+ * this so that high-value deals (wishlist, target reached, historical low)
+ * keep their ranking advantage; the display is clamped to this value so scores
+ * read like a percentage and stay intuitive.
+ */
+export const MAX_DISPLAY_SCORE = 100;
+
+/**
+ * Clamps an internal deal score to the user-facing display maximum. The raw
+ * score is unchanged and still used for ranking.
+ */
+export function displayScore(score: number): number {
+  return Math.min(score, MAX_DISPLAY_SCORE);
+}
+
 export function calculateDiscountPercent(game: Game): number {
   if (game.originalPrice === undefined || game.originalPrice <= 0) {
     return 0;

@@ -14,6 +14,7 @@ import {
   DigestWishlistWatch,
   DigestFreeGame,
 } from '../models';
+import { displayScore } from '../analyzer/deal-score';
 
 const COLORS = {
   bg: '#f4f5f7',
@@ -158,7 +159,7 @@ function renderDealSummary(discountPercent: number | undefined, score?: number):
     parts.push(`🔥 ${badge(`-${discountPercent}%`, COLORS.discount)}`);
   }
   if (score !== undefined) {
-    parts.push(badge(`Deal Score ${score}`, COLORS.accent));
+    parts.push(badge(`Deal Score: ${displayScore(score)}`, COLORS.accent));
   }
   if (parts.length === 0) {
     return '';

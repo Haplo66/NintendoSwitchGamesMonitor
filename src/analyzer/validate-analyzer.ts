@@ -6,7 +6,7 @@ import { loadFamilyProfiles } from '../config/family-profiles-loader';
 import { loadGameCatalog } from '../collectors/nintendo-price-collector';
 import { FamilyProfile, Game } from '../models';
 import { analyzeGamesWith } from './analyze';
-import { applyHistoricalLowScore, scoreDeal } from './deal-score';
+import { applyHistoricalLowScore, displayScore, scoreDeal } from './deal-score';
 import { matchGameToProfile, matchGameToProfiles, normalizeGenre } from './family-matcher';
 
 interface Check {
@@ -317,6 +317,15 @@ export async function validateAnalyzer(): Promise<void> {
         assert.strictEqual(normalizeGenre('RPG'), 'role-playing');
         assert.strictEqual(normalizeGenre('Action'), 'action');
         assert.strictEqual(normalizeGenre('Puzzle'), 'puzzle');
+      },
+    },
+    {
+      name: 'display score never exceeds 100 but internal score stays intact',
+      run: () => {
+        assert.strictEqual(displayScore(50), 50, 'scores below the cap pass through');
+        assert.strictEqual(displayScore(100), 100, 'scores at the cap pass through');
+        assert.strictEqual(displayScore(105), 100, 'scores above the cap clamp to 100');
+        assert.strictEqual(displayScore(150), 100, 'high internal scores clamp to 100');
       },
     },
   ];
