@@ -126,7 +126,7 @@ For CI or a one-off run, these environment variables are honored and take preced
 | `DEALS_LIMIT`         | — (max games per run for the `nintendo` collector)                        | `100`         |
 | `MIN_DEAL_SCORE`      | `minimumDealScore`                                                        | `80`          |
 | `NOTIFICATION_COOLDOWN_DAYS` | `notificationCooldownDays`                                          | `14`          |
-| `MAX_GAMES_PER_EMAIL` | `maxGamesPerEmail`                                                        | `10`          |
+| `MAX_TOTAL_DIGEST_GAMES` | `maxTotalDigestGames`                                                        | `10`          |
 | `NOTIFY_FREE_GAMES`   | `notifyFreeGames`                                                         | `true`        |
 | `NOTIFY_WISHLIST_MATCHES` | `notifyWishlistMatches`                                                | `true`        |
 | `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | `defaultWishlistDiscountPercent`                          | `40`          |
@@ -296,7 +296,7 @@ HTML Email (provider)
 1. **Collect** — runs the selected `GameCollector` (`mock` or `nintendo`).
 2. **Analyze** — family matcher, wishlist matcher, and deal scorer produce a `GameAnalysis` per game.
 3. **Filter** — only games worth reporting are kept. A game is included when it is free (if `notifyFreeGames`), matches a wishlist item (if `notifyWishlistMatches`), or its deal score reaches `minimumDealScore`.
-4. **Cooldown** — games already notified for the same price within `notificationCooldownDays` are skipped, and the report is capped at `maxGamesPerEmail` games (best-scoring first).
+4. **Cooldown** — games already notified for the same price within `notificationCooldownDays` are skipped, and the report is capped at `maxTotalDigestGames` games (best-scoring first).
 5. **Render** — filtered games are converted into a `DailyDigest` (with run statistics) by `buildDailyDigest`, then rendered to an HTML email by `renderDigestEmail`.
 6. **Deliver & track** — the email is sent via the configured `EmailProvider` (use `emailProvider: "mock"` for local testing without SMTP), then the deal history is reconciled and saved (new on-sale entries, refreshed `lastSeenOnSale`, notification counts for emailed games).
 
@@ -371,7 +371,7 @@ Configure these under **Settings → Secrets and variables → Actions**. Secret
 | `SMTP_USER`        | Gmail address used for SMTP auth **and as the sender** | gmail mode         |
 | `SMTP_PASSWORD`    | Gmail App Password                             | gmail mode                  |
 
-The workflow also forwards the notification tuning variables as secrets so you can adjust them without editing the repo: `DEALS_CURRENCY`, `GAME_CATALOG`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` — all optional with built-in defaults. The digest recipient comes from `emailTo` in `data/settings.json`, falling back to the sender (`SMTP_USER`) — there is no `EMAIL_TO` secret or environment variable. The Gmail SMTP host/port are built into the provider and are not configurable.
+The workflow also forwards the notification tuning variables as secrets so you can adjust them without editing the repo: `DEALS_CURRENCY`, `GAME_CATALOG`, `MIN_DEAL_SCORE`, `MAX_TOTAL_DIGEST_GAMES`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT` — all optional with built-in defaults. The digest recipient comes from `emailTo` in `data/settings.json`, falling back to the sender (`SMTP_USER`) — there is no `EMAIL_TO` secret or environment variable. The Gmail SMTP host/port are built into the provider and are not configurable.
 
 Manual dispatch always lets you override the provider and collector per run (`EMAIL_PROVIDER` / `GAME_COLLECTOR`), independent of the stored secrets. `NINTENDO_PLATFORM` falls back to the `platform` preference (`switch1`) when unset, so the scheduled run always filters to a concrete platform.
 
@@ -592,7 +592,7 @@ User-editable notification preferences live in `data/settings.json`:
 {
   "minimumDealScore": 80,
   "notificationCooldownDays": 14,
-  "maxGamesPerEmail": 10,
+  "maxTotalDigestGames": 10,
   "notifyFreeGames": true,
   "notifyWishlistMatches": true,
   "defaultWishlistDiscountPercent": 40,
@@ -611,7 +611,7 @@ User-editable notification preferences live in `data/settings.json`:
 
 - `minimumDealScore` — minimum deal score for a game to be included in the report.
 - `notificationCooldownDays` — days before the same game at the same price is notified again.
-- `maxGamesPerEmail` — cap on games per email (best-scoring first when over the cap).
+- `maxTotalDigestGames` — cap on games per digest email (best-scoring first when over the cap).
 - `notifyFreeGames` — whether "free" alone is enough to report a game.
 - `notifyWishlistMatches` — whether a wishlist match alone is enough to report a game.
 - `defaultWishlistDiscountPercent` — discount percent used to compute automatic wishlist target prices (must be a whole number between `1` and `99`).
@@ -669,7 +669,7 @@ defaults
 | ----------------------- | --------------------------- | ----------------------------- | ------------- |
 | Deal score threshold    | `MIN_DEAL_SCORE`            | `minimumDealScore`            | `80`          |
 | Notification cooldown   | `NOTIFICATION_COOLDOWN_DAYS`| `notificationCooldownDays`    | `14`          |
-| Max games per email     | `MAX_GAMES_PER_EMAIL`       | `maxGamesPerEmail`            | `10`          |
+| Max total digest games | `MAX_TOTAL_DIGEST_GAMES`       | `maxTotalDigestGames`            | `10`          |
 | Notify free games       | `NOTIFY_FREE_GAMES`         | `notifyFreeGames`             | `true`        |
 | Notify wishlist matches | `NOTIFY_WISHLIST_MATCHES`   | `notifyWishlistMatches`       | `true`        |
 | Default wishlist discount % | `DEFAULT_WISHLIST_DISCOUNT_PERCENT` | `defaultWishlistDiscountPercent` | `40`    |

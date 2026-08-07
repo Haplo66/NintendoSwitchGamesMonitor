@@ -1,13 +1,13 @@
 {
   "minimumDealScore": 80,
   "notificationCooldownDays": 7,
-  "maxGamesPerEmail": 10,
+  "maxTotalDigestGames": 10,
   "notifyFreeGames": true,
   "notifyWishlistMatches": true,
   "defaultWishlistDiscountPercent": 30,
   "defaultNotifyOnAnyDiscount": false,
   "sendEmptyDigest": false,
-  "forceDigestEmail": false,
+  "forceDigestEmail": true,
   "dailyDigest": {
     "maxBestDeals": 12,
     "maxWishlistAlerts": 6,

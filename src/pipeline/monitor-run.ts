@@ -21,14 +21,14 @@ import { renderDigestEmail } from '../notifications/email-renderer';
 
 export const DEFAULT_MIN_DEAL_SCORE = 80;
 export const DEFAULT_DEAL_LIMIT = 100;
-export const DEFAULT_MAX_GAMES_PER_EMAIL = 10;
+export const DEFAULT_MAX_TOTAL_DIGEST_GAMES = 10;
 
 export interface MonitorOptions {
   collectorKind?: string;
   emailProviderKind?: string;
   minDealScore?: number;
   dealLimit?: number;
-  maxGamesPerEmail?: number;
+  maxTotalDigestGames?: number;
   ignoreNotificationHistory?: boolean;
   forceDigestEmail?: boolean;
   dryRun?: boolean;
@@ -88,11 +88,11 @@ export function isWorthReporting(
   return analysis.dealScore.score >= minDealScore;
 }
 
-export function limitGamesPerEmail(analyses: GameAnalysis[], maxGamesPerEmail: number): GameAnalysis[] {
-  if (analyses.length <= maxGamesPerEmail) {
+export function limitDigestGames(analyses: GameAnalysis[], maxTotalDigestGames: number): GameAnalysis[] {
+  if (analyses.length <= maxTotalDigestGames) {
     return analyses;
   }
-  return [...analyses].sort((a, b) => b.dealScore.score - a.dealScore.score).slice(0, maxGamesPerEmail);
+  return [...analyses].sort((a, b) => b.dealScore.score - a.dealScore.score).slice(0, maxTotalDigestGames);
 }
 
 export function buildReasons(analysis: GameAnalysis): string[] {
@@ -121,7 +121,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const emailProviderKind = options.emailProviderKind ?? config.preferences.emailProvider;
   const minDealScore = options.minDealScore ?? config.notification.minimumDealScore;
   const dealLimit = options.dealLimit ?? config.collector.dealLimit;
-  const maxGamesPerEmail = options.maxGamesPerEmail ?? config.notification.maxGamesPerEmail;
+  const maxTotalDigestGames = options.maxTotalDigestGames ?? config.notification.maxTotalDigestGames;
   const cooldownDays = config.notification.notificationCooldownDays;
   const ignoreNotificationHistory =
     options.ignoreNotificationHistory ??
@@ -226,11 +226,11 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     }
   }
 
-  const toEmail = limitGamesPerEmail(notifiable, maxGamesPerEmail);
+  const toEmail = limitDigestGames(notifiable, maxTotalDigestGames);
   const capped = notifiable.length - toEmail.length;
   if (capped > 0) {
     console.log(
-      `Report capped to top ${toEmail.length} game(s) by score (maxGamesPerEmail=${maxGamesPerEmail}), dropping ${capped}.`,
+      `Report capped to top ${toEmail.length} game(s) by score (maxTotalDigestGames=${maxTotalDigestGames}), dropping ${capped}.`,
     );
   }
 

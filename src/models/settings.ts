@@ -9,7 +9,7 @@ export interface DailyDigestSettings {
 export interface NotificationSettings {
   minimumDealScore: number;
   notificationCooldownDays: number;
-  maxGamesPerEmail: number;
+  maxTotalDigestGames: number;
   notifyFreeGames: boolean;
   notifyWishlistMatches: boolean;
   defaultWishlistDiscountPercent: number;

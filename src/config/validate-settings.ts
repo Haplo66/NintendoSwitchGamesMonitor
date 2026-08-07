@@ -58,7 +58,7 @@ const checks: Check[] = [
       const settings = {
         minimumDealScore: 70,
         notificationCooldownDays: 7,
-        maxGamesPerEmail: 5,
+        maxTotalDigestGames: 5,
         notifyFreeGames: false,
         notifyWishlistMatches: false,
         defaultWishlistDiscountPercent: 30,
@@ -86,9 +86,9 @@ const checks: Check[] = [
     run: () => {
       const file = tempSettingsFile();
       try {
-        writeSettings({ maxGamesPerEmail: 5 }, file);
+        writeSettings({ maxTotalDigestGames: 5 }, file);
         const loaded = loadNotificationSettings(file);
-        assert.strictEqual(loaded.maxGamesPerEmail, 5);
+        assert.strictEqual(loaded.maxTotalDigestGames, 5);
         assert.strictEqual(loaded.minimumDealScore, DEFAULT_NOTIFICATION_SETTINGS.minimumDealScore);
         assert.strictEqual(
           loaded.notificationCooldownDays,
@@ -167,8 +167,8 @@ const checks: Check[] = [
         { minimumDealScore: 'high' },
         { minimumDealScore: -1 },
         { notificationCooldownDays: -2 },
-        { maxGamesPerEmail: 0 },
-        { maxGamesPerEmail: 2.5 },
+        { maxTotalDigestGames: 0 },
+        { maxTotalDigestGames: 2.5 },
         { notifyFreeGames: 'yes' },
         { notifyWishlistMatches: 1 },
         { defaultWishlistDiscountPercent: 0 },
@@ -204,7 +204,7 @@ const checks: Check[] = [
       const resolved = resolveNotificationSettings({
         MIN_DEAL_SCORE: '90',
         NOTIFICATION_COOLDOWN_DAYS: '3',
-        MAX_GAMES_PER_EMAIL: '4',
+        MAX_TOTAL_DIGEST_GAMES: '4',
         NOTIFY_FREE_GAMES: 'false',
         NOTIFY_WISHLIST_MATCHES: '0',
         DEFAULT_WISHLIST_DISCOUNT_PERCENT: '25',
@@ -212,19 +212,19 @@ const checks: Check[] = [
       });
       assert.strictEqual(resolved.minimumDealScore, 90);
       assert.strictEqual(resolved.notificationCooldownDays, 3);
-      assert.strictEqual(resolved.maxGamesPerEmail, 4);
+      assert.strictEqual(resolved.maxTotalDigestGames, 4);
       assert.strictEqual(resolved.notifyFreeGames, false);
       assert.strictEqual(resolved.notifyWishlistMatches, false);
       assert.strictEqual(resolved.defaultWishlistDiscountPercent, 25);
       assert.strictEqual(resolved.defaultNotifyOnAnyDiscount, true);
       assert.strictEqual(resolved.sendEmptyDigest, false);
-      assert.strictEqual(resolved.forceDigestEmail, false);
+      assert.strictEqual(resolved.forceDigestEmail, true);
     },
   },
   {
     name: 'invalid environment values are rejected',
     run: () => {
-      assert.throws(() => resolveNotificationSettings({ MAX_GAMES_PER_EMAIL: 'abc' }), ConfigError);
+      assert.throws(() => resolveNotificationSettings({ MAX_TOTAL_DIGEST_GAMES: 'abc' }), ConfigError);
       assert.throws(() => resolveNotificationSettings({ NOTIFY_FREE_GAMES: 'maybe' }), ConfigError);
       assert.throws(() => resolveNotificationSettings({ MIN_DEAL_SCORE: '-5' }), ConfigError);
       assert.throws(

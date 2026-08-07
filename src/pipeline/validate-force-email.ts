@@ -94,7 +94,7 @@ export async function validateForceEmail(): Promise<void> {
     const forceRun = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock', forceDigestEmail: true });
     const historyAfterForce = readHistoryFile();
     const bypassRun = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock', ignoreNotificationHistory: true });
-    const normalRun = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock' });
+    const normalRun = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock', forceDigestEmail: false });
 
     const checks: Check[] = [
       {

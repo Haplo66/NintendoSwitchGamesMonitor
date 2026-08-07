@@ -15,7 +15,7 @@ export const DEFAULT_DAILY_DIGEST_SETTINGS: DailyDigestSettings = {
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   minimumDealScore: 80,
   notificationCooldownDays: 14,
-  maxGamesPerEmail: 10,
+  maxTotalDigestGames: 10,
   notifyFreeGames: true,
   notifyWishlistMatches: true,
   defaultWishlistDiscountPercent: 40,
@@ -67,7 +67,7 @@ export function validateNotificationSettings(settings: unknown): string[] {
 
   checkNumber('minimumDealScore', 0, false);
   checkNumber('notificationCooldownDays', 0, false);
-  checkNumber('maxGamesPerEmail', 1, true);
+  checkNumber('maxTotalDigestGames', 1, true);
   checkBoolean('notifyFreeGames');
   checkBoolean('notifyWishlistMatches');
   checkRange('defaultWishlistDiscountPercent', 1, 99, true);
@@ -187,8 +187,8 @@ export function resolveNotificationSettings(
     notificationCooldownDays:
       parseEnvNumber('NOTIFICATION_COOLDOWN_DAYS', env.NOTIFICATION_COOLDOWN_DAYS) ??
       base.notificationCooldownDays,
-    maxGamesPerEmail:
-      parseEnvNumber('MAX_GAMES_PER_EMAIL', env.MAX_GAMES_PER_EMAIL) ?? base.maxGamesPerEmail,
+    maxTotalDigestGames:
+      parseEnvNumber('MAX_TOTAL_DIGEST_GAMES', env.MAX_TOTAL_DIGEST_GAMES) ?? base.maxTotalDigestGames,
     notifyFreeGames: parseEnvBoolean('NOTIFY_FREE_GAMES', env.NOTIFY_FREE_GAMES) ?? base.notifyFreeGames,
     notifyWishlistMatches:
       parseEnvBoolean('NOTIFY_WISHLIST_MATCHES', env.NOTIFY_WISHLIST_MATCHES) ??

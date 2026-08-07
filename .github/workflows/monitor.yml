@@ -74,7 +74,7 @@ jobs:
           DEALS_CURRENCY: ${{ secrets.DEALS_CURRENCY }}
           GAME_CATALOG: ${{ secrets.GAME_CATALOG }}
           MIN_DEAL_SCORE: ${{ secrets.MIN_DEAL_SCORE }}
-          MAX_GAMES_PER_EMAIL: ${{ secrets.MAX_GAMES_PER_EMAIL }}
+          MAX_TOTAL_DIGEST_GAMES: ${{ secrets.MAX_TOTAL_DIGEST_GAMES }}
           NOTIFY_FREE_GAMES: ${{ secrets.NOTIFY_FREE_GAMES }}
           NOTIFY_WISHLIST_MATCHES: ${{ secrets.NOTIFY_WISHLIST_MATCHES }}
           MOCK_EMAIL_OUT_DIR: data/emails

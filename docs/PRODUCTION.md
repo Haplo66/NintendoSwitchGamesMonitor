@@ -131,7 +131,7 @@ A cron schedule runs the pipeline once per day (06:30 UTC) using **production co
 Repository secrets used by the scheduled run:
 
 - Gmail secrets: `SMTP_USER`, `SMTP_PASSWORD` (the From address is `SMTP_USER`; the recipient is `emailTo` from settings, defaulting to `SMTP_USER`).
-- Optional overrides (tuning values you can adjust without editing the repo): `GAME_CATALOG`, `NINTENDO_PLATFORM`, `DEALS_CURRENCY`, `MIN_DEAL_SCORE`, `MAX_GAMES_PER_EMAIL`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`.
+- Optional overrides (tuning values you can adjust without editing the repo): `GAME_CATALOG`, `NINTENDO_PLATFORM`, `DEALS_CURRENCY`, `MIN_DEAL_SCORE`, `MAX_TOTAL_DIGEST_GAMES`, `NOTIFY_FREE_GAMES`, `NOTIFY_WISHLIST_MATCHES`, `DEFAULT_WISHLIST_DISCOUNT_PERCENT`, `DEFAULT_NOTIFY_ON_ANY_DISCOUNT`.
 
 Configure them under **Settings → Secrets and variables → Actions**. Do **not** add `SMTP_HOST`, `SMTP_PORT`, or `EMAIL_TO` — host/port are built into the provider and the recipient comes from `emailTo` in `data/settings.json` (falling back to `SMTP_USER`), never from an environment variable.
 

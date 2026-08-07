@@ -106,10 +106,10 @@ export async function validateProduction(): Promise<void> {
     process.env.NOTIFICATION_COOLDOWN_DAYS = '14';
     writeHistoryFile(EMPTY_HISTORY);
 
-    firstScheduled = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock' });
+    firstScheduled = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock', forceDigestEmail: false });
     historyAfterFirstRun = readHistoryFile();
 
-    secondScheduled = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock' });
+    secondScheduled = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock', forceDigestEmail: false });
     const historyAfterSecondRun = readHistoryFile();
 
     const checks: Check[] = [
