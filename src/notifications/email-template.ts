@@ -4,6 +4,7 @@ import {
   DigestBestDeal,
   DigestDealQuality,
   DigestFamilyRecommendation,
+  DigestHistoricalLow,
   DigestPriceContext,
   DigestPriceWatchItem,
   DigestStatistics,
@@ -454,6 +455,31 @@ export function renderFreeGamesSection(freeGames: FreeGame[]): string {
   }
   const cards = freeGames.map(renderFreeGameCard).join('');
   return sectionHeader('🆓', 'Free Games', COLORS.free) + cards;
+}
+
+function renderHistoricalLowCard(deal: DigestHistoricalLow, currency: string): string {
+  return card(
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
+    `<td style="padding:0 12px 0 0;">` +
+    `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
+    `<div>${renderPriceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.time)}</div>` +
+    renderDealSummary(deal.discountPercent) +
+    `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; font-weight:bold;` +
+    ` color:${COLORS.success};">⭐ At its lowest recorded price (${formatMoney(currency, deal.lowPrice)})</div>` +
+    `</td>` +
+    `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(deal.ageRating)}</td>` +
+    `</tr></table>` +
+    actionButton('View Deal', deal.storeUrl, COLORS.time),
+    COLORS.time,
+  );
+}
+
+export function renderHistoricalLowsSection(items: DigestHistoricalLow[], currency: string): string {
+  if (items.length === 0) {
+    return '';
+  }
+  const cards = items.map((item) => renderHistoricalLowCard(item, currency));
+  return sectionHeader('⭐', 'Historical Lows', COLORS.time) + renderCardGrid(cards);
 }
 
 function recommendationPriceStatus(game: DigestFamilyRecommendation, currency: string): string {

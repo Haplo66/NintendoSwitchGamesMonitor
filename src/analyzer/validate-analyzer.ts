@@ -6,6 +6,7 @@ import { loadFamilyProfiles } from '../config/family-profiles-loader';
 import { loadGameCatalog } from '../collectors/nintendo-price-collector';
 import { FamilyProfile, Game } from '../models';
 import { analyzeGamesWith } from './analyze';
+import { applyHistoricalLowScore, scoreDeal } from './deal-score';
 import { matchGameToProfile, matchGameToProfiles, normalizeGenre } from './family-matcher';
 
 interface Check {
@@ -231,6 +232,76 @@ export async function validateAnalyzer(): Promise<void> {
         assert.ok(
           !analysis.dealScore.reasons.some((reason) => reason.includes('family profile')),
           'a blocked game must not earn a family-match bonus',
+        );
+      },
+    },
+    {
+      name: 'the price-target bonus is separate from the wishlist bonus',
+      run: () => {
+        const withoutTarget = scoreDeal({
+          game: game([], { currentPrice: 29.99, originalPrice: 59.99 }),
+          familyMatchCount: 0,
+          wishlistMatched: true,
+          priceTargetReached: false,
+          historicalLowReached: false,
+        });
+        const atTarget = scoreDeal({
+          game: game([], { currentPrice: 29.99, originalPrice: 59.99 }),
+          familyMatchCount: 0,
+          wishlistMatched: true,
+          priceTargetReached: true,
+          historicalLowReached: false,
+        });
+        assert.ok(
+          withoutTarget.reasons.some((reason) => reason.includes('On wishlist')),
+          'a wishlist match must report the wishlist bonus',
+        );
+        assert.ok(
+          !withoutTarget.reasons.some((reason) => reason.includes('Price target reached')),
+          'a wishlist match without the target reached must not claim the target bonus',
+        );
+        assert.ok(
+          atTarget.reasons.some((reason) => reason.includes('Price target reached')),
+          'a wishlist match with the target reached must report the target bonus',
+        );
+        assert.ok(
+          atTarget.score > withoutTarget.score,
+          'reaching the price target must add a distinct bonus on top of the wishlist bonus',
+        );
+      },
+    },
+    {
+      name: 'a deal at its historical low earns a bonus and sorts the same way',
+      run: () => {
+        const normal = scoreDeal({
+          game: game([], { currentPrice: 34.99, originalPrice: 59.99 }),
+          familyMatchCount: 0,
+          wishlistMatched: false,
+          priceTargetReached: false,
+          historicalLowReached: false,
+        });
+        const atLow = scoreDeal({
+          game: game([], { currentPrice: 34.99, originalPrice: 59.99 }),
+          familyMatchCount: 0,
+          wishlistMatched: false,
+          priceTargetReached: false,
+          historicalLowReached: true,
+        });
+        assert.ok(
+          atLow.reasons.some((reason) => reason.includes('historical low')),
+          'a historical-low deal should report the historical-low bonus',
+        );
+        assert.ok(atLow.score > normal.score, 'a historical-low deal must score higher');
+        const augmented = applyHistoricalLowScore({ score: 100, reasons: [] }, true);
+        assert.strictEqual(augmented.score, 115, 'applyHistoricalLowScore must add the bonus');
+        assert.ok(
+          augmented.reasons.includes('At its historical low price'),
+          'applyHistoricalLowScore must add the historical-low reason',
+        );
+        assert.strictEqual(
+          applyHistoricalLowScore({ score: 100, reasons: [] }, false).score,
+          100,
+          'applyHistoricalLowScore must be a no-op when not at a historical low',
         );
       },
     },

@@ -340,6 +340,104 @@ export async function validateRecommendations(): Promise<void> {
         assert.strictEqual(digest.recommendations.length, 4, 'Recommendations must be capped at the limit');
       },
     },
+    {
+      name: 'Best Deals are sorted by deal score descending',
+      run: () => {
+        const high = makeAnalysis(makeGame({ title: 'High', currentPrice: 30, originalPrice: 60 }));
+        high.dealScore = { score: 150, reasons: ['x'] };
+        const mid = makeAnalysis(makeGame({ title: 'Mid', currentPrice: 30, originalPrice: 60 }));
+        mid.dealScore = { score: 100, reasons: ['x'] };
+        const low = makeAnalysis(makeGame({ title: 'Low', currentPrice: 30, originalPrice: 60 }));
+        low.dealScore = { score: 50, reasons: ['x'] };
+        const result = resultWith({
+          analyses: [low, high, mid],
+          reportedAnalyses: [low, high, mid],
+        });
+        const scores = buildDailyDigest(result).bestDeals.map((deal) => deal.score);
+        assert.deepStrictEqual(
+          scores,
+          [...scores].sort((a, b) => b - a),
+          'Best Deals must be sorted by deal score descending',
+        );
+      },
+    },
+    {
+      name: 'a deal at its historical low renders in Historical Lows',
+      run: () => {
+        const zelda = makeAnalysis(
+          makeGame({
+            title: 'The Legend of Zelda: Breath of the Wild',
+            currentPrice: 39.99,
+            originalPrice: 59.99,
+          }),
+        );
+        const result = resultWith({
+          analyses: [zelda],
+          reportedAnalyses: [zelda],
+          dealHistory: {
+            entries: [
+              {
+                gameTitle: 'The Legend of Zelda: Breath of the Wild',
+                firstSeenOnSale: '2026-07-20T00:00:00.000Z',
+                lastSeenOnSale: '2026-08-05T00:00:00.000Z',
+                firstNotified: '2026-07-20T00:00:00.000Z',
+                lastNotified: '2026-07-20T00:00:00.000Z',
+                lastNotifiedPrice: 49.99,
+                notificationCount: 1,
+                currentlyOnSale: true,
+                priceHistory: [
+                  { date: '2026-07-20', price: 49.99 },
+                  { date: '2026-08-05', price: 39.99 },
+                ],
+              },
+            ],
+          },
+        });
+        const digest = buildDailyDigest(result);
+        assert.strictEqual(digest.historicalLows.length, 1, 'historical-low deal must be listed');
+        assert.strictEqual(
+          digest.historicalLows[0].title,
+          'The Legend of Zelda: Breath of the Wild',
+        );
+        assert.strictEqual(digest.historicalLows[0].lowPrice, 39.99);
+        const html = renderDigestEmail(digest);
+        assert.ok(html.includes('Historical Lows'), 'Historical Lows section missing');
+        assert.ok(html.includes('lowest recorded price'), 'Historical Lows badge missing');
+      },
+    },
+    {
+      name: 'Wishlist Alerts renders before Best Deals',
+      run: () => {
+        const alertGame = makeAnalysis(
+          makeGame({ title: 'Mario Kart 8', currentPrice: 34.99, originalPrice: 59.99 }),
+        );
+        alertGame.wishlistMatch = {
+          matched: true,
+          wishlistItem: { gameTitle: 'Mario Kart 8', targetPrice: 39.99, notifyOnAnyDiscount: false },
+          priceTargetReached: true,
+          effectiveTargetPrice: 39.99,
+          targetPriceOrigin: 'configured',
+        };
+        const bestGame = makeAnalysis(
+          makeGame({ title: 'Zelda', currentPrice: 39.99, originalPrice: 59.99 }),
+        );
+        const result = resultWith({
+          analyses: [alertGame, bestGame],
+          reportedAnalyses: [alertGame, bestGame],
+        });
+        const digest = buildDailyDigest(result);
+        assert.strictEqual(digest.wishlistAlerts.length, 1, 'one wishlist alert expected');
+        assert.ok(
+          digest.bestDeals.some((deal) => deal.title === 'Zelda'),
+          'a non-wishlist deal must land in Best Deals',
+        );
+        const html = renderDigestEmail(digest);
+        const alerts = html.indexOf('Wishlist Alerts');
+        const best = html.indexOf('Best Deals');
+        assert.ok(alerts >= 0 && best >= 0, 'sections must render');
+        assert.ok(alerts < best, 'Wishlist Alerts must appear before Best Deals');
+      },
+    },
   ];
 
   await runChecks(checks);

@@ -38,6 +38,10 @@ export function analyzeGamesWith(
       familyMatchCount: familyMatches.filter((match) => match.matched).length,
       wishlistMatched: wishlistMatch?.matched ?? false,
       priceTargetReached: wishlistMatch?.priceTargetReached ?? false,
+      // The analyzer has no access to the price history; the digest builder
+      // re-applies the historical-low bonus (see applyHistoricalLowScore) once
+      // the deal-history data is available.
+      historicalLowReached: false,
     });
     return {
       game,

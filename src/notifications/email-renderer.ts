@@ -5,6 +5,7 @@ import {
   renderDigestSummary,
   renderFooter,
   renderFreeGamesSection,
+  renderHistoricalLowsSection,
   renderPriceWatchSection,
   renderRecommendedSection,
   renderStatisticsSection,
@@ -17,11 +18,12 @@ import {
 export function composeDigestSections(digest: DailyDigest): string {
   return (
     renderDigestSummary(digest.summary) +
-    renderWishlistWatchSection(digest.wishlistWatch, digest.currency) +
-    renderStillOnSaleSection(digest.stillOnSale, digest.currency) +
     renderWishlistAlertsSection(digest.wishlistAlerts, digest.currency, digest) +
+    renderWishlistWatchSection(digest.wishlistWatch, digest.currency) +
     renderBestDealsSection(digest.bestDeals, digest.currency) +
     renderFreeGamesSection(digest.freeGames) +
+    renderHistoricalLowsSection(digest.historicalLows, digest.currency) +
+    renderStillOnSaleSection(digest.stillOnSale, digest.currency) +
     renderRecommendedSection(digest.recommendations, digest.currency) +
     renderPriceWatchSection(digest.priceWatch, digest.currency) +
     (digest.statistics ? renderStatisticsSection(digest.statistics) : '')

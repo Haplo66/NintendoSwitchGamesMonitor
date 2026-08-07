@@ -128,6 +128,30 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
   out.push(`| 📦 Games Checked | ${digest.summary.gamesChecked} |`);
   out.push('');
 
+  if (digest.wishlistAlerts.length > 0) {
+    out.push('## 🎯 Wishlist Alerts');
+    out.push('');
+    for (const alert of digest.wishlistAlerts) {
+      out.push(`### ${alert.title}`);
+      out.push('');
+      out.push(`- **Current price:** ${formatAmount(digest.currency, alert.currentPrice)}`);
+      if (alert.originalPrice !== undefined && alert.originalPrice > alert.currentPrice) {
+        out.push(`- **Original price:** ${formatAmount(digest.currency, alert.originalPrice)}`);
+        out.push(`- **Discount:** ${alert.discountPercent}%`);
+      }
+      const targetLabel =
+        alert.targetPriceOrigin === 'configured'
+          ? 'Configured target'
+          : `Auto target (${digest.defaultWishlistDiscountPercent}% discount)`;
+      out.push(`- **${targetLabel}:** ${formatAmount(digest.currency, alert.targetPrice)}`);
+      out.push(`- **Target reached:** ${alert.targetReached ? 'YES' : 'NO'}`);
+      out.push(...formatDealInsight(alert.quality, alert.priceContext, digest.currency));
+      out.push('');
+      out.push(formatLink('View Deal', alert.storeUrl));
+      out.push('');
+    }
+  }
+
   out.push('## 👀 Wishlist Watch');
   out.push('');
   if (digest.wishlistWatch.length > 0) {
@@ -159,50 +183,6 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
     out.push('');
   }
 
-  if (digest.stillOnSale.length > 0) {
-    out.push('## 🕒 Still On Sale');
-    out.push('');
-    for (const item of digest.stillOnSale) {
-      out.push(`### ${item.title}`);
-      out.push('');
-      out.push(`- **Current price:** ${formatAmount(digest.currency, item.currentPrice)}`);
-      if (item.originalPrice !== undefined && item.originalPrice > item.currentPrice) {
-        out.push(`- **Original price:** ${formatAmount(digest.currency, item.originalPrice)}`);
-        out.push(`- **Discount:** ${item.discountPercent}%`);
-      }
-      out.push(`- **First reported:** ${item.firstReportedAt}`);
-      out.push(`- **On sale for:** ${item.daysOnSale} day(s)`);
-      out.push(...formatDealInsight(item.quality, item.priceContext, digest.currency));
-      out.push('');
-      out.push(formatLink('View Deal', item.storeUrl));
-      out.push('');
-    }
-  }
-
-  if (digest.wishlistAlerts.length > 0) {
-    out.push('## 🎯 Wishlist Alerts');
-    out.push('');
-    for (const alert of digest.wishlistAlerts) {
-      out.push(`### ${alert.title}`);
-      out.push('');
-      out.push(`- **Current price:** ${formatAmount(digest.currency, alert.currentPrice)}`);
-      if (alert.originalPrice !== undefined && alert.originalPrice > alert.currentPrice) {
-        out.push(`- **Original price:** ${formatAmount(digest.currency, alert.originalPrice)}`);
-        out.push(`- **Discount:** ${alert.discountPercent}%`);
-      }
-      const targetLabel =
-        alert.targetPriceOrigin === 'configured'
-          ? 'Configured target'
-          : `Auto target (${digest.defaultWishlistDiscountPercent}% discount)`;
-      out.push(`- **${targetLabel}:** ${formatAmount(digest.currency, alert.targetPrice)}`);
-      out.push(`- **Target reached:** ${alert.targetReached ? 'YES' : 'NO'}`);
-      out.push(...formatDealInsight(alert.quality, alert.priceContext, digest.currency));
-      out.push('');
-      out.push(formatLink('View Deal', alert.storeUrl));
-      out.push('');
-    }
-  }
-
   if (digest.bestDeals.length > 0) {
     out.push('## 🔥 Best Deals');
     out.push('');
@@ -232,6 +212,44 @@ export function generateMonitorReportMarkdown(data: MonitorReportData): string {
       out.push(`- **${game.title}** — Free to download`);
       out.push('');
       out.push(`  ${formatLink('Get It Free', game.storeUrl)}`);
+      out.push('');
+    }
+  }
+
+  if (digest.historicalLows.length > 0) {
+    out.push('## ⭐ Historical Lows');
+    out.push('');
+    for (const item of digest.historicalLows) {
+      out.push(`### ${item.title}`);
+      out.push('');
+      out.push(`- **Current price:** ${formatAmount(digest.currency, item.currentPrice)}`);
+      if (item.originalPrice !== undefined && item.originalPrice > item.currentPrice) {
+        out.push(`- **Original price:** ${formatAmount(digest.currency, item.originalPrice)}`);
+        out.push(`- **Discount:** ${item.discountPercent}%`);
+      }
+      out.push(`- **Lowest price seen:** ${formatAmount(digest.currency, item.lowPrice)}`);
+      out.push('');
+      out.push(formatLink('View Deal', item.storeUrl));
+      out.push('');
+    }
+  }
+
+  if (digest.stillOnSale.length > 0) {
+    out.push('## 🕒 Still On Sale');
+    out.push('');
+    for (const item of digest.stillOnSale) {
+      out.push(`### ${item.title}`);
+      out.push('');
+      out.push(`- **Current price:** ${formatAmount(digest.currency, item.currentPrice)}`);
+      if (item.originalPrice !== undefined && item.originalPrice > item.currentPrice) {
+        out.push(`- **Original price:** ${formatAmount(digest.currency, item.originalPrice)}`);
+        out.push(`- **Discount:** ${item.discountPercent}%`);
+      }
+      out.push(`- **First reported:** ${item.firstReportedAt}`);
+      out.push(`- **On sale for:** ${item.daysOnSale} day(s)`);
+      out.push(...formatDealInsight(item.quality, item.priceContext, digest.currency));
+      out.push('');
+      out.push(formatLink('View Deal', item.storeUrl));
       out.push('');
     }
   }

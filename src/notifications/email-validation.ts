@@ -95,6 +95,7 @@ function buildSampleDigest(): DailyDigest {
         storeUrl: 'https://www.nintendo.com/store/products/fortnite/',
       },
     ],
+    historicalLows: [],
     recommendations: [
       {
         title: 'Mario Kart 8 Deluxe',
@@ -147,6 +148,7 @@ function emptyDigest(): DailyDigest {
     wishlistAlerts: [],
     bestDeals: [],
     freeGames: [],
+    historicalLows: [],
     recommendations: [],
     priceWatch: [],
   };

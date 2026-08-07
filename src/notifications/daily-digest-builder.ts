@@ -1,4 +1,4 @@
-import { calculateDiscountPercent } from '../analyzer/deal-score';
+import { applyHistoricalLowScore, calculateDiscountPercent } from '../analyzer/deal-score';
 import { matchGameToWishlist } from '../analyzer/wishlist-matcher';
 import { BlacklistSource, isGameBlacklisted } from '../config/blacklist';
 import { DEFAULT_DAILY_DIGEST_SETTINGS } from '../config/settings-loader';
@@ -11,6 +11,7 @@ import {
   DigestDealQuality,
   DigestFamilyRecommendation,
   DigestFamilyRecommendationMember,
+  DigestHistoricalLow,
   DigestPriceContext,
   DigestPriceWatchItem,
   DigestStatistics,
@@ -246,6 +247,10 @@ function isOnSale(game: Game): boolean {
   return game.originalPrice !== undefined && game.originalPrice > game.currentPrice;
 }
 
+function isHistoricalLow(result: MonitorResult, game: Game): boolean {
+  return priceContextFor(result, game.title, game.currentPrice)?.isLowestRecorded ?? false;
+}
+
 function makeBlacklistGuard(blacklist: BlacklistSource | undefined): (title: string) => boolean {
   if (blacklist === undefined) {
     return () => false;
@@ -346,19 +351,29 @@ export function buildDailyDigest(
     });
 
   const alertTitles = new Set(wishlistAlerts.map((alert) => alert.title));
+  // The analyzer scores deals without the price history; re-apply the
+  // historical-low bonus here (where history is available) so a deal at its
+  // lowest recorded price ranks higher in Best Deals and carries the reason.
   const bestDeals: DigestBestDeal[] = reportedAnalyses
     .filter(
       (analysis) => analysis.game.currentPrice > 0 && !alertTitles.has(analysis.game.title),
     )
-    .sort((a, b) => b.dealScore.score - a.dealScore.score)
-    .slice(0, maxBestDeals)
     .map((analysis) => ({
+      analysis,
+      scored: applyHistoricalLowScore(
+        analysis.dealScore,
+        isHistoricalLow(result, analysis.game),
+      ),
+    }))
+    .sort((a, b) => b.scored.score - a.scored.score)
+    .slice(0, maxBestDeals)
+    .map(({ analysis, scored }) => ({
       title: analysis.game.title,
       currentPrice: analysis.game.currentPrice,
       originalPrice: analysis.game.originalPrice,
       discountPercent: calculateDiscountPercent(analysis.game),
-      score: analysis.dealScore.score,
-      reasons: analysis.dealScore.reasons,
+      score: scored.score,
+      reasons: scored.reasons,
       ageRating: analysis.game.ageRating ?? 'NR',
       storeUrl: resolveStoreUrl(analysis.game),
       priceContext: priceContextFor(result, analysis.game.title, analysis.game.currentPrice),
@@ -372,6 +387,23 @@ export function buildDailyDigest(
       ageRating: analysis.game.ageRating ?? 'NR',
       storeUrl: resolveStoreUrl(analysis.game),
     }));
+
+  const historicalLows: DigestHistoricalLow[] = reportedAnalyses
+    .filter((analysis) => isOnSale(analysis.game) && isHistoricalLow(result, analysis.game))
+    .map((analysis) => {
+      const context = priceContextFor(result, analysis.game.title, analysis.game.currentPrice);
+      return {
+        title: analysis.game.title,
+        currentPrice: analysis.game.currentPrice,
+        originalPrice: analysis.game.originalPrice,
+        discountPercent: calculateDiscountPercent(analysis.game),
+        lowPrice: context?.lowestPrice ?? analysis.game.currentPrice,
+        ageRating: analysis.game.ageRating ?? 'NR',
+        storeUrl: resolveStoreUrl(analysis.game),
+      };
+    })
+    .sort((a, b) => b.discountPercent - a.discountPercent)
+    .slice(0, maxBestDeals);
 
   interface PendingRecommendation {
     title: string;
@@ -479,6 +511,7 @@ export function buildDailyDigest(
     wishlistAlerts,
     bestDeals,
     freeGames,
+    historicalLows,
     recommendations,
     priceWatch,
     statistics,

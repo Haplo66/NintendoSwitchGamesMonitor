@@ -88,6 +88,20 @@ export interface DigestFreeGame {
   storeUrl: string;
 }
 
+/**
+ * A deal now sitting at (or below) its historically lowest recorded price.
+ * `lowPrice` is the historical low; `currentPrice` is where it is today.
+ */
+export interface DigestHistoricalLow {
+  title: string;
+  currentPrice: number;
+  originalPrice?: number;
+  discountPercent: number;
+  lowPrice: number;
+  ageRating: string;
+  storeUrl: string;
+}
+
 export interface DigestFamilyRecommendationMember {
   name: string;
   reasons: string[];
@@ -137,6 +151,7 @@ export interface DailyDigest {
   wishlistAlerts: DigestWishlistAlert[];
   bestDeals: DigestBestDeal[];
   freeGames: DigestFreeGame[];
+  historicalLows: DigestHistoricalLow[];
   recommendations: DigestFamilyRecommendation[];
   priceWatch: DigestPriceWatchItem[];
   statistics?: DigestStatistics;

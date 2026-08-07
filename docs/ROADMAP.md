@@ -398,4 +398,17 @@ Features:
 - **Validation** — `npm run validate-email` now renders every deal section (Best Deals, Wishlist Alerts, Still On Sale, Recommended For Your Family) and asserts an arrow separator, that both prices are visible and never concatenated (`USD 4.99USD 2.49`), that the discount badge appears exactly once and is never attached to a price (`USD 2.49-50%`), never duplicated (`-75% -75%`), and that the deal score appears exactly once; `npm test` aggregates everything
 - Docs updated (ROADMAP)
 - Collector, analyzer, scoring calculation, deal quality, recommendation logic, and notification history unchanged (out of scope for this task)
+
+## v0.33 Improved Deal Ranking & Email Sections
+
+Features:
+- **Expanded deal scoring model** (`src/analyzer/deal-score.ts`) — the deal score now breaks out a **price-target-reached bonus** (`Price target reached`, +20) separate from the wishlist-match bonus (`On wishlist`, +40), and adds a **historical-low bonus** (`At its historical low price`, +15). Discount percentage, free-game, and family-match bonuses are unchanged
+- **Historical-low bonus applied at digest build** — the analyzer has no price history, so `applyHistoricalLowScore()` re-applies the historical-low bonus in `daily-digest-builder.ts` once the deal-history data is available, raising a deal's score (and adding its reason) so it ranks higher in **Best Deals**
+- **Wishlist Alerts section first** — the digest (HTML + Markdown report) now leads with **Wishlist Alerts** (right after Today's Summary) so wishlist wins are never buried, followed by **Best Deals** (score-sorted), **Free Games**, a new **Historical Lows** section, then **Still On Sale**, **Wishlist Watch**, recommendations, price watch, and statistics
+- **Historical Lows section** — reported on-sale deals sitting at (or below) their lowest-ever recorded price are grouped into a dedicated **⭐ Historical Lows** section (and markdown report) with a ⭐ *At its lowest price ($X)* badge and View Deal link; hidden when none qualify
+- **Validation** — `validate-analyzer` covers the separated target-reached bonus and the historical-low bonus (+ `applyHistoricalLowScore` math); `validate-recommendations` covers Best Deals score ordering, the Historical Lows section (rendering + low price), and Wishlist Alerts-before-Best Deals ordering; `npm test` aggregates everything
+- Docs updated (README digest layout + deal scorer + historical price tracking, ROADMAP)
+- Collector, family matching, wishlist matching, deal quality, recommendation logic, and notification history unchanged (out of scope for this task)
+
+> **Status: 🔄 In progress**
 .
