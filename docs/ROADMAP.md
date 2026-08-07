@@ -398,3 +398,4 @@ Features:
 - **Validation** — `npm run validate-email` now renders every deal section (Best Deals, Wishlist Alerts, Still On Sale, Recommended For Your Family) and asserts an arrow separator, that both prices are visible and never concatenated (`USD 4.99USD 2.49`), that the discount badge appears exactly once and is never attached to a price (`USD 2.49-50%`), never duplicated (`-75% -75%`), and that the deal score appears exactly once; `npm test` aggregates everything
 - Docs updated (ROADMAP)
 - Collector, analyzer, scoring calculation, deal quality, recommendation logic, and notification history unchanged (out of scope for this task)
+.
