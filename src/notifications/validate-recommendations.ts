@@ -502,6 +502,87 @@ export async function validateRecommendations(): Promise<void> {
         );
       },
     },
+      {
+        name: 'a cooldown-skipped deal at its historical low still appears in Historical Lows',
+        run: () => {
+          const zelda = makeAnalysis(
+            makeGame({
+              title: 'The Legend of Zelda: Breath of the Wild',
+              currentPrice: 39.99,
+              originalPrice: 59.99,
+            }),
+          );
+          const result = resultWith({
+            reportedAnalyses: [],
+            skippedByCooldownAnalyses: [zelda],
+            dealHistory: {
+              entries: [
+                {
+                  gameTitle: 'The Legend of Zelda: Breath of the Wild',
+                  firstSeenOnSale: '2026-07-20T00:00:00.000Z',
+                  lastSeenOnSale: '2026-08-05T00:00:00.000Z',
+                  firstNotified: '2026-07-20T00:00:00.000Z',
+                  lastNotified: '2026-07-20T00:00:00.000Z',
+                  lastNotifiedPrice: 49.99,
+                  notificationCount: 1,
+                  currentlyOnSale: true,
+                  priceHistory: [
+                    { date: '2026-07-20', price: 49.99 },
+                    { date: '2026-08-05', price: 39.99 },
+                  ],
+                },
+              ],
+            },
+          });
+          const digest = buildDailyDigest(result);
+          const low = digest.historicalLows.find((item) => item.title === zelda.game.title);
+          assert.ok(low, 'cooldown-skipped historical-low deal must appear in Historical Lows');
+          assert.strictEqual(low?.lowPrice, 39.99);
+          const html = renderDigestEmail(digest);
+          assert.ok(html.includes('Historical Lows'), 'Historical Lows section missing');
+        },
+      },
+      {
+        name: 'a cooldown-skipped matching free game still appears in Free Family Games',
+        run: () => {
+          const fortnite = buildAnalysis(
+            makeGame({ title: 'Fortnite', currentPrice: 0, originalPrice: undefined }),
+            [{ profileName: 'Kids 8-12', matched: true, reasons: ['Puzzle preference'] }],
+          );
+          const result = resultWith({
+            reportedAnalyses: [],
+            skippedByCooldownAnalyses: [fortnite],
+          });
+          const digest = buildDailyDigest(result);
+          const game = digest.freeGames.find((g) => g.title === 'Fortnite');
+          assert.ok(game, 'cooldown-skipped matching free game must appear in Free Family Games');
+          assert.deepStrictEqual(game?.reasons, ['Kids 8-12', 'Puzzle preference']);
+          const html = renderDigestEmail(digest);
+          assert.ok(html.includes('Free Family Games'), 'Free Family Games section missing');
+        },
+      },
+      {
+        name: 'a cooldown-skipped best-scored deal still appears in Best Deals',
+        run: () => {
+          const zelda = makeAnalysis(
+            makeGame({
+              title: 'The Legend of Zelda: Breath of the Wild',
+              currentPrice: 39.99,
+              originalPrice: 59.99,
+            }),
+          );
+          zelda.dealScore = { score: 500, reasons: ['Family match'] };
+          const result = resultWith({
+            reportedAnalyses: [],
+            skippedByCooldownAnalyses: [zelda],
+          });
+          const digest = buildDailyDigest(result);
+          const deal = digest.bestDeals.find((item) => item.title === zelda.game.title);
+          assert.ok(deal, 'cooldown-skipped best-scored deal must appear in Best Deals');
+          const html = renderDigestEmail(digest);
+          assert.ok(html.includes('Best Deals'), 'Best Deals section missing');
+        },
+      },
   ];
 
   await runChecks(checks);

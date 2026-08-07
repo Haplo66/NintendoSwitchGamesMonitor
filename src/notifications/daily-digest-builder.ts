@@ -129,8 +129,9 @@ function dealQualityFor(
 function buildStillOnSale(
   result: MonitorResult,
   isBlacklisted: (title: string) => boolean,
+  highlightedAnalyses: GameAnalysis[],
 ): DigestStillOnSale[] {
-  const reportedTitles = new Set(result.reportedAnalyses.map((analysis) => titleKey(analysis.game.title)));
+  const highlightedTitles = new Set(highlightedAnalyses.map((analysis) => titleKey(analysis.game.title)));
   const gameByTitle = new Map(
     result.analyses.map((analysis) => [titleKey(analysis.game.title), analysis.game]),
   );
@@ -143,7 +144,7 @@ function buildStillOnSale(
     if (isBlacklisted(entry.gameTitle)) {
       continue;
     }
-    if (reportedTitles.has(titleKey(entry.gameTitle))) {
+    if (highlightedTitles.has(titleKey(entry.gameTitle))) {
       continue;
     }
     const game = gameByTitle.get(titleKey(entry.gameTitle));
@@ -294,7 +295,22 @@ export function buildDailyDigest(
     ? result.reportedAnalyses.filter((analysis) => !isBlacklisted(analysis.game.title))
     : result.reportedAnalyses;
 
-  const stillOnSale = buildStillOnSale(result, isBlacklisted);
+  // Highlight sections (Best Deals, Free Family Games, Historical Lows) reflect
+  // every report-worthy deal, not just the ones newly notified this run. A game
+  // skipped by cooldown is still a current deal worth showing, so we fold the
+  // cooldown-skipped analyses in alongside the newly notified ones. Cooldown
+  // semantics are unchanged: it only governs new notifications, not display.
+  const reportableAnalyses = [...reportedAnalyses];
+  for (const analysis of result.skippedByCooldownAnalyses) {
+    if (!isBlacklisted(analysis.game.title)) {
+      const key = titleKey(analysis.game.title);
+      if (!reportableAnalyses.some((candidate) => titleKey(candidate.game.title) === key)) {
+        reportableAnalyses.push(analysis);
+      }
+    }
+  }
+
+  const stillOnSale = buildStillOnSale(result, isBlacklisted, reportableAnalyses);
   const wishlistWatch = buildWishlistWatch(result);
   const wishlistGamesOnSale = wishlistWatch.filter(
     (item) => item.status === 'on-sale' || item.status === 'target-reached',
@@ -354,7 +370,7 @@ export function buildDailyDigest(
   // The analyzer scores deals without the price history; re-apply the
   // historical-low bonus here (where history is available) so a deal at its
   // lowest recorded price ranks higher in Best Deals and carries the reason.
-  const bestDeals: DigestBestDeal[] = reportedAnalyses
+  const bestDeals: DigestBestDeal[] = reportableAnalyses
     .filter(
       (analysis) => analysis.game.currentPrice > 0 && !alertTitles.has(analysis.game.title),
     )
@@ -380,7 +396,7 @@ export function buildDailyDigest(
       quality: dealQualityFor(result, analysis.game.title, analysis.game),
     }));
 
-  const freeGames = reportedAnalyses
+  const freeGames = reportableAnalyses
     .filter((analysis) => analysis.game.currentPrice === 0)
     .map((analysis) => {
       const matchedProfiles = analysis.familyMatches.filter((match) => match.matched);
@@ -392,7 +408,7 @@ export function buildDailyDigest(
       };
     });
 
-  const historicalLows: DigestHistoricalLow[] = reportedAnalyses
+  const historicalLows: DigestHistoricalLow[] = reportableAnalyses
     .filter((analysis) => isOnSale(analysis.game) && isHistoricalLow(result, analysis.game))
     .map((analysis) => {
       const context = priceContextFor(result, analysis.game.title, analysis.game.currentPrice);

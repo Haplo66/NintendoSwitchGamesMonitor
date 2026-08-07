@@ -438,4 +438,15 @@ Features:
 - Collector, scoring weights, recommendation logic, and notification history unchanged (out of scope for this task)
 
 > **Status: 🔄 In progress**
+
+## v0.36 Restore Missing Digest Sections
+
+Features:
+- **Highlight sections show all current deals** — **Best Deals**, **Free Family Games**, and **Historical Lows** were previously built only from the newly notified games (`reportedAnalyses`), so when cooldown skipped every game they rendered empty even though **Still On Sale** (history-derived) still listed the deals. They now source from the full report-worthy set: newly notified **plus** cooldown-skipped analyses
+- **No cooldown semantics change** — cooldown still governs only new notifications; a cooldown-skipped deal is displayed (not re-notified). `forceDigestEmail` behavior untouched
+- **No duplication** — **Still On Sale** now excludes the whole highlighted set (not just newly notified), so a deal shown in Best Deals / Historical Lows does not also appear under Still On Sale
+- **Validation** — `validate-recommendations` adds regression coverage for the three restored sections with cooldown-skipped games; `validate-reports` updated for the corrected Best Deals population
+- Collector, scoring, recommendation logic, and notification history unchanged (out of scope for this task)
+
+> **Status: 🔄 In progress**
 .

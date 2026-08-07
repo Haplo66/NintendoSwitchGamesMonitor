@@ -330,7 +330,11 @@ const checks: Check[] = [
       assert.strictEqual(data.digest.stillOnSale.length, 1);
       assert.strictEqual(data.digest.stillOnSale[0].title, 'Chess');
       assert.strictEqual(data.digest.wishlistAlerts.length, 1);
-      assert.strictEqual(data.digest.bestDeals.length, 1);
+      assert.strictEqual(data.digest.bestDeals.length, 2);
+      assert.ok(
+        data.digest.bestDeals.some((deal) => deal.title === 'Fall Guys'),
+        'cooldown-skipped deal must still appear in Best Deals',
+      );
       assert.strictEqual(data.digest.freeGames.length, 1);
       assert.strictEqual(data.digest.recommendations.length, 1);
       assert.strictEqual(data.digest.priceWatch.length, 1);
