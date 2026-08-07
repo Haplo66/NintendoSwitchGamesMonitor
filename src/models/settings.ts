@@ -18,7 +18,7 @@ export interface NotificationSettings {
   /** When true, always sends the daily digest email even when every
    * notification is in cooldown or there are no new notifications. Defaults to
    * false. Configured only in `data/settings.json`; never read from `.env`. */
-  forceEmail: boolean;
+  forceDigestEmail: boolean;
   dailyDigest: DailyDigestSettings;
 }
 
@@ -46,7 +46,7 @@ export interface CollectorSettings {
  * `data/settings.json` and overridable by environment variables for CI or
  * temporary runs (precedence: environment > settings.json > defaults).
  *
- * `dryRun` and `forceEmail` are deliberately NOT here: they are one-time
+ * `dryRun` and `forceDigestEmail` are deliberately NOT here: they are one-time
  * execution modes supplied per run via the command line (`npm run monitor -- --dry-run`)
  * or GitHub Actions inputs, never persistent configuration.
  */

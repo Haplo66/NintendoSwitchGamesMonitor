@@ -62,12 +62,12 @@ const EMPTY_HISTORY = `${JSON.stringify({ records: [] }, null, 2)}\n`;
 function verifyDecision(
   count: number,
   sendEmptyDigest: boolean,
-  forceEmail: boolean,
+  forceDigestEmail: boolean,
   dryRun: boolean,
   expectedSend: boolean,
   expectedReason: string,
 ): void {
-  assert.deepStrictEqual(decideDigestEmail(count, sendEmptyDigest, forceEmail, dryRun), {
+  assert.deepStrictEqual(decideDigestEmail(count, sendEmptyDigest, forceDigestEmail, dryRun), {
     send: expectedSend,
     reason: expectedReason,
   });
@@ -115,15 +115,15 @@ export async function validateDryRun(): Promise<void> {
         run: () => {
           assert.deepStrictEqual(resolveRunFlags(['--dry-run']), {
             dryRun: true,
-            forceEmail: false,
+            forceDigestEmail: false,
           });
           assert.deepStrictEqual(resolveRunFlags(['--force-email']), {
             dryRun: false,
-            forceEmail: true,
+            forceDigestEmail: true,
           });
           assert.deepStrictEqual(resolveRunFlags([]), {
             dryRun: false,
-            forceEmail: false,
+            forceDigestEmail: false,
           });
         },
       },
@@ -169,7 +169,7 @@ export async function validateDryRun(): Promise<void> {
           verifyDecision(0, false, false, false, false, 'no new notifications');
           verifyDecision(3, false, false, false, true, '3 new notification(s)');
           verifyDecision(0, true, false, false, true, 'sendEmptyDigest=true');
-          verifyDecision(0, false, true, false, true, 'forceEmail=true');
+          verifyDecision(0, false, true, false, true, 'forceDigestEmail=true');
           verifyDecision(3, false, false, true, true, 'DRY_RUN=true');
           verifyDecision(0, true, false, true, true, 'DRY_RUN=true');
           verifyDecision(0, false, true, true, true, 'DRY_RUN=true');

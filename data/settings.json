@@ -7,7 +7,7 @@
   "defaultWishlistDiscountPercent": 30,
   "defaultNotifyOnAnyDiscount": false,
   "sendEmptyDigest": false,
-  "forceEmail": false,
+  "forceDigestEmail": false,
   "dailyDigest": {
     "maxBestDeals": 12,
     "maxWishlistAlerts": 6,

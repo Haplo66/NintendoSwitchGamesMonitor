@@ -38,7 +38,7 @@ Non-secret application behavior is configured in `data/settings.json`, not `.env
 - `logLevel` — `debug` | `info` | `warn` | `error` | `silent`.
 - `emailTo` — optional digest recipient; when omitted the digest is sent **to the sender** (`SMTP_USER`).
 
-Precedence is **environment variable > `data/settings.json` > defaults**, so a one-off run can still override preferences for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`). The digest recipient is **not** overridable via an environment variable — it comes only from `emailTo` in settings (falling back to `SMTP_USER`). Dry-run is **not** a setting and has no environment variable — it is a one-time command-line flag. `forceEmail` is a persisted notification setting in `data/settings.json` (default `false`) and is also available as a one-time `--force-email` flag (see [Execution modes](#execution-modes)).
+Precedence is **environment variable > `data/settings.json` > defaults**, so a one-off run can still override preferences for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`). The digest recipient is **not** overridable via an environment variable — it comes only from `emailTo` in settings (falling back to `SMTP_USER`). Dry-run is **not** a setting and has no environment variable — it is a one-time command-line flag. `forceDigestEmail` is a persisted notification setting in `data/settings.json` (default `false`) and is also available as a one-time `--force-email` flag (see [Execution modes](#execution-modes)).
 
 ### Required local secrets
 
@@ -112,7 +112,7 @@ Long **Best Deals** and **Still On Sale** lists automatically switch to a respon
 
 Force-email is available in two ways:
 
-- **Persisted setting** — set `"forceEmail": true` in `data/settings.json`. It applies to every run (including scheduled GitHub Actions runs) until you turn it off: the digest sends even when there are 0 new notifications (cooldown filtering still applies) and no history is written.
+- **Persisted setting** — set `"forceDigestEmail": true` in `data/settings.json`. It applies to every run (including scheduled GitHub Actions runs) until you turn it off: the digest sends even when there are 0 new notifications (cooldown filtering still applies) and no history is written.
 - **One-time flag** — `npm run monitor -- --force-email` (same as `npm run monitor:test-email`) overrides the setting for a single run: sends the digest even with 0 new notifications (cooldown filtering still applies) and **never writes to history**. Used to verify Gmail delivery without polluting history.
 
 Dry-run remains a **one-time per run** flag (`npm run monitor -- --dry-run`, same as `npm run monitor:dry`) that is never persisted in `.env` or `data/settings.json`, so a normal `npm run monitor` afterwards behaves normally again:

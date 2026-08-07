@@ -1,4 +1,409 @@
 {
   "entries": [
+    {
+      "gameTitle": "Call of Sniper Combat - WW2",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 0,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.99
+        }
+      ]
+    },
+    {
+      "gameTitle": "Carrot Smash",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.49
+        }
+      ],
+      "firstNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotifiedPrice": 2.49
+    },
+    {
+      "gameTitle": "Celeste",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 4.99
+        }
+      ],
+      "firstNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotifiedPrice": 4.99
+    },
+    {
+      "gameTitle": "Dead Cells",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 12.49
+        }
+      ],
+      "firstNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotifiedPrice": 12.49
+    },
+    {
+      "gameTitle": "DOOM",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 0,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 3.99
+        }
+      ]
+    },
+    {
+      "gameTitle": "DungeonSmash - Medieval Dungeons",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.99
+        }
+      ],
+      "firstNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotifiedPrice": 2.99
+    },
+    {
+      "gameTitle": "Garden of the Greek Gods: Zeus, Poseidon & Hades Love Story",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "currentlyOnSale": false,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 10.36
+        }
+      ],
+      "firstNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotifiedPrice": 10.36
+    },
+    {
+      "gameTitle": "Hollow",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 0,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.99
+        }
+      ]
+    },
+    {
+      "gameTitle": "Hollow 2",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 0,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.99
+        }
+      ]
+    },
+    {
+      "gameTitle": "Johnny Trigger: Sniper",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 0,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.49
+        }
+      ]
+    },
+    {
+      "gameTitle": "Mario + Rabbids Kingdom Battle",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 9.99
+        }
+      ],
+      "firstNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotifiedPrice": 9.99
+    },
+    {
+      "gameTitle": "Megabonk Smash",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.99
+        }
+      ],
+      "firstNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotifiedPrice": 2.99
+    },
+    {
+      "gameTitle": "Monster Hunter Generations Ultimate",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 9.99
+        }
+      ],
+      "firstNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotifiedPrice": 9.99
+    },
+    {
+      "gameTitle": "Monster Hunter Rise",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 7.99
+        }
+      ],
+      "firstNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotifiedPrice": 7.99
+    },
+    {
+      "gameTitle": "Monster Hunter Stories",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 9.99
+        }
+      ],
+      "firstNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotified": "2026-08-06T16:25:19.562Z",
+      "lastNotifiedPrice": 9.99
+    },
+    {
+      "gameTitle": "Monster Hunter Stories 2: Wings of Ruin",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 14.99
+        }
+      ],
+      "firstNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotifiedPrice": 14.99
+    },
+    {
+      "gameTitle": "OKAMI HD",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 9.99
+        }
+      ],
+      "firstNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotifiedPrice": 9.99
+    },
+    {
+      "gameTitle": "Overcooked! All You Can Eat",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 11.99
+        }
+      ],
+      "firstNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotifiedPrice": 11.99
+    },
+    {
+      "gameTitle": "Smash it Wild",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 0,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 8.39
+        }
+      ]
+    },
+    {
+      "gameTitle": "Smash Rush",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 4.99
+        }
+      ],
+      "firstNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotifiedPrice": 4.99
+    },
+    {
+      "gameTitle": "Smashroom",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.49
+        }
+      ],
+      "firstNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotifiedPrice": 2.49
+    },
+    {
+      "gameTitle": "Sniper Strike 3D - Secret elite mission warfare \"GHOST SQUAD\"",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 0,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.99
+        }
+      ]
+    },
+    {
+      "gameTitle": "Tetris Forever",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 17.49
+        }
+      ],
+      "firstNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotifiedPrice": 17.49
+    },
+    {
+      "gameTitle": "The Elder Scrolls V: Skyrim",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 19.99
+        }
+      ],
+      "firstNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotifiedPrice": 19.99
+    },
+    {
+      "gameTitle": "The GhostX : Sniper Simulator (Tactical Shooting & Eliminator)",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 0,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.99
+        }
+      ]
+    },
+    {
+      "gameTitle": "Yooka-Laylee and the Impossible Lair",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 1,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 5.99
+        }
+      ],
+      "firstNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotified": "2026-08-07T14:26:16.898Z",
+      "lastNotifiedPrice": 5.99
+    },
+    {
+      "gameTitle": "Zombie Sniper Shooter - Stickman War",
+      "firstSeenOnSale": "2026-08-06T16:25:19.562Z",
+      "lastSeenOnSale": "2026-08-07T15:17:13.939Z",
+      "currentlyOnSale": true,
+      "notificationCount": 0,
+      "priceHistory": [
+        {
+          "date": "2026-08-06",
+          "price": 2.99
+        }
+      ]
+    }
   ]
 }

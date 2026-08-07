@@ -91,7 +91,7 @@ export async function validateForceEmail(): Promise<void> {
   writeHistoryFile(controlledHistory);
 
   try {
-    const forceRun = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock', forceEmail: true });
+    const forceRun = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock', forceDigestEmail: true });
     const historyAfterForce = readHistoryFile();
     const bypassRun = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock', ignoreNotificationHistory: true });
     const normalRun = await runMonitor({ collectorKind: 'mock', emailProviderKind: 'mock' });
@@ -102,15 +102,15 @@ export async function validateForceEmail(): Promise<void> {
         run: () => {
           assert.deepStrictEqual(resolveRunFlags(['--force-email']), {
             dryRun: false,
-            forceEmail: true,
+            forceDigestEmail: true,
           });
           assert.deepStrictEqual(resolveRunFlags(['--dry-run']), {
             dryRun: true,
-            forceEmail: false,
+            forceDigestEmail: false,
           });
           assert.deepStrictEqual(resolveRunFlags([]), {
             dryRun: false,
-            forceEmail: false,
+            forceDigestEmail: false,
           });
         },
       },
@@ -165,7 +165,7 @@ export async function validateForceEmail(): Promise<void> {
           });
           assert.deepStrictEqual(decideDigestEmail(0, false, true, false), {
             send: true,
-            reason: 'forceEmail=true',
+            reason: 'forceDigestEmail=true',
           });
         },
       },

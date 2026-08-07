@@ -219,12 +219,12 @@ export async function validatePreferences(): Promise<void> {
       },
     },
     {
-      name: 'dryRun/forceEmail are execution modes, not preferences',
+      name: 'dryRun/forceDigestEmail are execution modes, not preferences',
       run: () => {
         const file = tempFile({
           platform: 'switch2',
           dryRun: true,
-          forceEmail: true,
+          forceDigestEmail: true,
         });
         try {
           const prefs = loadAppPreferences({}, file);
@@ -238,12 +238,12 @@ export async function validatePreferences(): Promise<void> {
             'platform',
           ]);
           assert.strictEqual(asRecord.dryRun, undefined);
-          assert.strictEqual(asRecord.forceEmail, undefined);
+          assert.strictEqual(asRecord.forceDigestEmail, undefined);
         } finally {
           fs.rmSync(file, { force: true });
         }
         const flags = resolveRunFlags([]);
-        assert.deepStrictEqual(flags, { dryRun: false, forceEmail: false });
+        assert.deepStrictEqual(flags, { dryRun: false, forceDigestEmail: false });
       },
     },
     {
@@ -363,23 +363,23 @@ export async function validatePreferences(): Promise<void> {
       run: () => {
         assert.deepStrictEqual(resolveRunMode(['node', 'runner.js']), {
           dryRun: false,
-          forceEmail: false,
+          forceDigestEmail: false,
         });
         assert.deepStrictEqual(resolveRunMode(['node', 'runner.js', '--dry-run']), {
           dryRun: true,
-          forceEmail: false,
+          forceDigestEmail: false,
         });
         assert.deepStrictEqual(resolveRunMode(['node', 'runner.js', '--force-email']), {
           dryRun: false,
-          forceEmail: true,
+          forceDigestEmail: true,
         });
         assert.deepStrictEqual(resolveRunMode(['node', 'runner.js', 'dry']), {
           dryRun: true,
-          forceEmail: false,
+          forceDigestEmail: false,
         });
         assert.deepStrictEqual(resolveRunMode(['node', 'runner.js', 'test-email']), {
           dryRun: false,
-          forceEmail: true,
+          forceDigestEmail: true,
         });
       },
     },

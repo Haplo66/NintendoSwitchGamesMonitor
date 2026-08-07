@@ -30,7 +30,7 @@ export interface MonitorOptions {
   dealLimit?: number;
   maxGamesPerEmail?: number;
   ignoreNotificationHistory?: boolean;
-  forceEmail?: boolean;
+  forceDigestEmail?: boolean;
   dryRun?: boolean;
 }
 
@@ -48,7 +48,7 @@ export interface DigestEmailDecision {
 export function decideDigestEmail(
   newNotificationCount: number,
   sendEmptyDigest: boolean,
-  forceEmail: boolean,
+  forceDigestEmail: boolean,
   dryRun: boolean,
 ): DigestEmailDecision {
   let decision: DigestEmailDecision;
@@ -56,8 +56,8 @@ export function decideDigestEmail(
     decision = { send: true, reason: `${newNotificationCount} new notification(s)` };
   } else if (sendEmptyDigest) {
     decision = { send: true, reason: 'sendEmptyDigest=true' };
-  } else if (forceEmail) {
-    decision = { send: true, reason: 'forceEmail=true' };
+  } else if (forceDigestEmail) {
+    decision = { send: true, reason: 'forceDigestEmail=true' };
   } else {
     decision = { send: false, reason: 'no new notifications' };
   }
@@ -126,7 +126,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const ignoreNotificationHistory =
     options.ignoreNotificationHistory ??
     process.env.IGNORE_NOTIFICATION_HISTORY === 'true';
-  const forceEmail = options.forceEmail ?? config.notification.forceEmail;
+  const forceDigestEmail = options.forceDigestEmail ?? config.notification.forceDigestEmail;
   const dryRun = options.dryRun ?? false;
 
   console.log('');
@@ -139,8 +139,8 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   console.log(`  Minimum score: ${minDealScore}`);
   console.log(`  Cooldown: ${cooldownDays} days`);
   console.log(`  Dry run: ${dryRun ? 'enabled' : 'disabled'}`);
-  console.log(`  Force email: ${forceEmail ? 'enabled' : 'disabled'}`);
-  console.log(`  Test mode: ${ignoreNotificationHistory || forceEmail || dryRun ? 'enabled' : 'disabled'}`);
+  console.log(`  Force digest email: ${forceDigestEmail ? 'enabled' : 'disabled'}`);
+  console.log(`  Test mode: ${ignoreNotificationHistory || forceDigestEmail || dryRun ? 'enabled' : 'disabled'}`);
   if (ignoreNotificationHistory) console.log('    IGNORE_NOTIFICATION_HISTORY is active');
 
   const collector: GameCollector = createGameCollector(collectorKind, {
@@ -277,7 +277,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const decision = decideDigestEmail(
     toEmail.length,
     config.notification.sendEmptyDigest,
-    forceEmail,
+    forceDigestEmail,
     dryRun,
   );
   const emailSent = decision.send && !dryRun;
@@ -295,7 +295,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     console.log(`Digest skipped: ${decision.reason}.`);
   }
 
-  if (!ignoreNotificationHistory && !forceEmail && !dryRun) {
+  if (!ignoreNotificationHistory && !forceDigestEmail && !dryRun) {
     saveDealHistory(updatedHistory);
     console.log(`Recorded deal history (${updatedHistory.entries.length} game(s) tracked).`);
   }
@@ -321,13 +321,13 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
 /**
  * Parses one-time execution-mode flags from the command line
  * (`npm run monitor -- --dry-run` / `--force-email`). These are run-scoped
- * overrides only: they take precedence over the persisted `forceEmail`
+ * overrides only: they take precedence over the persisted `forceDigestEmail`
  * notification setting in `data/settings.json` and are never read from `.env`.
  */
-export function resolveRunFlags(argv: string[]): Pick<MonitorOptions, 'dryRun' | 'forceEmail'> {
+export function resolveRunFlags(argv: string[]): Pick<MonitorOptions, 'dryRun' | 'forceDigestEmail'> {
   return {
     dryRun: argv.includes('--dry-run'),
-    forceEmail: argv.includes('--force-email'),
+    forceDigestEmail: argv.includes('--force-email'),
   };
 }
 

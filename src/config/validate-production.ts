@@ -253,8 +253,8 @@ export async function validateProduction(): Promise<void> {
           const config = loadAppConfig();
           assert.strictEqual(config.notification.minimumDealScore, 50, 'MIN_DEAL_SCORE env must apply');
           assert.ok(
-            !('dryRun' in config.preferences) && !('forceEmail' in config.preferences),
-            'dryRun/forceEmail must not be persisted preferences',
+            !('dryRun' in config.preferences) && !('forceDigestEmail' in config.preferences),
+            'dryRun/forceDigestEmail must not be persisted preferences',
           );
         },
       },

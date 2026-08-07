@@ -86,7 +86,7 @@ export function validateAppPreferences(settings: unknown): string[] {
  * notification settings that share the same file. Precedence is:
  * environment variable > settings.json > built-in default.
  *
- * `dryRun` / `forceEmail` are execution modes, not preferences: they are
+ * `dryRun` / `forceDigestEmail` are execution modes, not preferences: they are
  * supplied per run via the command line or GitHub Actions inputs and never
  * read from `settings.json`.
  */
