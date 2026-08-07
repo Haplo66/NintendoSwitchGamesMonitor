@@ -21,6 +21,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   defaultWishlistDiscountPercent: 40,
   defaultNotifyOnAnyDiscount: false,
   sendEmptyDigest: false,
+  forceEmail: false,
   dailyDigest: { ...DEFAULT_DAILY_DIGEST_SETTINGS },
 };
 
@@ -72,6 +73,7 @@ export function validateNotificationSettings(settings: unknown): string[] {
   checkRange('defaultWishlistDiscountPercent', 1, 99, true);
   checkBoolean('defaultNotifyOnAnyDiscount');
   checkBoolean('sendEmptyDigest');
+  checkBoolean('forceEmail');
 
   const digest = value.dailyDigest;
   if (digest !== undefined) {
@@ -198,6 +200,11 @@ export function resolveNotificationSettings(
       parseEnvBoolean('DEFAULT_NOTIFY_ON_ANY_DISCOUNT', env.DEFAULT_NOTIFY_ON_ANY_DISCOUNT) ??
       base.defaultNotifyOnAnyDiscount,
     sendEmptyDigest: base.sendEmptyDigest,
+    // `forceEmail` is configured only in `data/settings.json`; it is never read
+    // from the environment (there is deliberately no FORCE_EMAIL override here
+    // so `.env` stays secrets-only). The `--force-email` CLI flag remains a
+    // separate one-time override handled in monitor-run.
+    forceEmail: base.forceEmail,
     dailyDigest: { ...base.dailyDigest },
   };
 

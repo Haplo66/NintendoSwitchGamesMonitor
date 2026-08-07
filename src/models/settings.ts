@@ -15,6 +15,10 @@ export interface NotificationSettings {
   defaultWishlistDiscountPercent: number;
   defaultNotifyOnAnyDiscount: boolean;
   sendEmptyDigest: boolean;
+  /** When true, always sends the daily digest email even when every
+   * notification is in cooldown or there are no new notifications. Defaults to
+   * false. Configured only in `data/settings.json`; never read from `.env`. */
+  forceEmail: boolean;
   dailyDigest: DailyDigestSettings;
 }
 

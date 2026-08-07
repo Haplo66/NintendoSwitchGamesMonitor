@@ -169,7 +169,7 @@ export async function validateDryRun(): Promise<void> {
           verifyDecision(0, false, false, false, false, 'no new notifications');
           verifyDecision(3, false, false, false, true, '3 new notification(s)');
           verifyDecision(0, true, false, false, true, 'sendEmptyDigest=true');
-          verifyDecision(0, false, true, false, true, 'FORCE_EMAIL=true');
+          verifyDecision(0, false, true, false, true, 'forceEmail=true');
           verifyDecision(3, false, false, true, true, 'DRY_RUN=true');
           verifyDecision(0, true, false, true, true, 'DRY_RUN=true');
           verifyDecision(0, false, true, true, true, 'DRY_RUN=true');

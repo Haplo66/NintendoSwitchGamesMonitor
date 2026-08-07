@@ -108,7 +108,7 @@ The Gmail SMTP host/port (`smtp.gmail.com:465`, implicit TLS) are **built into t
 
 #### Everything else
 
-User preferences (`platform`, `emailProvider`, `gameCollector`, `logLevel`, `emailTo`) and notification settings live in `data/settings.json` (see [User preferences](#user-preferences--datasettingsjson)). The digest recipient comes **only** from `emailTo` in `data/settings.json`, falling back to the sender (`SMTP_USER`) — there is no `EMAIL_TO` environment variable. `DRY_RUN` / `FORCE_EMAIL` are **one-time execution modes**, not configuration: pass them per run on the command line (`npm run monitor -- --dry-run`) or as GitHub Actions inputs, and they never persist.
+User preferences (`platform`, `emailProvider`, `gameCollector`, `logLevel`, `emailTo`) and notification settings live in `data/settings.json` (see [User preferences](#user-preferences--datasettingsjson)). The digest recipient comes **only** from `emailTo` in `data/settings.json`, falling back to the sender (`SMTP_USER`) — there is no `EMAIL_TO` environment variable. `DRY_RUN` is a **one-time execution mode**, not configuration: pass it per run on the command line (`npm run monitor -- --dry-run`) or as a GitHub Actions input, and it never persists. `forceEmail` is a **persisted notification setting** (default `false`) in `data/settings.json`; the `--force-email` flag remains a one-time override for a single run.
 
 #### Optional environment overrides (CI / command line)
 
@@ -340,7 +340,7 @@ Monitor summary:
   Potential matches: 3
   New notifications: 0
   Skipped cooldown: 3
-  Email: sent (FORCE_EMAIL=true)
+  Email: sent (forceEmail=true)
 ```
 
 or, with `--dry-run`:
@@ -598,6 +598,7 @@ User-editable notification preferences live in `data/settings.json`:
   "defaultWishlistDiscountPercent": 40,
   "defaultNotifyOnAnyDiscount": false,
   "sendEmptyDigest": false,
+  "forceEmail": false,
   "dailyDigest": {
     "maxBestDeals": 5,
     "maxWishlistAlerts": 10,
@@ -616,6 +617,7 @@ User-editable notification preferences live in `data/settings.json`:
 - `defaultWishlistDiscountPercent` — discount percent used to compute automatic wishlist target prices (must be a whole number between `1` and `99`).
 - `defaultNotifyOnAnyDiscount` — default `notifyOnAnyDiscount` for wishlist items that omit it.
 - `sendEmptyDigest` — when `false` (default) and no games are reported, the digest email is **skipped** (a log line confirms it); when `true`, an empty digest is still sent.
+- `forceEmail` — when `true`, always sends the digest email even when every notification is in cooldown or there are no new notifications (default `false`). Unlike `--force-email`, it is **persistent**: once enabled here it applies to every run (including scheduled GitHub Actions runs) until you turn it off. It still never bypasses cooldown filtering (the email is sent but games in cooldown are not re-notified) and it does **not** write to notification history.
 - `dailyDigest` — layout preferences for the digest email:
   - `maxBestDeals` — how many non-wishlist deals to show in the **Best Deals** section (whole number, default `5`).
   - `maxWishlistAlerts` — how many wishlist alerts (and price-watch items) to show (whole number, default `10`).
@@ -647,7 +649,7 @@ Application/user preferences (not secrets) also live in `data/settings.json`:
 - `logLevel` — logging verbosity: `debug`, `info`, `warn`, `error`, or `silent` (default `info`).
 - `emailTo` — optional digest recipient. When omitted the digest is sent **to the sender** (`SMTP_USER`).
 
-These are **user configuration**, not secrets — keep them out of `.env`. Set an environment variable only to override them for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`). The digest recipient is **not** overridable via an environment variable: it comes only from `emailTo` (falling back to `SMTP_USER`). `dryRun` / `forceEmail` are **not** settings: they are one-time execution modes passed on the command line (see [Running Locally](#running-locally)) or as GitHub Actions inputs.
+These are **user configuration**, not secrets — keep them out of `.env`. Set an environment variable only to override them for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`). The digest recipient is **not** overridable via an environment variable: it comes only from `emailTo` (falling back to `SMTP_USER`). `dryRun` is **not** a setting — it is a one-time execution mode passed on the command line (see [Running Locally](#running-locally)) or as a GitHub Actions input. `forceEmail` IS a persisted notification setting (default `false`) and is additionally available as a one-time `--force-email` command-line flag that overrides it for a single run.
 
 ### Resolution priority
 
@@ -682,7 +684,7 @@ defaults
 | Game catalog path       | `GAME_CATALOG`              | —                             | `data/game-catalog.json` |
 | Deals currency          | `DEALS_CURRENCY`            | —                             | `USD`         |
 
-`dailyDigest` and `sendEmptyDigest` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above. `DRY_RUN` / `FORCE_EMAIL` are **not** in this table: they are one-time execution modes (see below), never read from `settings.json`.
+`dailyDigest`, `sendEmptyDigest` and `forceEmail` are configured **only** in `data/settings.json` (no environment variables); a missing or partial `dailyDigest` block merges with the defaults above. `DRY_RUN` / `--force-email` are **NOT** in this table: they are one-time execution modes / per-run overrides (see below). `forceEmail` (the persisted setting) is configured only in `data/settings.json` (default `false`).
 
 ### Validating settings
 
@@ -831,7 +833,7 @@ cp .env.example .env   # then fill in values
 | `data/family-profile.json` | Family profiles (names, max ages, preferred/excluded genres) used by the analyzer | User-editable config |
 | `data/wishlist.json` | Games the family wants to watch (target prices, notifications) | User-editable config |
 | `data/blacklist.json` | Titles permanently hidden from the digest (with optional reasons) | User-editable config |
-| `data/settings.json` | Application settings: notification preferences + user preferences (`platform`, `emailProvider`, `dryRun`, `forceEmail`, `logLevel`) | Application settings |
+| `data/settings.json` | Application settings: notification preferences (incl. `forceEmail`) + user preferences (`platform`, `emailProvider`, `gameCollector`, `logLevel`, `emailTo`) | Application settings |
 | `data/game-catalog.json` | US game catalog (nsuids, titles, genres, ESRB ratings, slugs) that the Nintendo collector watches | Runtime / generated data |
 | `data/notification-history.json` | Persistent deal tracking + cooldown state written by monitor runs | Runtime state |
 

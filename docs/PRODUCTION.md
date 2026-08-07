@@ -38,7 +38,7 @@ Non-secret application behavior is configured in `data/settings.json`, not `.env
 - `logLevel` — `debug` | `info` | `warn` | `error` | `silent`.
 - `emailTo` — optional digest recipient; when omitted the digest is sent **to the sender** (`SMTP_USER`).
 
-Precedence is **environment variable > `data/settings.json` > defaults**, so a one-off run can still override preferences for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`). The digest recipient is **not** overridable via an environment variable — it comes only from `emailTo` in settings (falling back to `SMTP_USER`). Dry-run / force-email are **not** settings and have no environment variables — they are one-time command-line flags (see [Execution modes](#execution-modes)).
+Precedence is **environment variable > `data/settings.json` > defaults**, so a one-off run can still override preferences for CI or a temporary run (`NINTENDO_PLATFORM`, `EMAIL_PROVIDER`, `GAME_COLLECTOR`, `LOG_LEVEL`). The digest recipient is **not** overridable via an environment variable — it comes only from `emailTo` in settings (falling back to `SMTP_USER`). Dry-run is **not** a setting and has no environment variable — it is a one-time command-line flag. `forceEmail` is a persisted notification setting in `data/settings.json` (default `false`) and is also available as a one-time `--force-email` flag (see [Execution modes](#execution-modes)).
 
 ### Required local secrets
 
@@ -110,10 +110,14 @@ Long **Best Deals** and **Still On Sale** lists automatically switch to a respon
 
 ## Execution modes
 
-Dry-run and force-email are **one-time per run** — they are never persisted in `.env` or `data/settings.json`, so a normal `npm run monitor` afterwards behaves normally again:
+Force-email is available in two ways:
 
-- `npm run monitor -- --dry-run` (same as `npm run monitor:dry`) — runs the full pipeline (collect → analyze → generate HTML digest/report) but **sends no email** and **never writes to notification history**. Safe to run any time.
-- `npm run monitor -- --force-email` (same as `npm run monitor:test-email`) — sends the digest even when there are 0 new notifications (cooldown filtering still applies) and **never writes to history**. Used to verify Gmail delivery without polluting history.
+- **Persisted setting** — set `"forceEmail": true` in `data/settings.json`. It applies to every run (including scheduled GitHub Actions runs) until you turn it off: the digest sends even when there are 0 new notifications (cooldown filtering still applies) and no history is written.
+- **One-time flag** — `npm run monitor -- --force-email` (same as `npm run monitor:test-email`) overrides the setting for a single run: sends the digest even with 0 new notifications (cooldown filtering still applies) and **never writes to history**. Used to verify Gmail delivery without polluting history.
+
+Dry-run remains a **one-time per run** flag (`npm run monitor -- --dry-run`, same as `npm run monitor:dry`) that is never persisted in `.env` or `data/settings.json`, so a normal `npm run monitor` afterwards behaves normally again:
+
+- `npm run monitor -- --dry-run` — runs the full pipeline (collect → analyze → generate HTML digest/report) but **sends no email** and **never writes to notification history**. Safe to run any time.
 - For fully offline testing set `emailProvider=mock` in `data/settings.json` (or pass `EMAIL_PROVIDER=mock` for one run): the digest is captured locally instead of emailed.
 
 ## GitHub Actions

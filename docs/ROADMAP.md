@@ -411,4 +411,17 @@ Features:
 - Collector, family matching, wishlist matching, deal quality, recommendation logic, and notification history unchanged (out of scope for this task)
 
 > **Status: 🔄 In progress**
+
+## v0.34 Configurable Force Email Setting
+
+Features:
+- **Persisted `forceEmail` notification setting** — new `forceEmail` key in `data/settings.json` (boolean, default `false`). When `true`, the daily digest email is always sent even when every notification is in cooldown or there are no new notifications
+- **Config plumbing** — `NotificationSettings` gains `forceEmail`, `settings-loader` adds it to defaults + boolean validation + resolution (no environment override, so `.env` stays secrets-only); `monitor-run` now reads `config.notification.forceEmail` and falls back to it when the one-time `--force-email` flag is not passed
+- **Startup logging** — the existing `Force email: enabled/disabled` line now reflects the resolved setting
+- **CLI flag retained** — `npm run monitor -- --force-email` remains a one-time override that takes precedence for that run; `resolveRunFlags` unchanged
+- **Validation** — `validate-settings` covers the `forceEmail` default, full-file preservation, partial-merge fallback, and non-boolean rejection; `validate-force-email` keeps the CLI + decision-logic coverage (reason now `forceEmail=true`); `npm test` aggregates everything
+- Docs updated (README notification preferences + resolution + execution modes, PRODUCTION.md execution modes, data-file table, ROADMAP)
+- Collector, analyzer, scoring, digest layout, recommendation logic, and notification history unchanged (out of scope for this task)
+
+> **Status: 🔄 In progress**
 .

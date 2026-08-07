@@ -98,7 +98,7 @@ export async function validateForceEmail(): Promise<void> {
 
     const checks: Check[] = [
       {
-        name: 'force email is a one-time command-line flag, not a preference',
+        name: 'force email remains available as a command-line flag',
         run: () => {
           assert.deepStrictEqual(resolveRunFlags(['--force-email']), {
             dryRun: false,
@@ -165,7 +165,7 @@ export async function validateForceEmail(): Promise<void> {
           });
           assert.deepStrictEqual(decideDigestEmail(0, false, true, false), {
             send: true,
-            reason: 'FORCE_EMAIL=true',
+            reason: 'forceEmail=true',
           });
         },
       },

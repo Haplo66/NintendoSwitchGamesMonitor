@@ -57,7 +57,7 @@ export function decideDigestEmail(
   } else if (sendEmptyDigest) {
     decision = { send: true, reason: 'sendEmptyDigest=true' };
   } else if (forceEmail) {
-    decision = { send: true, reason: 'FORCE_EMAIL=true' };
+    decision = { send: true, reason: 'forceEmail=true' };
   } else {
     decision = { send: false, reason: 'no new notifications' };
   }
@@ -126,7 +126,7 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
   const ignoreNotificationHistory =
     options.ignoreNotificationHistory ??
     process.env.IGNORE_NOTIFICATION_HISTORY === 'true';
-  const forceEmail = options.forceEmail ?? false;
+  const forceEmail = options.forceEmail ?? config.notification.forceEmail;
   const dryRun = options.dryRun ?? false;
 
   console.log('');
@@ -321,7 +321,8 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
 /**
  * Parses one-time execution-mode flags from the command line
  * (`npm run monitor -- --dry-run` / `--force-email`). These are run-scoped
- * only and never read from `.env` or `data/settings.json`.
+ * overrides only: they take precedence over the persisted `forceEmail`
+ * notification setting in `data/settings.json` and are never read from `.env`.
  */
 export function resolveRunFlags(argv: string[]): Pick<MonitorOptions, 'dryRun' | 'forceEmail'> {
   return {
