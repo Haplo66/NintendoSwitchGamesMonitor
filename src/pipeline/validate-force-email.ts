@@ -6,6 +6,8 @@ import * as fs from 'node:fs';
 import {
   defaultNotificationHistoryFile,
 } from '../config/notification-history-store';
+import { defaultSettingsFile } from '../config/settings-loader';
+import { loadAppConfig } from '../config/app-config';
 import { decideDigestEmail, resolveRunFlags, runMonitor } from './monitor-run';
 
 interface Check {
@@ -106,12 +108,28 @@ export async function validateForceEmail(): Promise<void> {
           });
           assert.deepStrictEqual(resolveRunFlags(['--dry-run']), {
             dryRun: true,
-            forceDigestEmail: false,
+            forceDigestEmail: undefined,
           });
           assert.deepStrictEqual(resolveRunFlags([]), {
             dryRun: false,
-            forceDigestEmail: false,
+            forceDigestEmail: undefined,
           });
+        },
+      },
+      {
+        name: 'force digest email is read from the real settings.json loading path',
+        run: () => {
+          const cfg = loadAppConfig();
+          const raw = JSON.parse(fs.readFileSync(defaultSettingsFile(), 'utf8')) as Record<
+            string,
+            unknown
+          >;
+          const expected = raw.forceDigestEmail ?? false;
+          assert.strictEqual(
+            cfg.notification.forceDigestEmail,
+            expected,
+            'settings.json forceDigestEmail must reach the resolved config',
+          );
         },
       },
       {

@@ -327,7 +327,11 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
 export function resolveRunFlags(argv: string[]): Pick<MonitorOptions, 'dryRun' | 'forceDigestEmail'> {
   return {
     dryRun: argv.includes('--dry-run'),
-    forceDigestEmail: argv.includes('--force-email'),
+    // Leave `forceDigestEmail` unset (undefined) when `--force-email` is NOT
+    // passed, so `runMonitor` falls back to the persisted `forceDigestEmail`
+    // setting in `data/settings.json`. Returning `false` here would otherwise
+    // mask the configured value on every plain `npm run monitor`.
+    forceDigestEmail: argv.includes('--force-email') ? true : undefined,
   };
 }
 

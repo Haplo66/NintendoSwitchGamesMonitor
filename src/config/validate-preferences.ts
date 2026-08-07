@@ -243,7 +243,7 @@ export async function validatePreferences(): Promise<void> {
           fs.rmSync(file, { force: true });
         }
         const flags = resolveRunFlags([]);
-        assert.deepStrictEqual(flags, { dryRun: false, forceDigestEmail: false });
+        assert.deepStrictEqual(flags, { dryRun: false, forceDigestEmail: undefined });
       },
     },
     {

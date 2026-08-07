@@ -115,7 +115,7 @@ export async function validateDryRun(): Promise<void> {
         run: () => {
           assert.deepStrictEqual(resolveRunFlags(['--dry-run']), {
             dryRun: true,
-            forceDigestEmail: false,
+            forceDigestEmail: undefined,
           });
           assert.deepStrictEqual(resolveRunFlags(['--force-email']), {
             dryRun: false,
@@ -123,7 +123,7 @@ export async function validateDryRun(): Promise<void> {
           });
           assert.deepStrictEqual(resolveRunFlags([]), {
             dryRun: false,
-            forceDigestEmail: false,
+            forceDigestEmail: undefined,
           });
         },
       },
