@@ -484,4 +484,17 @@ Features:
 - Digest sections, scoring weights, recommendation logic, and notification history unchanged (out of scope for this task)
 
 > **Status: 🔄 In progress**
+
+## v0.40 Analyze Deal Score Inflation (analysis only — no scoring change)
+
+Diagnostic:
+- **New `analyze-scoring` script** (`npm run analyze-scoring`) prints, for every reported game in the current digest, the raw internal score and a per-bonus breakdown (discount, free-game, wishlist, target-reached, historical-low, family-match) plus the displayed (capped) score, and a distribution summary of how many games exceed 100.
+- **Root cause of "almost every Best Deal = 100"** — the **family-match bonus (+10 per matching profile × 4 profiles = +40)** is a large additive chunk stacked on top of the price-quality bonuses. On the mock catalog both reported games match all four profiles (+40 each); Fall Guys adds **free-game +60** and **historical-low +15** → **115** raw; Mario Kart adds **discount +44** and **historical-low +15** → **99**. So family suitability (a yes/no signal) plus the free-game/historical bonuses routinely push scores to or over the 100 cap.
+- **Recommendation (deferred, not applied)**:
+  - Decouple **deal quality** (price-based: discount, free, wishlist, target-reached, historical-low) from **family suitability** (which/how many profiles match).
+  - Drop the per-profile family bonus from the numeric Deal Score; treat family suitability as a separate ranking factor / tie-breaker (and it already drives the Recommendations section).
+  - Keep the 100 display cap for the rare stacked deal (wishlist + target + free / full discount).
+- Scoring weights, recommendation logic, and notification history unchanged (analysis only)
+
+> **Status: 🔄 In progress**
 .

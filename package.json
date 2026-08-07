@@ -24,6 +24,7 @@
     "validate-price-intelligence": "npm run build && node dist/history/validate-price-intelligence.js",
     "validate-deal-quality": "npm run build && node dist/history/validate-deal-quality.js",
     "analyze-games": "npm run build && node dist/analyzer/analyze-games.js",
+    "analyze-scoring": "npm run build && node dist/analyzer/analyze-scoring.js",
     "validate-analyzer": "npm run build && node dist/analyzer/validate-analyzer.js",
     "validate-collector": "npm run build && node dist/collectors/validate-collector.js",
     "monitor": "npm run build && node dist/pipeline/monitor-run.js",
