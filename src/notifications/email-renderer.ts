@@ -37,6 +37,22 @@ export function wrapDigestDocument(sections: string, header: string): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml('Nintendo Switch Daily Digest')}</title>
+  <style type="text/css">
+    @media only screen and (max-width: 600px) {
+      table[class="digest-grid"] {
+        display: block !important;
+      }
+      table[class="digest-grid"] tr {
+        display: block !important;
+      }
+      td[class="digest-grid-cell"] {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 0 0 0 0 !important;
+      }
+    }
+  </style>
 </head>
 <body style="margin:0; padding:0; background-color:#f4f5f7;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7;">

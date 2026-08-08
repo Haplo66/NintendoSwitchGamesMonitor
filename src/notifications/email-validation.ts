@@ -227,6 +227,13 @@ function hasTwoColumnLayout(sectionHtml: string): boolean {
   return sectionHtml.includes('table-layout:fixed') && sectionHtml.includes('width="50%"');
 }
 
+function hasMobileCollapseCss(sectionHtml: string): boolean {
+  return (
+    sectionHtml.includes('@media only screen and (max-width: 600px)') &&
+    sectionHtml.includes('digest-grid-cell')
+  );
+}
+
 function countOccurrences(haystack: string, needle: string): number {
   let count = 0;
   let index = haystack.indexOf(needle);
@@ -492,32 +499,33 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
-      name: 'short lists stay single-column',
+      name: 'short lists use a two-column grid that collapses on mobile',
       run: () => {
         const html = renderDigestEmail(manyCardsDigest({ bestDeals: 3, stillOnSale: 3 }));
-        assert.ok(!hasTwoColumnLayout(html), 'Few items must stay single-column');
+        assert.ok(hasTwoColumnLayout(html), 'Even short lists must use two columns on desktop');
+        assert.ok(hasMobileCollapseCss(html), 'Grid must collapse to a single column on mobile');
       },
     },
     {
-      name: 'long Best Deals list switches to two columns',
+      name: 'long Best Deals list uses two columns',
       run: () => {
         const html = renderDigestEmail(manyCardsDigest({ bestDeals: 7 }));
         assert.ok(hasTwoColumnLayout(html), '7 best deals must use two columns');
       },
     },
     {
-      name: 'long Still On Sale list switches to two columns',
+      name: 'long Still On Sale list uses two columns',
       run: () => {
         const html = renderDigestEmail(manyCardsDigest({ stillOnSale: 7 }));
         assert.ok(hasTwoColumnLayout(html), '7 still-on-sale deals must use two columns');
       },
     },
     {
-      name: 'threshold (6) stays single-column and 7 activates two columns for still on sale',
+      name: 'two-column grid is used regardless of item count for still on sale',
       run: () => {
         const html6 = renderDigestEmail(manyCardsDigest({ stillOnSale: 6 }));
         const html7 = renderDigestEmail(manyCardsDigest({ stillOnSale: 7 }));
-        assert.ok(!hasTwoColumnLayout(html6), '6 still-on-sale deals must stay single-column');
+        assert.ok(hasTwoColumnLayout(html6), '6 still-on-sale deals must use two columns');
         assert.ok(hasTwoColumnLayout(html7), '7 still-on-sale deals must use two columns');
       },
     },

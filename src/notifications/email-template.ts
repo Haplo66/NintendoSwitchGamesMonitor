@@ -24,8 +24,12 @@ const COLORS = {
   text: '#17202a',
   muted: '#5d6b7a',
   accent: '#e60012',
+  bestDeal: '#e60012',
   wishlist: '#6d28d9',
   free: '#1a7f37',
+  historical: '#b45309',
+  still: '#0e7490',
+  recommended: '#0f766e',
   discount: '#ea580c',
   success: '#1a7f37',
   danger: '#c62828',
@@ -92,48 +96,71 @@ function reasonsList(reasons: string[]): string {
 function sectionHeader(emoji: string, title: string, color: string): string {
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"` +
-    ` style="margin:24px 0 12px 0;"><tr><td style="border-left:4px solid ${color};` +
-    ` padding-left:10px; font-family:${FONT}; font-size:18px; font-weight:bold;` +
-    ` color:${COLORS.text};">${emoji} ${escapeHtml(title)}</td></tr></table>`
+    ` style="margin:24px 0 14px 0;"><tr><td>` +
+    `<table role="presentation" cellpadding="0" cellspacing="0" style="border-radius:6px;` +
+    ` background-color:${color}; padding:7px 12px;"><tr><td style="font-family:${FONT};` +
+    ` font-size:16px; font-weight:bold; color:#ffffff;">${emoji} ${escapeHtml(title)}</td>` +
+    `</tr></table></td></tr></table>`
   );
 }
 
-function card(inner: string, accentColor?: string): string {
-  const topBorder = accentColor ? ` border-top:3px solid ${accentColor};` : '';
+/**
+ * Renders a theme chip label used at the top of a card to visually tie it to
+ * its section accent color.
+ */
+function themeChip(label: string, color: string): string {
   return (
-    `<div style="background-color:${COLORS.panel}; border:1px solid ${COLORS.border};` +
-    `${topBorder} border-radius:8px; padding:16px 18px; margin:0 0 14px 0;">${inner}</div>`
+    `<span style="font-family:${FONT}; font-size:10px; font-weight:bold; color:#ffffff;` +
+    ` background-color:${color}; border-radius:3px; padding:1px 5px; display:inline-block;` +
+    ` margin:0 0 6px 0; text-transform:uppercase; letter-spacing:0.4px;">` +
+    `${escapeHtml(label)}</span>`
   );
 }
 
 /**
- * Number of items at or below which a long list is rendered as a single,
- * full-width column. Above this threshold the section switches to a
- * responsive two-column table to make long lists easier to scan.
+ * Renders an equal-height card. The card is a full-height table with a top
+ * content row and an optional bottom footer row, so cards that share a grid
+ * row stretch to the same height and their footers (buttons / metadata) are
+ * pinned to the bottom of the card regardless of body length.
  */
-const TWO_COLUMN_THRESHOLD = 6;
+function card(
+  body: string,
+  accentColor?: string,
+  footer?: string,
+): string {
+  const topBorder = accentColor ? ` border-top:3px solid ${accentColor};` : '';
+  const footerHtml = footer
+    ? `<tr><td valign="bottom" style="padding:12px 18px; border-top:1px solid ${COLORS.border};">${footer}</td></tr>`
+    : '';
+  return (
+    `<table role="presentation" width="100%" height="100%" cellpadding="0" cellspacing="0"` +
+    ` style="background-color:${COLORS.panel}; border:1px solid ${COLORS.border};${topBorder}` +
+    ` border-radius:8px; height:100%;"><tr><td valign="top" style="padding:16px 18px;">` +
+    `${body}</td></tr>${footerHtml}</table>`
+  );
+}
 
 /**
- * Renders a list of card HTML strings. Fewer than `threshold` items render as
- * a single column (preserving the existing look); `threshold` or more render
- * as a responsive two-column table so long sections are easier to scan.
+ * Renders a list of card HTML strings as a responsive two-column grid: two
+ * columns on desktop, collapsing to a single column on narrow/mobile
+ * viewports via the `.digest-grid-cell` media rules emitted in the document
+ * head. Cards render left-to-right in two-column rows.
  */
-function renderCardGrid(
-  cards: string[],
-  threshold: number = TWO_COLUMN_THRESHOLD,
-): string {
-  if (cards.length <= threshold) {
-    return cards.join('');
+function renderCardGrid(cards: string[], gutter = 10): string {
+  if (cards.length === 0) {
+    return '';
   }
   const rows: string[] = [];
   for (let i = 0; i < cards.length; i += 2) {
     const left = cards[i];
     const right = cards[i + 1] ?? '';
     rows.push(
-      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"` +
+      `<table role="presentation" class="digest-grid" width="100%" cellpadding="0" cellspacing="0"` +
       ` style="table-layout:fixed;"><tr>` +
-      `<td width="50%" valign="top" style="padding:0 10px 0 0;">${left}</td>` +
-      `<td width="50%" valign="top" style="padding:0 0 0 10px;">${right}</td>` +
+      `<td class="digest-grid-cell" width="50%" valign="top" style="padding:0 ${gutter}px 0 0;">` +
+      `<div style="margin:0 0 ${gutter}px 0;">${left}</div></td>` +
+      `<td class="digest-grid-cell" width="50%" valign="top" style="padding:0 0 0 ${gutter}px;">` +
+      `<div style="margin:0 0 ${gutter}px 0;">${right}</div></td>` +
       `</tr></table>`,
     );
   }
@@ -229,18 +256,15 @@ function formatShortDate(iso: string): string {
 function renderStillOnSaleCard(item: DigestStillOnSale, currency: string): string {
   const daysLabel = item.daysOnSale === 1 ? '1 day on sale' : `${item.daysOnSale} days on sale`;
   return card(
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
-    `<td style="padding:0 12px 0 0;">` +
-    `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
-    `<div>${renderPriceRow(currency, item.originalPrice, item.currentPrice, COLORS.time)}</div>` +
-    renderDealSummary(item.discountPercent) +
-    `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">` +
-    `First reported ${formatShortDate(item.firstReportedAt)} · ${daysLabel}</div>` +
-    renderDealInsight(item.quality, item.priceContext, currency) +
-    `</td>` +
-    `</tr></table>` +
-    actionButton('View Deal', item.storeUrl, COLORS.time),
-    COLORS.time,
+    themeChip('Still On Sale', COLORS.still) +
+      `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
+      `<div>${renderPriceRow(currency, item.originalPrice, item.currentPrice, COLORS.still)}</div>` +
+      renderDealSummary(item.discountPercent) +
+      `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">` +
+      `First reported ${formatShortDate(item.firstReportedAt)} · ${daysLabel}</div>` +
+      renderDealInsight(item.quality, item.priceContext, currency),
+    COLORS.still,
+    actionButton('View Deal', item.storeUrl, COLORS.still),
   );
 }
 
@@ -249,7 +273,7 @@ export function renderStillOnSaleSection(items: DigestStillOnSale[], currency: s
     return '';
   }
   const cards = items.map((item) => renderStillOnSaleCard(item, currency));
-  return sectionHeader('🕒', 'Still On Sale', COLORS.time) + renderCardGrid(cards);
+  return sectionHeader('🕒', 'Still On Sale', COLORS.still) + renderCardGrid(cards);
 }
 
 /**
@@ -354,13 +378,9 @@ function renderWishlistWatchCard(item: DigestWishlistWatch, currency: string): s
   }
   details += '</div>';
   return card(
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
-    `<td style="padding:0 12px 0 0;">` +
-    `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
-    `<div>${badge(meta.label, meta.color)}</div>` +
-    details +
-    `</td>` +
-    `</tr></table>`,
+    themeChip(meta.label, meta.color) +
+      `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
+      details,
     COLORS.wishlist,
   );
 }
@@ -374,8 +394,8 @@ export function renderWishlistWatchSection(items: DigestWishlistWatch[], currenc
       `No games on your wishlist yet.</p>`
     );
   }
-  const cards = items.map((item) => renderWishlistWatchCard(item, currency)).join('');
-  return header + cards;
+  const cards = items.map((item) => renderWishlistWatchCard(item, currency));
+  return header + renderCardGrid(cards);
 }
 
 function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, digest: DailyDigest): string {
@@ -387,20 +407,16 @@ function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, d
       ? 'Configured target'
       : `Auto target (${digest.defaultWishlistDiscountPercent}% discount)`;
   return card(
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
-    `<td style="padding:0 12px 0 0;">` +
-    `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(alert.title)}</h3>` +
-    `<div>${renderPriceRow(currency, alert.originalPrice, alert.currentPrice, COLORS.wishlist)}</div>` +
-    renderDealSummary(alert.discountPercent) +
-    `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">` +
-    `${targetLabel}: <strong>${formatMoney(currency, alert.targetPrice)}</strong> · Reached: ${reachedBadge}` +
-    `</div>` +
-    renderDealInsight(alert.quality, alert.priceContext, currency) +
-    `</td>` +
-    `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(alert.ageRating)}</td>` +
-    `</tr></table>` +
-    actionButton('View Deal', alert.storeUrl, COLORS.wishlist),
+    themeChip('Wishlist Alert', COLORS.wishlist) +
+      `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(alert.title)}</h3>` +
+      `<div>${renderPriceRow(currency, alert.originalPrice, alert.currentPrice, COLORS.wishlist)}</div>` +
+      renderDealSummary(alert.discountPercent) +
+      `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">` +
+      `${targetLabel}: <strong>${formatMoney(currency, alert.targetPrice)}</strong> · Reached: ${reachedBadge}` +
+      `</div>` +
+      renderDealInsight(alert.quality, alert.priceContext, currency),
     COLORS.wishlist,
+    actionButton('View Deal', alert.storeUrl, COLORS.wishlist) + `&nbsp;&nbsp;${ageRatingBadge(alert.ageRating)}`,
   );
 }
 
@@ -414,18 +430,17 @@ export function renderWishlistAlertsSection(alerts: DigestWishlistAlert[], curre
 
 function renderBestDealCard(deal: DigestBestDeal, currency: string): string {
   return card(
+    themeChip('Best Deal', COLORS.bestDeal) +
+      `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
+      `<div>${renderPriceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.bestDeal)}</div>` +
+      renderDealSummary(deal.discountPercent, deal.score) +
+      `${reasonsList(deal.reasons)}` +
+      renderDealInsight(deal.quality, deal.priceContext, currency),
+    COLORS.bestDeal,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
-    `<td style="padding:0 12px 0 0;">` +
-    `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
-    `<div>${renderPriceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.accent)}</div>` +
-    renderDealSummary(deal.discountPercent, deal.score) +
-    `${reasonsList(deal.reasons)}` +
-    renderDealInsight(deal.quality, deal.priceContext, currency) +
-    `</td>` +
-    `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(deal.ageRating)}</td>` +
-    `</tr></table>` +
-    actionButton('View Deal', deal.storeUrl, COLORS.link),
-    COLORS.accent,
+      `<td valign="middle">${ageRatingBadge(deal.ageRating)}</td>` +
+      `<td align="right" valign="middle" style="white-space:nowrap;">${actionButton('View Deal', deal.storeUrl, COLORS.link)}</td>` +
+      `</tr></table>`,
   );
 }
 
@@ -444,17 +459,14 @@ function renderFreeGameCard(game: DigestFreeGame): string {
         `Matches: ${escapeHtml(game.reasons.join(', '))}</div>`
       : '';
   return card(
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
-    `<td style="padding:0 12px 0 0;">` +
-    `<h3 style="margin:0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(game.title)}</h3>` +
-    `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; font-weight:bold; color:${COLORS.free};">` +
-    `🆓 Free to download</div>` +
-    reasons +
-    `</td>` +
-    `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(game.ageRating)}</td>` +
-    `</tr></table>` +
-    actionButton('Get It Free', game.storeUrl, COLORS.free),
+    themeChip('Free Game', COLORS.free) +
+      `<h3 style="margin:0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(game.title)}</h3>` +
+      `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; font-weight:bold; color:${COLORS.free};">` +
+      `🆓 Free to download</div>` +
+      reasons +
+      `<div style="margin-top:10px;">${ageRatingBadge(game.ageRating)}</div>`,
     COLORS.free,
+    actionButton('Get It Free', game.storeUrl, COLORS.free),
   );
 }
 
@@ -462,24 +474,21 @@ export function renderFreeGamesSection(freeGames: DigestFreeGame[]): string {
   if (freeGames.length === 0) {
     return '';
   }
-  const cards = freeGames.map(renderFreeGameCard).join('');
-  return sectionHeader('🆓', 'Free Family Games', COLORS.free) + cards;
+  const cards = freeGames.map(renderFreeGameCard);
+  return sectionHeader('🆓', 'Free Family Games', COLORS.free) + renderCardGrid(cards);
 }
 
 function renderHistoricalLowCard(deal: DigestHistoricalLow, currency: string): string {
   return card(
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
-    `<td style="padding:0 12px 0 0;">` +
-    `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
-    `<div>${renderPriceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.time)}</div>` +
-    renderDealSummary(deal.discountPercent) +
-    `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; font-weight:bold;` +
-    ` color:${COLORS.success};">⭐ At its historical low (${formatMoney(currency, deal.lowPrice)})</div>` +
-    `</td>` +
-    `<td align="right" valign="top" style="white-space:nowrap;">${ageRatingBadge(deal.ageRating)}</td>` +
-    `</tr></table>` +
-    actionButton('View Deal', deal.storeUrl, COLORS.time),
-    COLORS.time,
+    themeChip('Historical Low', COLORS.historical) +
+      `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
+      `<div>${renderPriceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.historical)}</div>` +
+      renderDealSummary(deal.discountPercent) +
+      `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; font-weight:bold;` +
+      ` color:${COLORS.historical};">⭐ At its historical low (${formatMoney(currency, deal.lowPrice)})</div>` +
+      `<div style="margin-top:10px;">${ageRatingBadge(deal.ageRating)}</div>`,
+    COLORS.historical,
+    actionButton('View Deal', deal.storeUrl, COLORS.historical),
   );
 }
 
@@ -488,7 +497,7 @@ export function renderHistoricalLowsSection(items: DigestHistoricalLow[], curren
     return '';
   }
   const cards = items.map((item) => renderHistoricalLowCard(item, currency));
-  return sectionHeader('⭐', 'Historical Lows', COLORS.time) + renderCardGrid(cards);
+  return sectionHeader('⭐', 'Historical Lows', COLORS.historical) + renderCardGrid(cards);
 }
 
 function recommendationPriceStatus(game: DigestFamilyRecommendation, currency: string): string {
@@ -531,11 +540,12 @@ function renderRecommendationCard(recommendation: DigestFamilyRecommendation, cu
     ? ` <span style="color:${COLORS.muted}; font-size:12px;">(on wishlist)</span>`
     : '';
   return card(
-    `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(recommendation.title)}${wishlistTag}</h3>` +
+    themeChip('Recommended', COLORS.recommended) +
+      `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(recommendation.title)}${wishlistTag}</h3>` +
       recommendationPriceStatus(recommendation, currency) +
       `<div style="margin-top:8px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">Recommended for:</div>` +
       `<div style="margin-top:2px;">${who}</div>`,
-    COLORS.free,
+    COLORS.recommended,
   );
 }
 
@@ -547,7 +557,7 @@ export function renderRecommendedSection(
     return '';
   }
   const cards = recommendations.map((recommendation) => renderRecommendationCard(recommendation, currency));
-  return sectionHeader('⭐', 'Recommended For Your Family', COLORS.free) + cards;
+  return sectionHeader('⭐', 'Recommended For Your Family', COLORS.recommended) + renderCardGrid(cards);
 }
 
 function renderPriceWatchCard(item: DigestPriceWatchItem, currency: string): string {
