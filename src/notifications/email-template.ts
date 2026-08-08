@@ -40,6 +40,17 @@ const COLORS = {
 
 const FONT = 'Arial, Helvetica, sans-serif';
 
+/**
+ * Shared minimum height for the content area of every grid card. Applying a
+ * consistent min-height to the shared card component keeps cards across
+ * different sections (Best Deals, Still On Sale, Recommended, ...) visually
+ * uniform, so a short card no longer appears noticeably smaller than a card
+ * with a long reasons list. Footer rows sit below this area, so action/metadata
+ * stays pinned to the bottom at a consistent height. Inline styles are used so
+ * clients with limited CSS support (e.g. Outlook, Gmail) still honor it.
+ */
+const CARD_BODY_MIN_HEIGHT = 118;
+
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -136,7 +147,8 @@ function card(
     `<table role="presentation" width="100%" height="100%" cellpadding="0" cellspacing="0"` +
     ` style="background-color:${COLORS.panel}; border:1px solid ${COLORS.border};${topBorder}` +
     ` border-radius:8px; height:100%;"><tr><td valign="top" style="padding:16px 18px;">` +
-    `${body}</td></tr>${footerHtml}</table>`
+    `<div style="min-height:${CARD_BODY_MIN_HEIGHT}px;">${body}</div>` +
+    `</td></tr>${footerHtml}</table>`
   );
 }
 
@@ -539,6 +551,10 @@ function renderRecommendationCard(recommendation: DigestFamilyRecommendation, cu
   const wishlistTag = recommendation.onWishlist
     ? ` <span style="color:${COLORS.muted}; font-size:12px;">(on wishlist)</span>`
     : '';
+  const footer = recommendation.onWishlist
+    ? `<span style="font-family:${FONT}; font-size:12px; font-weight:bold; color:${COLORS.wishlist};">🎯 On your wishlist</span>`
+    : `<span style="font-family:${FONT}; font-size:12px; font-weight:bold; color:${COLORS.recommended};">` +
+      `✓ ${recommendation.entireFamily ? 'Recommended for the entire family' : `Recommended for ${recommendation.members.length} ${recommendation.members.length === 1 ? 'member' : 'members'}`}</span>`;
   return card(
     themeChip('Recommended', COLORS.recommended) +
       `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(recommendation.title)}${wishlistTag}</h3>` +
@@ -546,6 +562,7 @@ function renderRecommendationCard(recommendation: DigestFamilyRecommendation, cu
       `<div style="margin-top:8px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">Recommended for:</div>` +
       `<div style="margin-top:2px;">${who}</div>`,
     COLORS.recommended,
+    footer,
   );
 }
 

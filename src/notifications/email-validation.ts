@@ -234,6 +234,16 @@ function hasMobileCollapseCss(sectionHtml: string): boolean {
   );
 }
 
+function cardSizingCount(html: string): number {
+  const re = /min-height:\s*118px;/g;
+  let count = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(html)) !== null) {
+    count += 1;
+  }
+  return count;
+}
+
 function countOccurrences(haystack: string, needle: string): number {
   let count = 0;
   let index = haystack.indexOf(needle);
@@ -527,6 +537,31 @@ export async function validateEmailRendering(): Promise<void> {
         const html7 = renderDigestEmail(manyCardsDigest({ stillOnSale: 7 }));
         assert.ok(hasTwoColumnLayout(html6), '6 still-on-sale deals must use two columns');
         assert.ok(hasTwoColumnLayout(html7), '7 still-on-sale deals must use two columns');
+      },
+    },
+    {
+      name: 'Best Deals, Still On Sale and Recommended cards share the same fixed card height',
+      run: () => {
+        const digest = manyCardsDigest({ bestDeals: 4, stillOnSale: 4, recommendations: 'members' });
+        digest.bestDeals[0].reasons = ['Reason one', 'Reason two'];
+        const bestHtml = renderBestDealsSection(digest.bestDeals, 'USD');
+        const stillHtml = renderStillOnSaleSection(digest.stillOnSale, 'USD');
+        const recommendedHtml = renderRecommendedSection(digest.recommendations, 'USD');
+        assert.strictEqual(
+          cardSizingCount(bestHtml),
+          digest.bestDeals.length,
+          'Every Best Deal card must carry the shared card height',
+        );
+        assert.strictEqual(
+          cardSizingCount(stillHtml),
+          digest.stillOnSale.length,
+          'Every Still On Sale card must carry the shared card height',
+        );
+        assert.strictEqual(
+          cardSizingCount(recommendedHtml),
+          digest.recommendations.length,
+          'Every Recommended card must carry the shared card height',
+        );
       },
     },
     {
