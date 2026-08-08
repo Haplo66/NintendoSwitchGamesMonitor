@@ -1,17 +1,19 @@
 import 'dotenv/config';
 
 import { analyzeGamesWith } from '../analyzer/analyze';
-import { calculateDiscountPercent } from '../analyzer/deal-score';
+import { applyHistoricalLowScore, calculateDiscountPercent } from '../analyzer/deal-score';
 import { createGameCollector } from '../collectors/collector-factory';
 import { GameCollector } from '../collectors/game-collector';
 import { filterBlacklistedGames } from '../config/blacklist';
 import { loadAppConfig } from '../config/app-config';
 import {
   filterNotifiableGames,
+  findDealEntry,
   loadDealHistory,
   reconcileDealHistory,
   saveDealHistory,
 } from '../config/notification-history-store';
+import { getPriceContext } from '../history/price-intelligence';
 import { DealHistory, Game, GameAnalysis, MonitorResult } from '../models';
 import { matchTitlesToCandidates } from '../matching/title-matcher';
 import { buildDailyDigest } from '../notifications/daily-digest-builder';
@@ -76,6 +78,7 @@ export function isWorthReporting(
   analysis: GameAnalysis,
   minDealScore: number,
   options: ReportingOptions = { notifyFreeGames: true, notifyWishlistMatches: true },
+  effectiveScore?: number,
 ): boolean {
   const isFree = analysis.game.currentPrice === 0;
   // Free games are only surfaced when they match at least one family profile
@@ -89,7 +92,19 @@ export function isWorthReporting(
   if (onWishlist) {
     return true;
   }
-  return analysis.dealScore.score >= minDealScore;
+  // The analyzer scores without price history, so the historical-low bonus is
+  // applied here (like the digest does) to decide reporting with the same
+  // effective score the user finally sees. Falls back to the base score when a
+  // caller provides no effective score.
+  return (effectiveScore ?? analysis.dealScore.score) >= minDealScore;
+}
+
+function isAtHistoricalLow(history: DealHistory, analysis: GameAnalysis): boolean {
+  const entry = findDealEntry(history, analysis.game.title);
+  if (!entry || !entry.priceHistory || entry.priceHistory.length === 0) {
+    return false;
+  }
+  return getPriceContext(entry.priceHistory, analysis.game.currentPrice).isLowestRecorded ?? false;
 }
 
 export function limitDigestGames(analyses: GameAnalysis[], maxTotalDigestGames: number): GameAnalysis[] {
@@ -179,11 +194,29 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     wishlist,
     config.notification.defaultWishlistDiscountPercent,
   );
+
+  // The analyzer scores without price history, so to decide reporting with the
+  // same effective score the user finally sees we need the historical-low
+  // bonus, which is known only once deal history is available. Load and
+  // reconcile the history here so the reporting threshold and the digest agree.
+  const baseHistory = ignoreNotificationHistory ? { entries: [] } : loadDealHistory();
+  const reportingHistory = reconcileDealHistory(
+    baseHistory,
+    analyzedGames,
+    [],
+    new Date(),
+  );
+  const effectiveScoreFor = (analysis: GameAnalysis): number =>
+    applyHistoricalLowScore(
+      analysis.dealScore,
+      isAtHistoricalLow(reportingHistory, analysis),
+    ).score;
+
   const reported = analyses.filter((analysis) =>
     isWorthReporting(analysis, minDealScore, {
       notifyFreeGames: config.notification.notifyFreeGames,
       notifyWishlistMatches: config.notification.notifyWishlistMatches,
-    }),
+    }, effectiveScoreFor(analysis)),
   );
 
   // Always-on wishlist price tracking: fetch the current price for monitored
@@ -212,14 +245,13 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     console.log(`  - ${analysis.game.title} (score ${analysis.dealScore.score})`);
   }
 
-  let history: DealHistory = { entries: [] };
+  const history = baseHistory;
   let notifiable: GameAnalysis[] = reported;
   let skippedByCooldown = 0;
   let skippedByCooldownAnalyses: GameAnalysis[] = [];
   if (ignoreNotificationHistory) {
     console.log('Test mode: notification history ignored (IGNORE_NOTIFICATION_HISTORY=true).');
   } else {
-    history = loadDealHistory();
     notifiable = filterNotifiableGames(reported, history, cooldownDays);
     skippedByCooldown = reported.length - notifiable.length;
     skippedByCooldownAnalyses = reported.filter((analysis) => !notifiable.includes(analysis));

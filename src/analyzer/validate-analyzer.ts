@@ -425,6 +425,46 @@ export async function validateAnalyzer(): Promise<void> {
       },
     },
     {
+      name: 'historical-low effective score is used for the reporting threshold',
+      run: () => {
+        const opinions = { notifyFreeGames: true, notifyWishlistMatches: true };
+        // Base score below the threshold: 49 (discount) + 8 (family) = 57.
+        const analysis = {
+          game: game([], { currentPrice: 17.99, originalPrice: 59.99 }),
+          familyMatches: [
+            { profileName: 'Kid', matched: true, reasons: [] },
+            { profileName: 'Teen', matched: true, reasons: [] },
+            { profileName: 'Adult', matched: true, reasons: [] },
+            { profileName: 'Grandparent', matched: true, reasons: [] },
+          ],
+          wishlistMatch: undefined,
+          dealScore: {
+            score: 57,
+            reasons: ['70% discount', 'Matches 4 family profile(s)'],
+          },
+        } as GameAnalysis;
+        const withoutHilo = isWorthReporting(analysis, DEFAULT_MIN_DEAL_SCORE, opinions);
+        const withHilo = isWorthReporting(
+          analysis,
+          DEFAULT_MIN_DEAL_SCORE,
+          opinions,
+          72, // base 57 + historical-low bonus 15
+        );
+        const withTooLowHilo = isWorthReporting(analysis, DEFAULT_MIN_DEAL_SCORE, opinions, 69);
+        assert.strictEqual(
+          withoutHilo,
+          false,
+          'a base score below the threshold must not qualify without the historical-low score',
+        );
+        assert.ok(withHilo, 'the historical-low bonus must allow qualification over the threshold');
+        assert.strictEqual(
+          withTooLowHilo,
+          false,
+          'an effective score still below the threshold must not qualify',
+        );
+      },
+    },
+    {
       name: 'free family games report regardless of score but non-family free games do not',
       run: () => {
         const opinions = { notifyFreeGames: true, notifyWishlistMatches: true };
