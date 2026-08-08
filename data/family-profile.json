@@ -2,9 +2,9 @@
   {
     "name": "Yaara",
     "maxAge": 13,
-    "preferredGenres": ["Platformer", "Party", "Racing", "Adventure"],
-    "excludedGenres": ["Shooter", "Horror"],
-    "notes": "Loves Mario games; keep everything E or E10+."
+    "preferredGenres": ["Simulation", "Platformer", "Party", "Racing", "Adventure", "RPG"],
+    "excludedGenres": ["Shooter", "Horror", "Puzzle", "Strategy"],
+    "notes": "Enjoys story-driven adventures."
   },
   {
     "name": "Barak",
@@ -25,6 +25,15 @@
     "maxAge": 7,
     "preferredGenres": ["Platformer", "Party", "Racing", "Adventure"],
     "excludedGenres": ["Shooter", "Horror"],
+    "notes": "Enjoys story-driven adventures."
+  },
+  {
+    "name": "Eyal",
+    "maxAge": 50,
+    "preferredGenres": ["Action", "Adventure","RPG",
+      "Party", "Racing", "Simulation", "Strategy",
+      "Puzzle", "Platformer", "Shooter", "Horror"],
+    "excludedGenres": [],
     "notes": "Enjoys story-driven adventures."
   }
 ]
