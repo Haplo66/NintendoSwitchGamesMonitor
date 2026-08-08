@@ -320,6 +320,56 @@ export async function validateAnalyzer(): Promise<void> {
       },
     },
     {
+      name: 'family match adds a small per-profile bonus without overwhelming the deal value',
+      run: () => {
+        const base = { currentPrice: 35.94, originalPrice: 59.99 };
+        const noMatch = scoreDeal({
+          game: game([], base),
+          familyMatchCount: 0,
+          wishlistMatched: false,
+          priceTargetReached: false,
+          historicalLowReached: false,
+        });
+        const oneMatch = scoreDeal({
+          game: game([], base),
+          familyMatchCount: 1,
+          wishlistMatched: false,
+          priceTargetReached: false,
+          historicalLowReached: false,
+        });
+        const fourMatches = scoreDeal({
+          game: game([], base),
+          familyMatchCount: 4,
+          wishlistMatched: false,
+          priceTargetReached: false,
+          historicalLowReached: false,
+        });
+        assert.ok(
+          oneMatch.reasons.some((reason) => reason.includes('family profile')),
+          'a family match must still report the family-match reason',
+        );
+        assert.strictEqual(
+          oneMatch.score - noMatch.score,
+          2,
+          'each matching family profile must contribute a small +2 bonus',
+        );
+        assert.strictEqual(
+          fourMatches.score - noMatch.score,
+          8,
+          'four matching profiles must contribute +8 total, not +40',
+        );
+        assert.ok(
+          fourMatches.score < 100,
+          'an ordinary discounted family game must remain well below the display cap',
+        );
+        assert.strictEqual(
+          displayScore(fourMatches.score),
+          fourMatches.score,
+          'a score below the cap must be displayed unchanged',
+        );
+      },
+    },
+    {
       name: 'display score never exceeds 100 but internal score stays intact',
       run: () => {
         assert.strictEqual(displayScore(50), 50, 'scores below the cap pass through');
