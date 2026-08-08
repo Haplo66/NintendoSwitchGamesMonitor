@@ -9,7 +9,7 @@
   "sendEmptyDigest": false,
   "forceDigestEmail": true,
   "dailyDigest": {
-    "maxBestDeals": 12,
+    "maxBestDeals": 10,
     "maxWishlistAlerts": 6,
     "showStatistics": true,
     "showPriceWatch": true,
