@@ -10,7 +10,7 @@ import { buildDailyDigest } from '../notifications/daily-digest-builder';
 // Keep these in sync with the scoring constants in deal-score.ts. This script is
 // purely diagnostic: it reconstructs the per-bonus contribution so we can see
 // where a game's score comes from and why so many Best Deals hit 100.
-const MAX_DISCOUNT_CONTRIBUTION = 80;
+const MAX_DISCOUNT_CONTRIBUTION = 65;
 const FREE_GAME_BONUS = 60;
 const WISHLIST_MATCH_BONUS = 40;
 const PRICE_TARGET_REACHED_BONUS = 20;
@@ -43,7 +43,7 @@ function isAtHistoricalLow(result: MonitorResult, game: GameAnalysis['game']): b
 function breakdownFor(analysis: GameAnalysis, result: MonitorResult): Breakdown {
   const game = analysis.game;
   const discountPercent = calculateDiscountPercent(game);
-  const discountPoints = Math.min(discountPercent, MAX_DISCOUNT_CONTRIBUTION);
+  const discountPoints = Math.min(Math.round(discountPercent * 0.7), MAX_DISCOUNT_CONTRIBUTION);
   const freeGamePoints = game.currentPrice === 0 ? FREE_GAME_BONUS : 0;
   const wishlistPoints = analysis.wishlistMatch?.matched ? WISHLIST_MATCH_BONUS : 0;
   const targetReachedPoints = analysis.wishlistMatch?.priceTargetReached

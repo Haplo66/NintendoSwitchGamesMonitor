@@ -1,6 +1,6 @@
 import { DealScoreResult, Game } from '../models';
 
-const MAX_DISCOUNT_CONTRIBUTION = 80;
+const MAX_DISCOUNT_CONTRIBUTION = 65;
 const FREE_GAME_BONUS = 60;
 const WISHLIST_MATCH_BONUS = 40;
 const PRICE_TARGET_REACHED_BONUS = 20;
@@ -48,7 +48,11 @@ export function scoreDeal(input: DealScoreInput): DealScoreResult {
 
   const discount = calculateDiscountPercent(game);
   if (discount > 0) {
-    score += Math.min(discount, MAX_DISCOUNT_CONTRIBUTION);
+    // Non-linear discount contribution so ordinary quarterly-sale discounts do
+    // not dominate the score. A 50% discount yields 35 points, 70% yields 49,
+    // and the contribution saturates at MAX_DISCOUNT_CONTRIBUTION.
+    const discountPoints = Math.min(Math.round(discount * 0.7), MAX_DISCOUNT_CONTRIBUTION);
+    score += discountPoints;
     reasons.push(`${discount}% discount`);
   }
 

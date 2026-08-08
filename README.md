@@ -124,7 +124,7 @@ For CI or a one-off run, these environment variables are honored and take preced
 | `GAME_CATALOG`        | — (game catalog JSON path)                                                | `data/game-catalog.json` |
 | `DEALS_CURRENCY`      | — (currency expected from the price API)                                  | `USD`         |
 | `DEALS_LIMIT`         | — (max games per run for the `nintendo` collector)                        | `100`         |
-| `MIN_DEAL_SCORE`      | `minimumDealScore`                                                        | `65`          |
+| `MIN_DEAL_SCORE`      | `minimumDealScore`                                                        | `70`          |
 | `NOTIFICATION_COOLDOWN_DAYS` | `notificationCooldownDays`                                          | `14`          |
 | `MAX_TOTAL_DIGEST_GAMES` | `maxTotalDigestGames`                                                        | `10`          |
 | `NOTIFY_FREE_GAMES`   | `notifyFreeGames`                                                         | `true`        |
@@ -590,7 +590,7 @@ User-editable notification preferences live in `data/settings.json`:
 
 ```json
 {
-  "minimumDealScore": 65,
+  "minimumDealScore": 70,
   "notificationCooldownDays": 14,
   "maxTotalDigestGames": 10,
   "notifyFreeGames": true,
@@ -669,7 +669,7 @@ defaults
 
 | Setting                 | Env var                     | settings.json key             | Default       |
 | ----------------------- | --------------------------- | ----------------------------- | ------------- |
-| Deal score threshold    | `MIN_DEAL_SCORE`            | `minimumDealScore`            | `65`          |
+| Deal score threshold    | `MIN_DEAL_SCORE`            | `minimumDealScore`            | `70`          |
 | Notification cooldown   | `NOTIFICATION_COOLDOWN_DAYS`| `notificationCooldownDays`    | `14`          |
 | Max total digest games | `MAX_TOTAL_DIGEST_GAMES`       | `maxTotalDigestGames`            | `10`          |
 | Notify free games       | `NOTIFY_FREE_GAMES`         | `notifyFreeGames`             | `true`        |

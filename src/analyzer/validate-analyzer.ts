@@ -388,12 +388,12 @@ export async function validateAnalyzer(): Promise<void> {
           seventy > fifty && eighty > seventy,
           'deeper discounts must score progressively higher',
         );
-        assert.strictEqual(fifty, 50, 'a 50% discount alone should score 50');
+        assert.strictEqual(fifty, 35, 'a 50% discount alone should score 35 (50% * 0.7)');
         assert.ok(eighty < 100, 'even an 80% discount alone should stay below the cap');
       },
     },
     {
-      name: '50% discount + historical low + family match crosses the reporting threshold',
+      name: '50% discount + historical low + family match stays below the reporting threshold',
       run: () => {
         const deal = scoreDeal({
           game: game([], { currentPrice: 29.99, originalPrice: 59.99 }),
@@ -404,12 +404,12 @@ export async function validateAnalyzer(): Promise<void> {
         });
         assert.strictEqual(
           deal.score,
-          73,
-          '50% discount + historical low (15) + 4 family matches (+8) should score 73',
+          58,
+          '50% discount (35) + historical low (15) + 4 family matches (+8) should score 58',
         );
         assert.ok(
-          deal.score >= DEFAULT_MIN_DEAL_SCORE,
-          `a 50% off historical-low family deal should be reportable at threshold ${DEFAULT_MIN_DEAL_SCORE}`,
+          deal.score < DEFAULT_MIN_DEAL_SCORE,
+          `a 50% off historical-low family deal should NOT be reportable at threshold ${DEFAULT_MIN_DEAL_SCORE}`,
         );
         const bareFifty = scoreDeal({
           game: game([], { currentPrice: 29.99, originalPrice: 59.99 }),

@@ -14,7 +14,7 @@ export const DEFAULT_DAILY_DIGEST_SETTINGS: DailyDigestSettings = {
 };
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
-  minimumDealScore: 65,
+  minimumDealScore: 70,
   notificationCooldownDays: 14,
   maxTotalDigestGames: 10,
   notifyFreeGames: true,
