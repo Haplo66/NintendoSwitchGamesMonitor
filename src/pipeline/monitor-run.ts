@@ -19,7 +19,7 @@ import { createEmailProvider } from '../notifications/email-factory';
 import { EmailProvider } from '../notifications/email-provider';
 import { renderDigestEmail } from '../notifications/email-renderer';
 
-export const DEFAULT_MIN_DEAL_SCORE = 80;
+export const DEFAULT_MIN_DEAL_SCORE = 65;
 export const DEFAULT_DEAL_LIMIT = 100;
 export const DEFAULT_MAX_TOTAL_DIGEST_GAMES = 10;
 

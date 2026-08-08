@@ -10,7 +10,7 @@ import { buildDailyDigest } from '../notifications/daily-digest-builder';
 // Keep these in sync with the scoring constants in deal-score.ts. This script is
 // purely diagnostic: it reconstructs the per-bonus contribution so we can see
 // where a game's score comes from and why so many Best Deals hit 100.
-const MAX_DISCOUNT_CONTRIBUTION = 50;
+const MAX_DISCOUNT_CONTRIBUTION = 80;
 const FREE_GAME_BONUS = 60;
 const WISHLIST_MATCH_BONUS = 40;
 const PRICE_TARGET_REACHED_BONUS = 20;

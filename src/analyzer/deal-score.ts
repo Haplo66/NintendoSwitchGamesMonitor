@@ -1,6 +1,6 @@
 import { DealScoreResult, Game } from '../models';
 
-const MAX_DISCOUNT_CONTRIBUTION = 50;
+const MAX_DISCOUNT_CONTRIBUTION = 80;
 const FREE_GAME_BONUS = 60;
 const WISHLIST_MATCH_BONUS = 40;
 const PRICE_TARGET_REACHED_BONUS = 20;

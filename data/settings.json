@@ -1,5 +1,5 @@
 {
-  "minimumDealScore": 80,
+  "minimumDealScore": 65,
   "notificationCooldownDays": 7,
   "maxTotalDigestGames": 10,
   "notifyFreeGames": true,

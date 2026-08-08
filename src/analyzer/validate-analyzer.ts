@@ -4,7 +4,8 @@ import * as assert from 'node:assert';
 
 import { loadFamilyProfiles } from '../config/family-profiles-loader';
 import { loadGameCatalog } from '../collectors/nintendo-price-collector';
-import { FamilyProfile, Game } from '../models';
+import { FamilyProfile, Game, GameAnalysis } from '../models';
+import { DEFAULT_MIN_DEAL_SCORE, isWorthReporting } from '../pipeline/monitor-run';
 import { analyzeGamesWith } from './analyze';
 import { applyHistoricalLowScore, displayScore, scoreDeal } from './deal-score';
 import { matchGameToProfile, matchGameToProfiles, normalizeGenre } from './family-matcher';
@@ -366,6 +367,109 @@ export async function validateAnalyzer(): Promise<void> {
           displayScore(fourMatches.score),
           fourMatches.score,
           'a score below the cap must be displayed unchanged',
+        );
+      },
+    },
+    {
+      name: 'deep discounts score higher so 50-80% deals spread instead of collapsing',
+      run: () => {
+        const score = (currentPrice: number) =>
+          scoreDeal({
+            game: game([], { currentPrice, originalPrice: 59.99 }),
+            familyMatchCount: 0,
+            wishlistMatched: false,
+            priceTargetReached: false,
+            historicalLowReached: false,
+          }).score;
+        const fifty = score(29.99); // 50% off
+        const seventy = score(17.99); // 70% off
+        const eighty = score(11.99); // 80% off
+        assert.ok(
+          seventy > fifty && eighty > seventy,
+          'deeper discounts must score progressively higher',
+        );
+        assert.strictEqual(fifty, 50, 'a 50% discount alone should score 50');
+        assert.ok(eighty < 100, 'even an 80% discount alone should stay below the cap');
+      },
+    },
+    {
+      name: '50% discount + historical low + family match crosses the reporting threshold',
+      run: () => {
+        const deal = scoreDeal({
+          game: game([], { currentPrice: 29.99, originalPrice: 59.99 }),
+          familyMatchCount: 4,
+          wishlistMatched: false,
+          priceTargetReached: false,
+          historicalLowReached: true,
+        });
+        assert.strictEqual(
+          deal.score,
+          73,
+          '50% discount + historical low (15) + 4 family matches (+8) should score 73',
+        );
+        assert.ok(
+          deal.score >= DEFAULT_MIN_DEAL_SCORE,
+          `a 50% off historical-low family deal should be reportable at threshold ${DEFAULT_MIN_DEAL_SCORE}`,
+        );
+        const bareFifty = scoreDeal({
+          game: game([], { currentPrice: 29.99, originalPrice: 59.99 }),
+          familyMatchCount: 0,
+          wishlistMatched: false,
+          priceTargetReached: false,
+          historicalLowReached: false,
+        });
+        assert.ok(
+          bareFifty.score < DEFAULT_MIN_DEAL_SCORE,
+          'a bare 50% discount alone should not necessarily qualify',
+        );
+      },
+    },
+    {
+      name: 'free family games report regardless of score but non-family free games do not',
+      run: () => {
+        const opinions = { notifyFreeGames: true, notifyWishlistMatches: true };
+        const matchingFree = {
+          game: game([], { currentPrice: 0, originalPrice: undefined }),
+          familyMatches: [{ profileName: 'Kid', matched: true, reasons: [] }],
+          wishlistMatch: undefined,
+          dealScore: { score: 0, reasons: [] },
+        } as GameAnalysis;
+        assert.ok(
+          isWorthReporting(matchingFree, DEFAULT_MIN_DEAL_SCORE, opinions),
+          'a free game matching a family profile must be reportable below the score threshold',
+        );
+        const orphanFree = {
+          game: game([], { currentPrice: 0, originalPrice: undefined }),
+          familyMatches: [{ profileName: 'Kid', matched: false, reasons: [] }],
+          wishlistMatch: undefined,
+          dealScore: { score: 0, reasons: [] },
+        } as GameAnalysis;
+        assert.strictEqual(
+          isWorthReporting(orphanFree, DEFAULT_MIN_DEAL_SCORE, opinions),
+          false,
+          'a free game matching no family profile must not be reported',
+        );
+      },
+    },
+    {
+      name: 'wishlist games are reported regardless of the score threshold',
+      run: () => {
+        const analysis = {
+          game: game([], { currentPrice: 49.99, originalPrice: 59.99 }),
+          familyMatches: [{ profileName: 'Kid', matched: false, reasons: [] }],
+          wishlistMatch: {
+            matched: true,
+            wishlistItem: { gameTitle: 'Test Game', notifyOnAnyDiscount: false },
+            priceTargetReached: false,
+          },
+          dealScore: { score: 0, reasons: [] },
+        } as GameAnalysis;
+        assert.ok(
+          isWorthReporting(analysis, DEFAULT_MIN_DEAL_SCORE, {
+            notifyFreeGames: true,
+            notifyWishlistMatches: true,
+          }),
+          'a wishlist match must be reported regardless of the score threshold',
         );
       },
     },
