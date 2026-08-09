@@ -163,19 +163,22 @@ function themeChip(label: string, color: string): string {
 }
 
 /**
- * Renders a shared card in an email-safe fixed-height table.
+ * Renders the card chrome that equal-height card rows depend on.
  *
- * The outer <table> always occupies exactly `CARD_BODY_HEIGHT[size]` px (via
- * the HTML height attribute AND inline style for widest client support) and is
- * divided into:
- *   - a body row that takes `CARD_BODY_HEIGHT[size] - CARD_FOOTER_HEIGHT[size]`
- *     px, with `valign="top"` and `overflow:hidden`, and
- *   - an optional footer/action row of `CARD_FOOTER_HEIGHT[size]` px with
- *     `valign="bottom"`.
- * Because `overflow:hidden` clips overflow instead of growing the row, a card
- * whose body content is taller than the reserved body area cannot push the
- * outer table past the shared height. Every standard card therefore renders at
- * the identical outer dimensions; compact cards use their own smaller canvas.
+ * The <table> is the direct, sole child of a grid cell and uses `width:100%`
+ * + `height:100%` so it inherits the parent cell's derived height and always
+ * matches its sibling in the same grid <tr>. `CARD_BODY_HEIGHT[size]` is kept
+ * only as a minimum-body-height attribute (HTML `height` acts as a floor in
+ * table-cell layout), so a sparse card has enough room while a taller sibling
+ * never needs to clip. No `overflow:hidden` here: clipping previously made one
+ * panel stay short while the sibling's content drove the row taller, so the
+ * two chrome panels ended at different y positions. Here both cards fill the
+ * shared row end-to-end.
+ *
+ * Sections pass `size` so Best Deal cards keep a taller canvas (standard) than
+ * the sparse Still On Sale / Historical Lows / Recommended / Wishlist Watch
+ * cards (compact), but within one grid row all siblings always share the same
+ * derived height because they are direct children of the same stretched row.
  */
 function card(
   body: string,
@@ -184,30 +187,32 @@ function card(
   size: CardSize = 'standard',
 ): string {
   const bodyHeight = CARD_BODY_HEIGHT[size];
-  const footerHeight = CARD_FOOTER_HEIGHT[size];
-  const contentHeight =
-    size === 'standard' ? CARD_STANDARD_CONTENT_HEIGHT : CARD_COMPACT_CONTENT_HEIGHT;
   const topBorder = accentColor ? ` border-top:3px solid ${accentColor};` : '';
-  const footerHtml =
-    footer && footerHeight > 0
-      ? `<tr><td valign="bottom" height="${footerHeight}" style="height:${footerHeight}px; padding:10px 18px; border-top:1px solid ${COLORS.border};">${footer}</td></tr>`
-      : '';
+  const footerHtml = footer
+    ? `<tr><td valign="bottom" style="padding:10px 18px; border-top:1px solid ${COLORS.border};">${footer}</td></tr>`
+    : '';
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"` +
-    ` height="${bodyHeight}" style="background-color:${COLORS.panel};` +
+    ` class="digest-card" height="${bodyHeight}"` +
+    ` style="background-color:${COLORS.panel};` +
     ` border:1px solid ${COLORS.border};${topBorder} border-radius:8px;` +
-    ` height:${bodyHeight}px;"><tr><td valign="top"` +
-    ` height="${contentHeight}"` +
-    ` style="height:${contentHeight}px; overflow:hidden; padding:16px 18px;">` +
+    ` width:100%; height:100%;"><tr><td valign="top" style="padding:16px 18px;">` +
     `${body}</td></tr>${footerHtml}</table>`
   );
 }
 
 /**
- * Renders a list of card HTML strings as a responsive two-column grid: two
- * columns on desktop, collapsing to a single column on narrow/mobile
- * viewports via the `.digest-grid-cell` media rules emitted in the document
- * head. Cards render left-to-right in two-column rows.
+ * Renders a list of card HTML strings as a responsive two-column grid.
+ *
+ * The whole grid is ONE <table> with each card placed as a direct child <td>
+ * of its own <tr> (two per row, the second padded so odd counts still read as
+ * a two-column grid). Cards are the sole content of each cell (`width:100%`,
+ * `height:100%`) and every cell in a <tr> participates in the same row, so a
+ * row takes the natural height of its taller card and the shorter card's
+ * chrome stretches to fill it -- true row-level equal height. Wrapping each
+ * card in a separate <div> would break this by giving the cell its own box, so
+ * none is used. The `.digest-grid-cell` media rules in the document head
+ * collapse the table to a single column on narrow viewports.
  */
 function renderCardGrid(cards: string[], gutter = 10): string {
   if (cards.length === 0) {
@@ -216,15 +221,20 @@ function renderCardGrid(cards: string[], gutter = 10): string {
   const rows: string[] = [];
   for (let i = 0; i < cards.length; i += 2) {
     const left = cards[i];
-    const right = cards[i + 1] ?? '';
+    const right = cards[i + 1];
+    const rightCell = right
+      ? `<td class="digest-grid-cell" width="50%" valign="top" style="padding-left:${gutter}px;">` +
+        right +
+        `</td>`
+      : `<td class="digest-grid-cell" width="50%" valign="top" style="padding-left:${gutter}px;"><table role="presentation" class="digest-card" width="100%" style="height:100%;"></table></td>`;
     rows.push(
       `<table role="presentation" class="digest-grid" width="100%" cellpadding="0" cellspacing="0"` +
-      ` style="table-layout:fixed;"><tr>` +
-      `<td class="digest-grid-cell" width="50%" valign="top" style="padding:0 ${gutter}px 0 0;">` +
-      `<div style="margin:0 0 ${gutter}px 0;">${left}</div></td>` +
-      `<td class="digest-grid-cell" width="50%" valign="top" style="padding:0 0 0 ${gutter}px;">` +
-      `<div style="margin:0 0 ${gutter}px 0;">${right}</div></td>` +
-      `</tr></table>`,
+        ` style="table-layout:fixed; border-collapse:separate; margin:0 0 ${gutter}px 0;"><tr>` +
+        `<td class="digest-grid-cell" width="50%" valign="top" style="padding-right:${gutter}px;">` +
+        left +
+        `</td>` +
+        rightCell +
+        `</tr></table>`,
     );
   }
   return rows.join('');

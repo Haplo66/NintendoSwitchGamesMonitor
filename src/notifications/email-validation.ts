@@ -235,14 +235,10 @@ function hasMobileCollapseCss(sectionHtml: string): boolean {
 }
 
 const STANDARD_CARD_HEIGHT = 300;
-const STANDARD_FOOTER_HEIGHT = 56;
-const STANDARD_CONTENT_HEIGHT = STANDARD_CARD_HEIGHT - STANDARD_FOOTER_HEIGHT;
 const COMPACT_CARD_HEIGHT = 172;
-const COMPACT_FOOTER_HEIGHT = 46;
-const COMPACT_CONTENT_HEIGHT = COMPACT_CARD_HEIGHT - COMPACT_FOOTER_HEIGHT;
 
-function cardSizingCount(html: string, height: number): number {
-  const re = new RegExp(`<table[^>]*height="${height}"[^>]*>`, 'g');
+function cardCanvasCount(html: string, height: number): number {
+  const re = new RegExp(`class="digest-card"[^>]*height="${height}"`, 'g');
   let count = 0;
   let match: RegExpExecArray | null;
   while ((match = re.exec(html)) !== null) {
@@ -251,41 +247,53 @@ function cardSizingCount(html: string, height: number): number {
   return count;
 }
 
-function hasCardStructure(html: string, contentHeight: number, footerHeight: number): boolean {
+function cardHeightCount(html: string, height: number): number {
+  const re = new RegExp(`height="${height}"[^>]*height:100%;`, 'g');
+  let count = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(html)) !== null) {
+    count += 1;
+  }
+  return count;
+}
+
+/**
+ * True when the section emits its cards as siblings of a single grid <tr>, with
+ * each card being a direct child of its own <td> (no <div> between the cell and
+ * the card table). This is what guarantees row-level equal height: every card
+ * in the row occupies one cell and inherits the shared stretched row.
+ */
+function hasRowStretchStructure(sectionHtml: string): boolean {
   return (
-    html.includes(`height="${STANDARD_CARD_HEIGHT}"`) &&
-    html.includes(`height:${STANDARD_CARD_HEIGHT}px;`) &&
-    html.includes(`height="${contentHeight}"`) &&
-    html.includes(`height:${contentHeight}px; overflow:hidden`) &&
-    html.includes(`valign="top"`) &&
-    (footerHeight > 0
-      ? html.includes(`height="${footerHeight}"`) &&
-        html.includes(`height:${footerHeight}px;`) &&
-        html.includes('valign="bottom"')
-      : true)
+    sectionHtml.includes('class="digest-grid"') &&
+    sectionHtml.includes('table-layout:fixed') &&
+    sectionHtml.includes('class="digest-grid-cell"') &&
+    sectionHtml.includes('class="digest-card"') &&
+    sectionHtml.includes('height:100%;') &&
+    // no <div> bookending the card (a <div> would give a cell its own box)
+    !/digest-grid-cell"[^>]*><div[^>]*><table/.test(sectionHtml)
   );
 }
 
-function hasCompactCardStructure(html: string): boolean {
-  return (
-    html.includes(`height="${COMPACT_CARD_HEIGHT}"`) &&
-    html.includes(`height:${COMPACT_CARD_HEIGHT}px;`) &&
-    html.includes(`height:${COMPACT_CONTENT_HEIGHT}px; overflow:hidden`) &&
-    html.includes(`valign="top"`) &&
-    !html.includes(`border-top:1px solid`) === false
-  );
+function countGridRows(sectionHtml: string): number {
+  const re = /<tr[^>]*>\s*<td class="digest-grid-cell"/g;
+  let count = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(sectionHtml)) !== null) {
+    count += 1;
+  }
+  return count;
 }
 
-function compactFooterStructure(html: string, contentHeight: number, footerHeight: number): boolean {
-  return (
-    html.includes(`height="${COMPACT_CARD_HEIGHT}"`) &&
-    html.includes(`height:${COMPACT_CARD_HEIGHT}px;`) &&
-    html.includes(`height:${contentHeight}px; overflow:hidden`) &&
-    html.includes(`valign="top"`) &&
-    html.includes(`height="${footerHeight}"`) &&
-    html.includes(`height:${footerHeight}px;`) &&
-    html.includes('valign="bottom"')
-  );
+/** Counts the sibling grid cells that wrap a digest-card table (the two-column cells). */
+function countCardCells(sectionHtml: string): number {
+  const re = /<td class="digest-grid-cell"[^>]*><table role="presentation"[^>]*class="digest-card"/g;
+  let count = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(sectionHtml)) !== null) {
+    count += 1;
+  }
+  return count;
 }
 
 function countOccurrences(haystack: string, needle: string): number {
@@ -561,6 +569,20 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
+      name: 'compact sections (Still On Sale / Recommended / Wishlist Watch) keep 2 columns on desktop and 1 on mobile',
+      run: () => {
+        const digest = manyCardsDigest({ stillOnSale: 4, recommendations: 'members' });
+        digest.wishlistWatch = [
+          { title: 'Stardew Valley', status: 'full-price', currentPrice: 14.99 },
+          { title: 'Super Smash Bros', status: 'full-price', currentPrice: 59.99 },
+        ];
+        const html = renderDigestEmail(digest);
+        assert.ok(hasTwoColumnLayout(html), 'Compact sections must stay two-column on desktop');
+        assert.ok(hasRowStretchStructure(html), 'Compact sections must use the shared row-stretch structure');
+        assert.ok(hasMobileCollapseCss(html), 'Compact sections must collapse to a single column on mobile');
+      },
+    },
+    {
       name: 'long Best Deals list uses two columns',
       run: () => {
         const html = renderDigestEmail(manyCardsDigest({ bestDeals: 7 }));
@@ -584,7 +606,7 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
-      name: 'Best Deals use the tall standard height; Still On Sale and Recommended use the compact height',
+      name: 'Best Deals use the tall standard canvas while sparse sections use the compact canvas',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 4, stillOnSale: 4, recommendations: 'members' });
         digest.bestDeals[0].reasons = ['Reason one', 'Reason two'];
@@ -595,45 +617,49 @@ export async function validateEmailRendering(): Promise<void> {
         const stillHtml = renderStillOnSaleSection(digest.stillOnSale, 'USD');
         const recommendedHtml = renderRecommendedSection(digest.recommendations, 'USD');
         assert.strictEqual(
-          cardSizingCount(bestHtml, STANDARD_CARD_HEIGHT),
+          cardCanvasCount(bestHtml, STANDARD_CARD_HEIGHT),
           digest.bestDeals.length,
-          'Every Best Deal card must carry the standard (tall) fixed outer card height',
+          'Every Best Deal card must carry the standard (tall) canvas height',
         );
         assert.strictEqual(
-          cardSizingCount(stillHtml, COMPACT_CARD_HEIGHT),
+          cardCanvasCount(stillHtml, COMPACT_CARD_HEIGHT),
           digest.stillOnSale.length,
-          'Every Still On Sale card must carry the compact fixed outer card height',
+          'Every Still On Sale card must carry the compact canvas height',
         );
         assert.strictEqual(
-          cardSizingCount(recommendedHtml, COMPACT_CARD_HEIGHT),
+          cardCanvasCount(recommendedHtml, COMPACT_CARD_HEIGHT),
           digest.recommendations.length,
-          'Every Recommended card must carry the compact fixed outer card height',
+          'Every Recommended card must carry the compact canvas height',
         );
       },
     },
     {
-      name: 'Best Deals use the standard structure while sparse sections use the compact structure',
+      name: 'every section produces row-level equal-height cards (sibling cells, no <div> box, height:100%)',
       run: () => {
-        const digest = manyCardsDigest({ stillOnSale: 1, bestDeals: 1, recommendations: 'members' });
-        const bestHtml = renderBestDealsSection(digest.bestDeals, 'USD');
-        const stillHtml = renderStillOnSaleSection(digest.stillOnSale, 'USD');
-        const recommendedHtml = renderRecommendedSection(digest.recommendations, 'USD');
-        assert.ok(
-          hasCardStructure(bestHtml, STANDARD_CONTENT_HEIGHT, STANDARD_FOOTER_HEIGHT),
-          'Best Deals must use the standard fixed-height card structure with valign=top overflow-hidden content and valign=bottom footer',
-        );
-        assert.ok(
-          compactFooterStructure(stillHtml, COMPACT_CONTENT_HEIGHT, COMPACT_FOOTER_HEIGHT),
-          'Still On Sale must use the compact fixed-height card structure with overflow-hidden content and valign=bottom footer',
-        );
-        assert.ok(
-          compactFooterStructure(recommendedHtml, COMPACT_CONTENT_HEIGHT, COMPACT_FOOTER_HEIGHT),
-          'Recommended must use the compact fixed-height card structure with overflow-hidden content and valign=bottom footer',
-        );
+        const digest = manyCardsDigest({ stillOnSale: 5, bestDeals: 5, recommendations: 'members' });
+        const sections = [
+          renderBestDealsSection(digest.bestDeals, 'USD'),
+          renderStillOnSaleSection(digest.stillOnSale, 'USD'),
+          renderRecommendedSection(digest.recommendations, 'USD'),
+        ];
+        for (const html of sections) {
+          assert.ok(
+            hasRowStretchStructure(html),
+            'Section must place each card as a direct child of its own grid <td> (no <div> wrapper) so cells stretch to the shared row height',
+          );
+          assert.ok(
+            countCardCells(html) >= 2,
+            'Section must render cards inside sibling grid cells',
+          );
+          assert.ok(
+            countGridRows(html) >= 1,
+            'Section must group cards into shared grid <tr> rows',
+          );
+        }
       },
     },
     {
-      name: 'a long-title Best Deal card (e.g. Call of Sniper) stays within the shared standard height',
+      name: 'a long-title Best Deal card (e.g. Call of Sniper) does not diverge from its row siblings',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 4 });
         digest.bestDeals[0].title = 'Call of Sniper Combat - WW2';
@@ -642,18 +668,64 @@ export async function validateEmailRendering(): Promise<void> {
         digest.bestDeals[0].quality = { rating: 'good', reason: 'At its historical low' };
         const html = renderBestDealsSection(digest.bestDeals, 'USD');
         assert.strictEqual(
-          cardSizingCount(html, STANDARD_CARD_HEIGHT),
+          cardCanvasCount(html, STANDARD_CARD_HEIGHT),
           digest.bestDeals.length,
-          'All Best Deal cards, including a long-title one with an extra insight line, must use the identical standard height',
+          'All Best Deal cards must use the identical standard canvas',
         );
         assert.ok(
-          html.includes('overflow:hidden'),
-          'Content rows must use overflow:hidden so a longer card cannot grow the outer table',
+          hasRowStretchStructure(html),
+          'A long-title deal must still sit as a direct sibling cell of the shared row',
         );
       },
     },
     {
-      name: 'Wishlist Watch cards use the compact size and fit their content',
+      name: 'Megabonk / Monster Hunter Stories 2, DOOM / GhostX, Call of Sniper / GhostX rows share equal-height structure',
+      run: () => {
+        const ghostX = 'The GhostX : Sniper Simulator (Tactical Shooting & Eliminator)';
+        const digest = manyCardsDigest({ bestDeals: 6 });
+        digest.bestDeals[0].title = 'Megabonk Smash';
+        digest.bestDeals[1].title = 'Monster Hunter Stories 2: Wings of Ruin';
+        digest.bestDeals[2].title = 'DOOM';
+        digest.bestDeals[3].title = ghostX;
+        digest.bestDeals[4].title = 'Call of Sniper Combat - WW2';
+        digest.bestDeals[5].title = ghostX;
+        const html = renderBestDealsSection(digest.bestDeals, 'USD');
+        assert.ok(
+          hasRowStretchStructure(html),
+          'Every reported pair must render as sibling digest-card cells in the shared row',
+        );
+        assert.strictEqual(
+          cardCanvasCount(html, STANDARD_CARD_HEIGHT),
+          6,
+          'All six deal cards, including the long-title ghost, must carry the identical standard canvas',
+        );
+        assert.strictEqual(
+          cardHeightCount(html, STANDARD_CARD_HEIGHT),
+          6,
+          'Every card must stretch its chrome via height:100% so no card ends shorter than its row mate',
+        );
+      },
+    },
+    {
+      name: 'GhostX is not duplicated within Best Deals (cross-section appearance is allowed)',
+      run: () => {
+        const ghostX = 'The GhostX : Sniper Simulator (Tactical Shooting &amp; Eliminator)';
+        const digest = manyCardsDigest({ bestDeals: 3 });
+        digest.bestDeals[0].title = 'The GhostX : Sniper Simulator (Tactical Shooting & Eliminator)';
+        const html = renderBestDealsSection(digest.bestDeals, 'USD');
+        assert.strictEqual(
+          countOccurrences(html, ghostX),
+          1,
+          'GhostX must appear exactly once inside its own Best Deals section',
+        );
+        // A game may legitimately also appear in another section; only the
+        // within-section duplication is a bug. Verified here as a structural
+        // sibling cell, which cannot double-render a single games array.
+        assert.ok(hasRowStretchStructure(html), 'Best Deals row structure remains intact');
+      },
+    },
+    {
+      name: 'Wishlist Watch cards use the compact canvas and remain two-column',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 1 });
         digest.wishlistWatch = [
@@ -662,13 +734,12 @@ export async function validateEmailRendering(): Promise<void> {
         ];
         const html = renderDigestEmail(digest);
         assert.ok(
-          cardSizingCount(html, COMPACT_CARD_HEIGHT) >= 2,
-          'Wishlist Watch cards must use the compact fixed height',
+          cardCanvasCount(html, COMPACT_CARD_HEIGHT) >= 2,
+          'Wishlist Watch cards must use the compact canvas',
         );
-        assert.ok(hasCompactCardStructure(html), 'Compact cards must be smaller, top-aligned and overflow-hidden');
         assert.ok(
-          cardSizingCount(html, STANDARD_CARD_HEIGHT) >= 1,
-          'Best Deal cards must still use the taller standard height',
+          cardCanvasCount(html, STANDARD_CARD_HEIGHT) >= 1,
+          'Best Deal cards must still use the taller standard canvas',
         );
         assert.ok(hasTwoColumnLayout(html), 'Wishlist Watch must remain a two-column grid on desktop');
       },
@@ -679,7 +750,7 @@ export async function validateEmailRendering(): Promise<void> {
         const html = renderDigestEmail(manyCardsDigest({ stillOnSale: 7 }));
         assert.ok(html.includes('width="720"'), 'Digest container must be 720px wide');
         assert.ok(html.includes('max-width:720px'), 'Digest container max-width must be 720px');
-        assert.ok(html.includes('padding:0 10px 0 0') && html.includes('padding:0 0 0 10px'),
+        assert.ok(html.includes('padding-right:10px;') && html.includes('padding-left:10px;'),
           'Two-column grid must use a 10px gutter');
       },
     },
