@@ -41,21 +41,40 @@ const COLORS = {
 const FONT = 'Arial, Helvetica, sans-serif';
 
 /**
- * Fixed total height (px) of every grid card. The outer card <table> is given
- * this exact height and split into a content row + footer row, so cards across
- * different sections (Best Deals, Still On Sale, Recommended, ...) render at
- * the same outer dimensions no matter how long their body content is. This is
- * an email-safe table approach: it does not rely on flexbox/grid or min-height.
+ * Card size presets, shared by `card()` so every section reuses the same
+ * component. "standard" is used by content-rich deal cards (Best Deals, Still
+ * On Sale, Recommended For Your Family); "compact" is used by the sparse
+ * Wishlist Watch cards so they do not waste vertical space.
  */
-const CARD_HEIGHT = 292;
+type CardSize = 'standard' | 'compact';
+
+/** Standard card: total outer height in px. */
+const CARD_STANDARD_HEIGHT = 292;
+
+/** Standard card: footer/action row height in px. */
+const CARD_STANDARD_FOOTER_HEIGHT = 56;
+
+/** Compact card: total outer height in px, sized to fit sparse card content. */
+const CARD_COMPACT_HEIGHT = 150;
 
 /**
- * Fixed height of the card's footer/action row. The content row takes the
- * remaining height (CARD_HEIGHT - CARD_FOOTER_HEIGHT) and the footer row is
- * pinned to the bottom with valign="bottom", so the footer sits at a uniform
- * position on every card.
+ * Shared card sizing. The outer card <table> is given an explicit fixed height
+ * (CARD_STANDARD_HEIGHT or CARD_COMPACT_HEIGHT) and split into a body row and
+ * an optional footer row. `overflow:hidden` on the fixed-height cells is what
+ * prevents any single card from growing past the shared canvas when its real
+ * content happens to be taller (e.g. a wrapping long title or an extra insight
+ * line), so all cards in a section keep the identical rendered height. This is
+ * an email-safe table layout: no flexbox, grid, or min-height dependence.
  */
-const CARD_FOOTER_HEIGHT = 64;
+const CARD_BODY_HEIGHT: Record<CardSize, number> = {
+  standard: CARD_STANDARD_HEIGHT,
+  compact: CARD_COMPACT_HEIGHT,
+};
+
+const CARD_FOOTER_HEIGHT: Record<CardSize, number> = {
+  standard: CARD_STANDARD_FOOTER_HEIGHT,
+  compact: 0,
+};
 
 export function escapeHtml(value: string): string {
   return value
@@ -135,33 +154,41 @@ function themeChip(label: string, color: string): string {
 }
 
 /**
- * Renders a shared, fixed-height card. The outer <table> always occupies
- * `CARD_HEIGHT` px (via the HTML height attribute AND inline style for the
- * widest email-client support) and is divided into two rows:
- *   - a content row that takes `CARD_HEIGHT - CARD_FOOTER_HEIGHT` px, and
- *   - an optional footer/action row that takes `CARD_FOOTER_HEIGHT` px.
- * Because every card uses this exact outer height, Best Deals, Still On Sale
- * and Recommended cards render with identical outer dimensions regardless of
- * their differing body content. The content row is valign="top" and the footer
- * row is valign="bottom", so the footer is always pinned to the bottom edge at
- * the same position.
+ * Renders a shared card in an email-safe fixed-height table.
+ *
+ * The outer <table> always occupies exactly `CARD_BODY_HEIGHT[size]` px (via
+ * the HTML height attribute AND inline style for widest client support) and is
+ * divided into:
+ *   - a body row that takes `CARD_BODY_HEIGHT[size] - CARD_FOOTER_HEIGHT[size]`
+ *     px, with `valign="top"` and `overflow:hidden`, and
+ *   - an optional footer/action row of `CARD_FOOTER_HEIGHT[size]` px with
+ *     `valign="bottom"`.
+ * Because `overflow:hidden` clips overflow instead of growing the row, a card
+ * whose body content is taller than the reserved body area cannot push the
+ * outer table past the shared height. Every standard card therefore renders at
+ * the identical outer dimensions; compact cards use their own smaller canvas.
  */
 function card(
   body: string,
   accentColor?: string,
   footer?: string,
+  size: CardSize = 'standard',
 ): string {
+  const bodyHeight = CARD_BODY_HEIGHT[size];
+  const footerHeight = CARD_FOOTER_HEIGHT[size];
+  const contentHeight = bodyHeight - footerHeight;
   const topBorder = accentColor ? ` border-top:3px solid ${accentColor};` : '';
-  const footerHtml = footer
-    ? `<tr><td valign="bottom" height="${CARD_FOOTER_HEIGHT}" style="height:${CARD_FOOTER_HEIGHT}px; padding:12px 18px; border-top:1px solid ${COLORS.border};">${footer}</td></tr>`
-    : '';
+  const footerHtml =
+    footer && footerHeight > 0
+      ? `<tr><td valign="bottom" height="${footerHeight}" style="height:${footerHeight}px; padding:10px 18px; border-top:1px solid ${COLORS.border};">${footer}</td></tr>`
+      : '';
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"` +
-    ` height="${CARD_HEIGHT}" style="background-color:${COLORS.panel};` +
+    ` height="${bodyHeight}" style="background-color:${COLORS.panel};` +
     ` border:1px solid ${COLORS.border};${topBorder} border-radius:8px;` +
-    ` height:${CARD_HEIGHT}px;"><tr><td valign="top"` +
-    ` height="${CARD_HEIGHT - CARD_FOOTER_HEIGHT}"` +
-    ` style="height:${CARD_HEIGHT - CARD_FOOTER_HEIGHT}px; padding:16px 18px;">` +
+    ` height:${bodyHeight}px;"><tr><td valign="top"` +
+    ` height="${contentHeight}"` +
+    ` style="height:${contentHeight}px; overflow:hidden; padding:16px 18px;">` +
     `${body}</td></tr>${footerHtml}</table>`
   );
 }
@@ -405,9 +432,11 @@ function renderWishlistWatchCard(item: DigestWishlistWatch, currency: string): s
   details += '</div>';
   return card(
     themeChip(meta.label, meta.color) +
-      `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
+      `<h3 style="margin:0 0 6px 0; font-size:15px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
       details,
     COLORS.wishlist,
+    undefined,
+    'compact',
   );
 }
 

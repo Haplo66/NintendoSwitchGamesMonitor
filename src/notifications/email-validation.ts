@@ -234,8 +234,13 @@ function hasMobileCollapseCss(sectionHtml: string): boolean {
   );
 }
 
-function cardSizingCount(html: string): number {
-  const re = /height="292"[\s\S]*?style="[^"]*height:292px;/g;
+const STANDARD_CARD_HEIGHT = 292;
+const STANDARD_FOOTER_HEIGHT = 56;
+const STANDARD_CONTENT_HEIGHT = STANDARD_CARD_HEIGHT - STANDARD_FOOTER_HEIGHT;
+const COMPACT_CARD_HEIGHT = 150;
+
+function cardSizingCount(html: string, height: number): number {
+  const re = new RegExp(`<table[^>]*height="${height}"[^>]*>`, 'g');
   let count = 0;
   let match: RegExpExecArray | null;
   while ((match = re.exec(html)) !== null) {
@@ -246,14 +251,25 @@ function cardSizingCount(html: string): number {
 
 function hasCardStructure(html: string, contentHeight: number, footerHeight: number): boolean {
   return (
-    html.includes('height="292"') &&
-    html.includes('height:292px;') &&
+    html.includes(`height="${STANDARD_CARD_HEIGHT}"`) &&
+    html.includes(`height:${STANDARD_CARD_HEIGHT}px;`) &&
     html.includes(`height="${contentHeight}"`) &&
-    html.includes(`height:${contentHeight}px;`) &&
-    html.includes(`valign="bottom"`) &&
-    html.includes('valign="top"') &&
-    html.includes(`height="${footerHeight}"`) &&
-    html.includes(`height:${footerHeight}px;`)
+    html.includes(`height:${contentHeight}px; overflow:hidden`) &&
+    html.includes(`valign="top"`) &&
+    (footerHeight > 0
+      ? html.includes(`height="${footerHeight}"`) &&
+        html.includes(`height:${footerHeight}px;`) &&
+        html.includes('valign="bottom"')
+      : true)
+  );
+}
+
+function hasCompactCardStructure(html: string): boolean {
+  return (
+    html.includes(`height="${COMPACT_CARD_HEIGHT}"`) &&
+    html.includes(`height:${COMPACT_CARD_HEIGHT}px; overflow:hidden`) &&
+    html.includes(`valign="top"`) &&
+    !html.includes(`border-top:1px solid`) === false
   );
 }
 
@@ -564,17 +580,17 @@ export async function validateEmailRendering(): Promise<void> {
         const stillHtml = renderStillOnSaleSection(digest.stillOnSale, 'USD');
         const recommendedHtml = renderRecommendedSection(digest.recommendations, 'USD');
         assert.strictEqual(
-          cardSizingCount(bestHtml),
+          cardSizingCount(bestHtml, STANDARD_CARD_HEIGHT),
           digest.bestDeals.length,
           'Every Best Deal card must carry the fixed outer card height',
         );
         assert.strictEqual(
-          cardSizingCount(stillHtml),
+          cardSizingCount(stillHtml, STANDARD_CARD_HEIGHT),
           digest.stillOnSale.length,
           'Every Still On Sale card must carry the fixed outer card height',
         );
         assert.strictEqual(
-          cardSizingCount(recommendedHtml),
+          cardSizingCount(recommendedHtml, STANDARD_CARD_HEIGHT),
           digest.recommendations.length,
           'Every Recommended card must carry the fixed outer card height',
         );
@@ -587,14 +603,54 @@ export async function validateEmailRendering(): Promise<void> {
         const bestHtml = renderBestDealsSection(digest.bestDeals, 'USD');
         const stillHtml = renderStillOnSaleSection(digest.stillOnSale, 'USD');
         const recommendedHtml = renderRecommendedSection(digest.recommendations, 'USD');
-        const contentHeight = 292 - 64;
-        const footerHeight = 64;
         for (const html of [bestHtml, stillHtml, recommendedHtml]) {
           assert.ok(
-            hasCardStructure(html, contentHeight, footerHeight),
-            'Section must use the shared fixed-height card structure with valign=top content and valign=bottom footer',
+            hasCardStructure(html, STANDARD_CONTENT_HEIGHT, STANDARD_FOOTER_HEIGHT),
+            'Section must use the shared standard fixed-height card structure with valign=top overflow-hidden content and valign=bottom footer',
           );
         }
+      },
+    },
+    {
+      name: 'a long-title Best Deal card (e.g. Call of Sniper) stays within the shared standard height',
+      run: () => {
+        const digest = manyCardsDigest({ bestDeals: 4 });
+        digest.bestDeals[0].title = 'Call of Sniper Combat - WW2';
+        digest.bestDeals[0].reasons = ['Reason one', 'Reason two', 'Reason three'];
+        digest.bestDeals[0].priceContext = { isLowestRecorded: true, lowestPrice: 7.99 };
+        digest.bestDeals[0].quality = { rating: 'good', reason: 'At its historical low' };
+        const html = renderBestDealsSection(digest.bestDeals, 'USD');
+        assert.strictEqual(
+          cardSizingCount(html, STANDARD_CARD_HEIGHT),
+          digest.bestDeals.length,
+          'All Best Deal cards, including a long-title one with an extra insight line, must use the identical standard height',
+        );
+        assert.ok(
+          html.includes('overflow:hidden'),
+          'Content rows must use overflow:hidden so a longer card cannot grow the outer table',
+        );
+      },
+    },
+    {
+      name: 'Wishlist Watch cards use the compact size and fit their content',
+      run: () => {
+        const digest = manyCardsDigest({ bestDeals: 1 });
+        digest.wishlistWatch = [
+          { title: 'Stardew Valley', status: 'full-price', currentPrice: 14.99, targetPrice: 10.49 },
+          { title: 'Super Smash Bros', status: 'full-price', currentPrice: 59.99, targetPrice: 41.99 },
+        ];
+        const html = renderDigestEmail(digest);
+        assert.strictEqual(
+          cardSizingCount(html, COMPACT_CARD_HEIGHT),
+          2,
+          'Wishlist Watch cards must use the compact fixed height',
+        );
+        assert.ok(hasCompactCardStructure(html), 'Compact cards must be smaller, top-aligned and overflow-hidden');
+        assert.ok(
+          cardSizingCount(html, STANDARD_CARD_HEIGHT) >= 1,
+          'Best Deal cards must still use the taller standard height',
+        );
+        assert.ok(hasTwoColumnLayout(html), 'Wishlist Watch must remain a two-column grid on desktop');
       },
     },
     {
