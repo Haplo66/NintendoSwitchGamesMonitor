@@ -138,27 +138,62 @@ function estimateCardHeight(body: string, footer?: string): number {
 }
 
 /**
- * Builds the equal-height card grid for one section from raw card contents.
+ * Renders a card grid where equal heights are achieved at the ROW level.
  *
- * Renders each card spec's body, measures every card's natural height, takes
- * the SECTION maximum, then renders every card with that one shared section
- * height. Each caller (Best Deals, Still On Sale, Recommended, Historical
- * Lows, Wishlist Watch, Free Family Games, Wishlist Alerts) passes only its
- * own cards, so each section is sized independently by its own tallest card.
+ * Cards are grouped into rows of two as DIRECT sibling <td> cells inside a
+ * single shared <tr>. Each row computes its own height from its own two cards
+ * (the taller of the pair decides that row), so two cards sitting in the same
+ * row always render at exactly the same height while a different row is free to
+ * be a different height. This is the critical distinction from any
+ * section-wide height: a card is only ever as tall as its row sibling, never as
+ * tall as the whole section. See `estimateCardHeight` for how each card's
+ * natural content height is measured.
  */
-function renderEqualHeightGrid(
-  specs: Array<{ body: string; accentColor?: string; footer?: string }>,
-  gutter = 10,
-): string {
-  const cards: string[] = [];
-  let sectionHeight = 0;
-  for (const spec of specs) {
-    sectionHeight = Math.max(sectionHeight, estimateCardHeight(spec.body, spec.footer));
+type CardSpec = { body: string; accentColor?: string; footer?: string };
+
+/**
+ * Renders one two-column row: the two direct-sibling card cells plus the
+ * shared row height (the taller of the pair's estimated natural heights). An
+ * odd trailing card fills the leading cell and the right cell stays empty but
+ * is given the same height so a single-card row stays aligned to its own card.
+ */
+function renderGridRow(left: CardSpec, right: CardSpec | undefined, gutter: number): string {
+  const rowHeight = right
+    ? Math.max(estimateCardHeight(left.body, left.footer), estimateCardHeight(right.body, right.footer))
+    : estimateCardHeight(left.body, left.footer);
+  const leftCell =
+    `<td class="digest-grid-cell" width="50%" valign="top" height="${rowHeight}"` +
+    ` style="padding-right:${gutter}px;">` +
+    card(left.body, left.accentColor, left.footer) +
+    `</td>`;
+  const rightCell = right
+    ? `<td class="digest-grid-cell" width="50%" valign="top" height="${rowHeight}"` +
+      ` style="padding-left:${gutter}px;">` +
+      card(right.body, right.accentColor, right.footer) +
+      `</td>`
+    : `<td class="digest-grid-cell" width="50%" valign="top" height="${rowHeight}"` +
+      ` style="padding-left:${gutter}px;"><table role="presentation" class="digest-card" width="100%" style="height:100%;"></table></td>`;
+  return (
+    `<table role="presentation" class="digest-grid" width="100%" cellpadding="0" cellspacing="0"` +
+    ` style="width:100%; table-layout:fixed; border-collapse:separate; margin:0 0 ${gutter}px 0;">` +
+    `<tr>${leftCell}${rightCell}</tr></table>`
+  );
+}
+
+/**
+ * Builds the full section grid with ROW-level equal heights (see
+ * `renderGridRow`). Cards are paired two-by-two into rows; the right cell of an
+ * odd trailing pair is kept empty so a lone card still occupies a full row.
+ */
+function renderCardGrid(specs: CardSpec[], gutter = 10): string {
+  if (specs.length === 0) {
+    return '';
   }
-  for (const spec of specs) {
-    cards.push(card(spec.body, sectionHeight, spec.accentColor, spec.footer));
+  const rows: string[] = [];
+  for (let i = 0; i < specs.length; i += 2) {
+    rows.push(renderGridRow(specs[i], specs[i + 1], gutter));
   }
-  return renderCardGrid(cards, gutter);
+  return rows.join('');
 }
 
 export function formatPrice(value: number): string {
@@ -230,70 +265,28 @@ function themeChip(label: string, color: string): string {
 }
 
 /**
- * Renders the card body with a bordered, padded chrome that matches sibling
- * cards in the same grid row. The outer <table> is the direct, sole child of a
- * grid cell (`width:100%` + `height:100%`) and the HTML `height` attribute is
- * the SECTION height (see `sectionHeight`): HTML `height` acts as a floor in
- * table-cell layout, so the tallest card decides the row and every shorter card
- * stretches end-to-end to fill it. No `overflow:hidden` and no `min-height`.
- * The height is computed per section from that section's own cards -- not a
- * shared global constant -- so Best Deals, Still On Sale, Recommended, etc.
- * each size to their own tallest card independently.
+ * Renders the card body with a bordered, padded chrome. The card's outer
+ * <table> is the DIRECT, sole child of its grid <td> (the two cards in a row
+ * are siblings) and fills that cell with `height:100%`, so the card never
+ * decides its own height: the shared <tr>/<td> row height does. No
+ * `overflow:hidden` and no `min-height`; `height:100%` lets a shorter card's
+ * chrome stretch to match the taller sibling while nothing is ever clipped.
+ * The row height itself is computed by `renderGridRow` from the row's own two
+ * cards.
  */
-function card(body: string, sectionHeight: number, accentColor?: string, footer?: string): string {
+function card(body: string, accentColor?: string, footer?: string): string {
   const topBorder = accentColor ? ` border-top:3px solid ${accentColor};` : '';
   const footerHtml = footer
     ? `<tr><td valign="bottom" style="padding:10px 18px; border-top:1px solid ${COLORS.border};">${footer}</td></tr>`
     : '';
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"` +
-    ` class="digest-card" height="${sectionHeight}"` +
+    ` class="digest-card" width="100%"` +
     ` style="background-color:${COLORS.panel};` +
     ` border:1px solid ${COLORS.border};${topBorder} border-radius:8px;` +
     ` width:100%; height:100%;"><tr><td valign="top" style="padding:16px 18px;">` +
     `${body}</td></tr>${footerHtml}</table>`
   );
-}
-
-/**
- * Renders a list of already-equal-height card HTML strings as a responsive
- * two-column grid.
- *
- * The whole grid is ONE <table> with each card placed as a direct child <td>
- * of its own <tr> (two per row, the second padded so odd counts still read as
- * a two-column grid). Cards are the sole content of each cell (`width:100%`,
- * `height:100%`) and every cell in a <tr> participates in the same row, so a
- * row takes the natural height of its taller card and the shorter card's
- * chrome stretches to fill it -- true row-level equal height. Wrapping each
- * card in a separate <div> would break this by giving the cell its own box, so
- * every card is the direct child of its cell. The `.digest-grid-cell` media
- * rules in the document head collapse the table to a single column on narrow
- * viewports.
- */
-function renderCardGrid(cards: string[], gutter = 10): string {
-  if (cards.length === 0) {
-    return '';
-  }
-  const rows: string[] = [];
-  for (let i = 0; i < cards.length; i += 2) {
-    const left = cards[i];
-    const right = cards[i + 1];
-    const rightCell = right
-      ? `<td class="digest-grid-cell" width="50%" valign="top" style="padding-left:${gutter}px;">` +
-        right +
-        `</td>`
-      : `<td class="digest-grid-cell" width="50%" valign="top" style="padding-left:${gutter}px;"><table role="presentation" class="digest-card" width="100%" style="height:100%;"></table></td>`;
-    rows.push(
-      `<table role="presentation" class="digest-grid" width="100%" cellpadding="0" cellspacing="0"` +
-        ` style="table-layout:fixed; border-collapse:separate; margin:0 0 ${gutter}px 0;"><tr>` +
-        `<td class="digest-grid-cell" width="50%" valign="top" style="padding-right:${gutter}px;">` +
-        left +
-        `</td>` +
-        rightCell +
-        `</tr></table>`,
-    );
-  }
-  return rows.join('');
 }
 
 function renderPriceRow(currency: string, original: number | undefined, current: number, accentColor: string): string {
@@ -407,7 +400,7 @@ export function renderStillOnSaleSection(items: DigestStillOnSale[], currency: s
     return '';
   }
   const cards = items.map((item) => renderStillOnSaleCard(item, currency));
-  return sectionHeader('🕒', 'Still On Sale', COLORS.still) + renderEqualHeightGrid(cards);
+  return sectionHeader('🕒', 'Still On Sale', COLORS.still) + renderCardGrid(cards);
 }
 
 /**
@@ -534,7 +527,7 @@ export function renderWishlistWatchSection(items: DigestWishlistWatch[], currenc
     );
   }
   const cards = items.map((item) => renderWishlistWatchCard(item, currency));
-  return header + renderEqualHeightGrid(cards);
+  return header + renderCardGrid(cards);
 }
 
 function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, digest: DailyDigest): {
@@ -572,7 +565,7 @@ export function renderWishlistAlertsSection(alerts: DigestWishlistAlert[], curre
   const cards = alerts
     .map((alert) => {
       const spec = renderWishlistAlertCard(alert, currency, digest);
-      return card(spec.body, estimateCardHeight(spec.body, spec.footer), spec.accentColor, spec.footer);
+      return card(spec.body, spec.accentColor, spec.footer);
     })
     .join('');
   return sectionHeader('🎯', 'Wishlist Alerts', COLORS.wishlist) + cards;
@@ -605,7 +598,7 @@ export function renderBestDealsSection(deals: DigestBestDeal[], currency: string
     return '';
   }
   const cards = deals.map((deal) => renderBestDealCard(deal, currency));
-  return sectionHeader('🔥', 'Best Deals', COLORS.accent) + renderEqualHeightGrid(cards);
+  return sectionHeader('🔥', 'Best Deals', COLORS.accent) + renderCardGrid(cards);
 }
 
 function renderFreeGameCard(game: DigestFreeGame): {
@@ -636,7 +629,7 @@ export function renderFreeGamesSection(freeGames: DigestFreeGame[]): string {
     return '';
   }
   const cards = freeGames.map(renderFreeGameCard);
-  return sectionHeader('🆓', 'Free Family Games', COLORS.free) + renderEqualHeightGrid(cards);
+  return sectionHeader('🆓', 'Free Family Games', COLORS.free) + renderCardGrid(cards);
 }
 
 function renderHistoricalLowCard(deal: DigestHistoricalLow, currency: string): {
@@ -663,7 +656,7 @@ export function renderHistoricalLowsSection(items: DigestHistoricalLow[], curren
     return '';
   }
   const cards = items.map((item) => renderHistoricalLowCard(item, currency));
-  return sectionHeader('⭐', 'Historical Lows', COLORS.historical) + renderEqualHeightGrid(cards);
+  return sectionHeader('⭐', 'Historical Lows', COLORS.historical) + renderCardGrid(cards);
 }
 
 function recommendationPriceStatus(game: DigestFamilyRecommendation, currency: string): string {
@@ -733,7 +726,7 @@ export function renderRecommendedSection(
     return '';
   }
   const cards = recommendations.map((recommendation) => renderRecommendationCard(recommendation, currency));
-  return sectionHeader('⭐', 'Recommended For Your Family', COLORS.recommended) + renderEqualHeightGrid(cards);
+  return sectionHeader('⭐', 'Recommended For Your Family', COLORS.recommended) + renderCardGrid(cards);
 }
 
 function renderPriceWatchCard(item: DigestPriceWatchItem, currency: string): string {
