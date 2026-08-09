@@ -234,10 +234,12 @@ function hasMobileCollapseCss(sectionHtml: string): boolean {
   );
 }
 
-const STANDARD_CARD_HEIGHT = 292;
+const STANDARD_CARD_HEIGHT = 300;
 const STANDARD_FOOTER_HEIGHT = 56;
 const STANDARD_CONTENT_HEIGHT = STANDARD_CARD_HEIGHT - STANDARD_FOOTER_HEIGHT;
-const COMPACT_CARD_HEIGHT = 150;
+const COMPACT_CARD_HEIGHT = 172;
+const COMPACT_FOOTER_HEIGHT = 46;
+const COMPACT_CONTENT_HEIGHT = COMPACT_CARD_HEIGHT - COMPACT_FOOTER_HEIGHT;
 
 function cardSizingCount(html: string, height: number): number {
   const re = new RegExp(`<table[^>]*height="${height}"[^>]*>`, 'g');
@@ -267,9 +269,22 @@ function hasCardStructure(html: string, contentHeight: number, footerHeight: num
 function hasCompactCardStructure(html: string): boolean {
   return (
     html.includes(`height="${COMPACT_CARD_HEIGHT}"`) &&
-    html.includes(`height:${COMPACT_CARD_HEIGHT}px; overflow:hidden`) &&
+    html.includes(`height:${COMPACT_CARD_HEIGHT}px;`) &&
+    html.includes(`height:${COMPACT_CONTENT_HEIGHT}px; overflow:hidden`) &&
     html.includes(`valign="top"`) &&
     !html.includes(`border-top:1px solid`) === false
+  );
+}
+
+function compactFooterStructure(html: string, contentHeight: number, footerHeight: number): boolean {
+  return (
+    html.includes(`height="${COMPACT_CARD_HEIGHT}"`) &&
+    html.includes(`height:${COMPACT_CARD_HEIGHT}px;`) &&
+    html.includes(`height:${contentHeight}px; overflow:hidden`) &&
+    html.includes(`valign="top"`) &&
+    html.includes(`height="${footerHeight}"`) &&
+    html.includes(`height:${footerHeight}px;`) &&
+    html.includes('valign="bottom"')
   );
 }
 
@@ -569,7 +584,7 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
-      name: 'Best Deals, Still On Sale and Recommended cards share the same fixed outer card height',
+      name: 'Best Deals use the tall standard height; Still On Sale and Recommended use the compact height',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 4, stillOnSale: 4, recommendations: 'members' });
         digest.bestDeals[0].reasons = ['Reason one', 'Reason two'];
@@ -582,33 +597,39 @@ export async function validateEmailRendering(): Promise<void> {
         assert.strictEqual(
           cardSizingCount(bestHtml, STANDARD_CARD_HEIGHT),
           digest.bestDeals.length,
-          'Every Best Deal card must carry the fixed outer card height',
+          'Every Best Deal card must carry the standard (tall) fixed outer card height',
         );
         assert.strictEqual(
-          cardSizingCount(stillHtml, STANDARD_CARD_HEIGHT),
+          cardSizingCount(stillHtml, COMPACT_CARD_HEIGHT),
           digest.stillOnSale.length,
-          'Every Still On Sale card must carry the fixed outer card height',
+          'Every Still On Sale card must carry the compact fixed outer card height',
         );
         assert.strictEqual(
-          cardSizingCount(recommendedHtml, STANDARD_CARD_HEIGHT),
+          cardSizingCount(recommendedHtml, COMPACT_CARD_HEIGHT),
           digest.recommendations.length,
-          'Every Recommended card must carry the fixed outer card height',
+          'Every Recommended card must carry the compact fixed outer card height',
         );
       },
     },
     {
-      name: 'all three sections use the identical fixed card structure',
+      name: 'Best Deals use the standard structure while sparse sections use the compact structure',
       run: () => {
         const digest = manyCardsDigest({ stillOnSale: 1, bestDeals: 1, recommendations: 'members' });
         const bestHtml = renderBestDealsSection(digest.bestDeals, 'USD');
         const stillHtml = renderStillOnSaleSection(digest.stillOnSale, 'USD');
         const recommendedHtml = renderRecommendedSection(digest.recommendations, 'USD');
-        for (const html of [bestHtml, stillHtml, recommendedHtml]) {
-          assert.ok(
-            hasCardStructure(html, STANDARD_CONTENT_HEIGHT, STANDARD_FOOTER_HEIGHT),
-            'Section must use the shared standard fixed-height card structure with valign=top overflow-hidden content and valign=bottom footer',
-          );
-        }
+        assert.ok(
+          hasCardStructure(bestHtml, STANDARD_CONTENT_HEIGHT, STANDARD_FOOTER_HEIGHT),
+          'Best Deals must use the standard fixed-height card structure with valign=top overflow-hidden content and valign=bottom footer',
+        );
+        assert.ok(
+          compactFooterStructure(stillHtml, COMPACT_CONTENT_HEIGHT, COMPACT_FOOTER_HEIGHT),
+          'Still On Sale must use the compact fixed-height card structure with overflow-hidden content and valign=bottom footer',
+        );
+        assert.ok(
+          compactFooterStructure(recommendedHtml, COMPACT_CONTENT_HEIGHT, COMPACT_FOOTER_HEIGHT),
+          'Recommended must use the compact fixed-height card structure with overflow-hidden content and valign=bottom footer',
+        );
       },
     },
     {
@@ -640,9 +661,8 @@ export async function validateEmailRendering(): Promise<void> {
           { title: 'Super Smash Bros', status: 'full-price', currentPrice: 59.99, targetPrice: 41.99 },
         ];
         const html = renderDigestEmail(digest);
-        assert.strictEqual(
-          cardSizingCount(html, COMPACT_CARD_HEIGHT),
-          2,
+        assert.ok(
+          cardSizingCount(html, COMPACT_CARD_HEIGHT) >= 2,
           'Wishlist Watch cards must use the compact fixed height',
         );
         assert.ok(hasCompactCardStructure(html), 'Compact cards must be smaller, top-aligned and overflow-hidden');

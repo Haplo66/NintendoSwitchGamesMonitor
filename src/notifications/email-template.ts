@@ -42,29 +42,38 @@ const FONT = 'Arial, Helvetica, sans-serif';
 
 /**
  * Card size presets, shared by `card()` so every section reuses the same
- * component. "standard" is used by content-rich deal cards (Best Deals, Still
- * On Sale, Recommended For Your Family); "compact" is used by the sparse
- * Wishlist Watch cards so they do not waste vertical space.
+ * component. "standard" is used by content-rich Best Deal cards; "compact" is
+ * used by the sparse sections (Still On Sale, Historical Lows, Recommended, and
+ * Wishlist Watch) so they reclaim vertical space while staying equal-height.
  */
 type CardSize = 'standard' | 'compact';
 
-/** Standard card: total outer height in px. */
-const CARD_STANDARD_HEIGHT = 292;
+/** Standard card: total outer height px, tall enough for Best Deal content. */
+const CARD_STANDARD_HEIGHT = 300;
 
 /** Standard card: footer/action row height in px. */
 const CARD_STANDARD_FOOTER_HEIGHT = 56;
 
-/** Compact card: total outer height in px, sized to fit sparse card content. */
-const CARD_COMPACT_HEIGHT = 150;
+/** Standard card: body row = CARD_STANDARD_HEIGHT - CARD_STANDARD_FOOTER_HEIGHT. */
+const CARD_STANDARD_CONTENT_HEIGHT = CARD_STANDARD_HEIGHT - CARD_STANDARD_FOOTER_HEIGHT;
+
+/** Compact card: total outer height px, deliberately much shorter than standard. */
+const CARD_COMPACT_HEIGHT = 172;
+
+/** Compact card: footer/action row height px (still fits a small action row). */
+const CARD_COMPACT_FOOTER_HEIGHT = 46;
+
+/** Compact card: body row = CARD_COMPACT_HEIGHT - CARD_COMPACT_FOOTER_HEIGHT. */
+const CARD_COMPACT_CONTENT_HEIGHT = CARD_COMPACT_HEIGHT - CARD_COMPACT_FOOTER_HEIGHT;
 
 /**
  * Shared card sizing. The outer card <table> is given an explicit fixed height
- * (CARD_STANDARD_HEIGHT or CARD_COMPACT_HEIGHT) and split into a body row and
- * an optional footer row. `overflow:hidden` on the fixed-height cells is what
- * prevents any single card from growing past the shared canvas when its real
- * content happens to be taller (e.g. a wrapping long title or an extra insight
- * line), so all cards in a section keep the identical rendered height. This is
- * an email-safe table layout: no flexbox, grid, or min-height dependence.
+ * (standard or compact) and split into a fixed-height body row and an optional
+ * footer row. `overflow:hidden` on the fixed-height cells is what prevents any
+ * single card from growing past the shared canvas when its real content is
+ * taller (e.g. a long title), so all cards in a section keep the identical
+ * rendered height. This is an email-safe table layout: no flexbox, grid, or
+ * min-height dependence.
  */
 const CARD_BODY_HEIGHT: Record<CardSize, number> = {
   standard: CARD_STANDARD_HEIGHT,
@@ -73,7 +82,7 @@ const CARD_BODY_HEIGHT: Record<CardSize, number> = {
 
 const CARD_FOOTER_HEIGHT: Record<CardSize, number> = {
   standard: CARD_STANDARD_FOOTER_HEIGHT,
-  compact: 0,
+  compact: CARD_COMPACT_FOOTER_HEIGHT,
 };
 
 export function escapeHtml(value: string): string {
@@ -176,7 +185,8 @@ function card(
 ): string {
   const bodyHeight = CARD_BODY_HEIGHT[size];
   const footerHeight = CARD_FOOTER_HEIGHT[size];
-  const contentHeight = bodyHeight - footerHeight;
+  const contentHeight =
+    size === 'standard' ? CARD_STANDARD_CONTENT_HEIGHT : CARD_COMPACT_CONTENT_HEIGHT;
   const topBorder = accentColor ? ` border-top:3px solid ${accentColor};` : '';
   const footerHtml =
     footer && footerHeight > 0
@@ -318,6 +328,7 @@ function renderStillOnSaleCard(item: DigestStillOnSale, currency: string): strin
       renderDealInsight(item.quality, item.priceContext, currency),
     COLORS.still,
     actionButton('View Deal', item.storeUrl, COLORS.still),
+    'compact',
   );
 }
 
@@ -544,6 +555,7 @@ function renderHistoricalLowCard(deal: DigestHistoricalLow, currency: string): s
       `<div style="margin-top:10px;">${ageRatingBadge(deal.ageRating)}</div>`,
     COLORS.historical,
     actionButton('View Deal', deal.storeUrl, COLORS.historical),
+    'compact',
   );
 }
 
@@ -606,6 +618,7 @@ function renderRecommendationCard(recommendation: DigestFamilyRecommendation, cu
       `<div style="margin-top:2px;">${who}</div>`,
     COLORS.recommended,
     footer,
+    'compact',
   );
 }
 
