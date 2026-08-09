@@ -41,15 +41,21 @@ const COLORS = {
 const FONT = 'Arial, Helvetica, sans-serif';
 
 /**
- * Shared minimum height for the content area of every grid card. Applying a
- * consistent min-height to the shared card component keeps cards across
- * different sections (Best Deals, Still On Sale, Recommended, ...) visually
- * uniform, so a short card no longer appears noticeably smaller than a card
- * with a long reasons list. Footer rows sit below this area, so action/metadata
- * stays pinned to the bottom at a consistent height. Inline styles are used so
- * clients with limited CSS support (e.g. Outlook, Gmail) still honor it.
+ * Fixed total height (px) of every grid card. The outer card <table> is given
+ * this exact height and split into a content row + footer row, so cards across
+ * different sections (Best Deals, Still On Sale, Recommended, ...) render at
+ * the same outer dimensions no matter how long their body content is. This is
+ * an email-safe table approach: it does not rely on flexbox/grid or min-height.
  */
-const CARD_BODY_MIN_HEIGHT = 118;
+const CARD_HEIGHT = 292;
+
+/**
+ * Fixed height of the card's footer/action row. The content row takes the
+ * remaining height (CARD_HEIGHT - CARD_FOOTER_HEIGHT) and the footer row is
+ * pinned to the bottom with valign="bottom", so the footer sits at a uniform
+ * position on every card.
+ */
+const CARD_FOOTER_HEIGHT = 64;
 
 export function escapeHtml(value: string): string {
   return value
@@ -129,10 +135,16 @@ function themeChip(label: string, color: string): string {
 }
 
 /**
- * Renders an equal-height card. The card is a full-height table with a top
- * content row and an optional bottom footer row, so cards that share a grid
- * row stretch to the same height and their footers (buttons / metadata) are
- * pinned to the bottom of the card regardless of body length.
+ * Renders a shared, fixed-height card. The outer <table> always occupies
+ * `CARD_HEIGHT` px (via the HTML height attribute AND inline style for the
+ * widest email-client support) and is divided into two rows:
+ *   - a content row that takes `CARD_HEIGHT - CARD_FOOTER_HEIGHT` px, and
+ *   - an optional footer/action row that takes `CARD_FOOTER_HEIGHT` px.
+ * Because every card uses this exact outer height, Best Deals, Still On Sale
+ * and Recommended cards render with identical outer dimensions regardless of
+ * their differing body content. The content row is valign="top" and the footer
+ * row is valign="bottom", so the footer is always pinned to the bottom edge at
+ * the same position.
  */
 function card(
   body: string,
@@ -141,14 +153,16 @@ function card(
 ): string {
   const topBorder = accentColor ? ` border-top:3px solid ${accentColor};` : '';
   const footerHtml = footer
-    ? `<tr><td valign="bottom" style="padding:12px 18px; border-top:1px solid ${COLORS.border};">${footer}</td></tr>`
+    ? `<tr><td valign="bottom" height="${CARD_FOOTER_HEIGHT}" style="height:${CARD_FOOTER_HEIGHT}px; padding:12px 18px; border-top:1px solid ${COLORS.border};">${footer}</td></tr>`
     : '';
   return (
-    `<table role="presentation" width="100%" height="100%" cellpadding="0" cellspacing="0"` +
-    ` style="background-color:${COLORS.panel}; border:1px solid ${COLORS.border};${topBorder}` +
-    ` border-radius:8px; height:100%;"><tr><td valign="top" style="padding:16px 18px;">` +
-    `<div style="min-height:${CARD_BODY_MIN_HEIGHT}px;">${body}</div>` +
-    `</td></tr>${footerHtml}</table>`
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"` +
+    ` height="${CARD_HEIGHT}" style="background-color:${COLORS.panel};` +
+    ` border:1px solid ${COLORS.border};${topBorder} border-radius:8px;` +
+    ` height:${CARD_HEIGHT}px;"><tr><td valign="top"` +
+    ` height="${CARD_HEIGHT - CARD_FOOTER_HEIGHT}"` +
+    ` style="height:${CARD_HEIGHT - CARD_FOOTER_HEIGHT}px; padding:16px 18px;">` +
+    `${body}</td></tr>${footerHtml}</table>`
   );
 }
 

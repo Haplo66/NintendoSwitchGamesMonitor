@@ -235,13 +235,26 @@ function hasMobileCollapseCss(sectionHtml: string): boolean {
 }
 
 function cardSizingCount(html: string): number {
-  const re = /min-height:\s*118px;/g;
+  const re = /height="292"[\s\S]*?style="[^"]*height:292px;/g;
   let count = 0;
   let match: RegExpExecArray | null;
   while ((match = re.exec(html)) !== null) {
     count += 1;
   }
   return count;
+}
+
+function hasCardStructure(html: string, contentHeight: number, footerHeight: number): boolean {
+  return (
+    html.includes('height="292"') &&
+    html.includes('height:292px;') &&
+    html.includes(`height="${contentHeight}"`) &&
+    html.includes(`height:${contentHeight}px;`) &&
+    html.includes(`valign="bottom"`) &&
+    html.includes('valign="top"') &&
+    html.includes(`height="${footerHeight}"`) &&
+    html.includes(`height:${footerHeight}px;`)
+  );
 }
 
 function countOccurrences(haystack: string, needle: string): number {
@@ -540,28 +553,48 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
-      name: 'Best Deals, Still On Sale and Recommended cards share the same fixed card height',
+      name: 'Best Deals, Still On Sale and Recommended cards share the same fixed outer card height',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 4, stillOnSale: 4, recommendations: 'members' });
         digest.bestDeals[0].reasons = ['Reason one', 'Reason two'];
+        digest.stillOnSale.forEach((s) => {
+          s.firstReportedAt = '2026-07-20T00:00:00.000Z';
+        });
         const bestHtml = renderBestDealsSection(digest.bestDeals, 'USD');
         const stillHtml = renderStillOnSaleSection(digest.stillOnSale, 'USD');
         const recommendedHtml = renderRecommendedSection(digest.recommendations, 'USD');
         assert.strictEqual(
           cardSizingCount(bestHtml),
           digest.bestDeals.length,
-          'Every Best Deal card must carry the shared card height',
+          'Every Best Deal card must carry the fixed outer card height',
         );
         assert.strictEqual(
           cardSizingCount(stillHtml),
           digest.stillOnSale.length,
-          'Every Still On Sale card must carry the shared card height',
+          'Every Still On Sale card must carry the fixed outer card height',
         );
         assert.strictEqual(
           cardSizingCount(recommendedHtml),
           digest.recommendations.length,
-          'Every Recommended card must carry the shared card height',
+          'Every Recommended card must carry the fixed outer card height',
         );
+      },
+    },
+    {
+      name: 'all three sections use the identical fixed card structure',
+      run: () => {
+        const digest = manyCardsDigest({ stillOnSale: 1, bestDeals: 1, recommendations: 'members' });
+        const bestHtml = renderBestDealsSection(digest.bestDeals, 'USD');
+        const stillHtml = renderStillOnSaleSection(digest.stillOnSale, 'USD');
+        const recommendedHtml = renderRecommendedSection(digest.recommendations, 'USD');
+        const contentHeight = 292 - 64;
+        const footerHeight = 64;
+        for (const html of [bestHtml, stillHtml, recommendedHtml]) {
+          assert.ok(
+            hasCardStructure(html, contentHeight, footerHeight),
+            'Section must use the shared fixed-height card structure with valign=top content and valign=bottom footer',
+          );
+        }
       },
     },
     {
