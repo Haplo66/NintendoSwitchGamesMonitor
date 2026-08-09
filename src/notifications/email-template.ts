@@ -41,49 +41,16 @@ const COLORS = {
 const FONT = 'Arial, Helvetica, sans-serif';
 
 /**
- * Card size presets, shared by `card()` so every section reuses the same
- * component. "standard" is used by content-rich Best Deal cards; "compact" is
- * used by the sparse sections (Still On Sale, Historical Lows, Recommended, and
- * Wishlist Watch) so they reclaim vertical space while staying equal-height.
+ * Card height model. Heights are computed PER SECTION from the actual content
+ * of that section's cards (tallest card wins) rather than from any shared,
+ * guessed global constant. See `estimateCardHeight`.
+ *
+ * Each grid section decides its own height independently: Best Deals uses the
+ * height of its tallest Best Deal card, Still On Sale its own, Recommended its
+ * own, Historical Lows its own, Wishlist Watch its own. Because the height is
+ * applied to a <table> `height` attribute (treated as a minimum by email table
+ * layout), no card clips and shorter cards simply stretch to match the tallest.
  */
-type CardSize = 'standard' | 'compact';
-
-/** Standard card: total outer height px, tall enough for Best Deal content. */
-const CARD_STANDARD_HEIGHT = 300;
-
-/** Standard card: footer/action row height in px. */
-const CARD_STANDARD_FOOTER_HEIGHT = 56;
-
-/** Standard card: body row = CARD_STANDARD_HEIGHT - CARD_STANDARD_FOOTER_HEIGHT. */
-const CARD_STANDARD_CONTENT_HEIGHT = CARD_STANDARD_HEIGHT - CARD_STANDARD_FOOTER_HEIGHT;
-
-/** Compact card: total outer height px, deliberately much shorter than standard. */
-const CARD_COMPACT_HEIGHT = 172;
-
-/** Compact card: footer/action row height px (still fits a small action row). */
-const CARD_COMPACT_FOOTER_HEIGHT = 46;
-
-/** Compact card: body row = CARD_COMPACT_HEIGHT - CARD_COMPACT_FOOTER_HEIGHT. */
-const CARD_COMPACT_CONTENT_HEIGHT = CARD_COMPACT_HEIGHT - CARD_COMPACT_FOOTER_HEIGHT;
-
-/**
- * Shared card sizing. The outer card <table> is given an explicit fixed height
- * (standard or compact) and split into a fixed-height body row and an optional
- * footer row. `overflow:hidden` on the fixed-height cells is what prevents any
- * single card from growing past the shared canvas when its real content is
- * taller (e.g. a long title), so all cards in a section keep the identical
- * rendered height. This is an email-safe table layout: no flexbox, grid, or
- * min-height dependence.
- */
-const CARD_BODY_HEIGHT: Record<CardSize, number> = {
-  standard: CARD_STANDARD_HEIGHT,
-  compact: CARD_COMPACT_HEIGHT,
-};
-
-const CARD_FOOTER_HEIGHT: Record<CardSize, number> = {
-  standard: CARD_STANDARD_FOOTER_HEIGHT,
-  compact: CARD_COMPACT_FOOTER_HEIGHT,
-};
 
 export function escapeHtml(value: string): string {
   return value
@@ -92,6 +59,106 @@ export function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+/**
+ * Approximate text width available inside a single two-column card, in px.
+ * Cards are 50% of the ~600px digest body minus the column gutter and the
+ * card's own 18px horizontal padding (2*18). Used only to estimate how many
+ * lines a piece of content wraps into on a card; scaled up generously so the
+ * returned height is always >= the real rendered height (never clip).
+ */
+const CARD_TEXT_WIDTH = 280;
+
+/** Approximate on-screen width of one glyph of a given font size (px). */
+function glyphWidth(fontSize: number): number {
+  return Math.max(1, Math.round(fontSize * 0.55));
+}
+
+/**
+ * Counts how many rendered lines a plain text run needs inside one card.
+ * Falls back to a single line for very short text.
+ */
+function linesForText(text: string, fontSize: number): number {
+  const charsPerLine = Math.max(1, Math.floor(CARD_TEXT_WIDTH / glyphWidth(fontSize)));
+  return Math.max(1, Math.ceil(text.length / charsPerLine));
+}
+
+/**
+ * Estimates the rendered height (px) a card's body + footer content requires.
+ *
+ * This is CONTENT-DRIVEN: it walks the card's body/footer HTML, tracks the
+ * fontSize of each text run from the inline styles the template emits, and
+ * sums each wrapped line's height. It deliberately returns a value >= the
+ * natural rendered height (generous per-line whitespace + body chrome) so a
+ * section can pass one shared height to all its cards without ever clipping
+ * the tallest one. Sections use this to size themselves to their own tallest
+ * card rather than relying on a shared global constant.
+ */
+function estimateCardHeight(body: string, footer?: string): number {
+  const parse = (html: string): number => {
+    let total = 0;
+    const tokenRe = /<([a-z0-9]+)([^>]*)>|([^<]*)/g;
+    let fontSize = 13;
+    let match: RegExpExecArray | null;
+    while ((match = tokenRe.exec(html)) !== null) {
+      if (match.index === tokenRe.lastIndex) {
+        tokenRe.lastIndex += 1;
+        continue;
+      }
+      if (match[1]) {
+        const attrs = match[2];
+        const sizeMatch = /font-size:(\d+(?:\.\d+)?)px/.exec(attrs);
+        if (sizeMatch) {
+          fontSize = parseFloat(sizeMatch[1]);
+        }
+        if (match[1] === 'br') {
+          total += Math.round(fontSize * 1.35);
+        }
+        continue;
+      }
+      const text = match[3];
+      if (!text || text.length === 0) {
+        continue;
+      }
+      const plain = text.replace(/\s+/g, ' ').trim();
+      if (plain.length === 0) {
+        continue;
+      }
+      total += Math.round(linesForText(plain, fontSize) * fontSize * 1.35);
+    }
+    return total;
+  };
+
+  const bodyBlockGap = (body.match(/margin-top:(\d+)px/g) || [])
+    .map((m) => parseInt((/margin-top:(\d+)px/.exec(m) || ['', '0'])[1], 10))
+    .reduce((a, b) => a + b, 0);
+  const footerHeight = footer ? 1 + 20 + 10 + parse(footer) : 0;
+  return Math.ceil(3 + 1 + 32 + bodyBlockGap + parse(body) + footerHeight);
+}
+
+/**
+ * Builds the equal-height card grid for one section from raw card contents.
+ *
+ * Renders each card spec's body, measures every card's natural height, takes
+ * the SECTION maximum, then renders every card with that one shared section
+ * height. Each caller (Best Deals, Still On Sale, Recommended, Historical
+ * Lows, Wishlist Watch, Free Family Games, Wishlist Alerts) passes only its
+ * own cards, so each section is sized independently by its own tallest card.
+ */
+function renderEqualHeightGrid(
+  specs: Array<{ body: string; accentColor?: string; footer?: string }>,
+  gutter = 10,
+): string {
+  const cards: string[] = [];
+  let sectionHeight = 0;
+  for (const spec of specs) {
+    sectionHeight = Math.max(sectionHeight, estimateCardHeight(spec.body, spec.footer));
+  }
+  for (const spec of specs) {
+    cards.push(card(spec.body, sectionHeight, spec.accentColor, spec.footer));
+  }
+  return renderCardGrid(cards, gutter);
 }
 
 export function formatPrice(value: number): string {
@@ -163,37 +230,24 @@ function themeChip(label: string, color: string): string {
 }
 
 /**
- * Renders the card chrome that equal-height card rows depend on.
- *
- * The <table> is the direct, sole child of a grid cell and uses `width:100%`
- * + `height:100%` so it inherits the parent cell's derived height and always
- * matches its sibling in the same grid <tr>. `CARD_BODY_HEIGHT[size]` is kept
- * only as a minimum-body-height attribute (HTML `height` acts as a floor in
- * table-cell layout), so a sparse card has enough room while a taller sibling
- * never needs to clip. No `overflow:hidden` here: clipping previously made one
- * panel stay short while the sibling's content drove the row taller, so the
- * two chrome panels ended at different y positions. Here both cards fill the
- * shared row end-to-end.
- *
- * Sections pass `size` so Best Deal cards keep a taller canvas (standard) than
- * the sparse Still On Sale / Historical Lows / Recommended / Wishlist Watch
- * cards (compact), but within one grid row all siblings always share the same
- * derived height because they are direct children of the same stretched row.
+ * Renders the card body with a bordered, padded chrome that matches sibling
+ * cards in the same grid row. The outer <table> is the direct, sole child of a
+ * grid cell (`width:100%` + `height:100%`) and the HTML `height` attribute is
+ * the SECTION height (see `sectionHeight`): HTML `height` acts as a floor in
+ * table-cell layout, so the tallest card decides the row and every shorter card
+ * stretches end-to-end to fill it. No `overflow:hidden` and no `min-height`.
+ * The height is computed per section from that section's own cards -- not a
+ * shared global constant -- so Best Deals, Still On Sale, Recommended, etc.
+ * each size to their own tallest card independently.
  */
-function card(
-  body: string,
-  accentColor?: string,
-  footer?: string,
-  size: CardSize = 'standard',
-): string {
-  const bodyHeight = CARD_BODY_HEIGHT[size];
+function card(body: string, sectionHeight: number, accentColor?: string, footer?: string): string {
   const topBorder = accentColor ? ` border-top:3px solid ${accentColor};` : '';
   const footerHtml = footer
     ? `<tr><td valign="bottom" style="padding:10px 18px; border-top:1px solid ${COLORS.border};">${footer}</td></tr>`
     : '';
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"` +
-    ` class="digest-card" height="${bodyHeight}"` +
+    ` class="digest-card" height="${sectionHeight}"` +
     ` style="background-color:${COLORS.panel};` +
     ` border:1px solid ${COLORS.border};${topBorder} border-radius:8px;` +
     ` width:100%; height:100%;"><tr><td valign="top" style="padding:16px 18px;">` +
@@ -202,7 +256,8 @@ function card(
 }
 
 /**
- * Renders a list of card HTML strings as a responsive two-column grid.
+ * Renders a list of already-equal-height card HTML strings as a responsive
+ * two-column grid.
  *
  * The whole grid is ONE <table> with each card placed as a direct child <td>
  * of its own <tr> (two per row, the second padded so odd counts still read as
@@ -211,8 +266,9 @@ function card(
  * row takes the natural height of its taller card and the shorter card's
  * chrome stretches to fill it -- true row-level equal height. Wrapping each
  * card in a separate <div> would break this by giving the cell its own box, so
- * none is used. The `.digest-grid-cell` media rules in the document head
- * collapse the table to a single column on narrow viewports.
+ * every card is the direct child of its cell. The `.digest-grid-cell` media
+ * rules in the document head collapse the table to a single column on narrow
+ * viewports.
  */
 function renderCardGrid(cards: string[], gutter = 10): string {
   if (cards.length === 0) {
@@ -326,20 +382,24 @@ function formatShortDate(iso: string): string {
   });
 }
 
-function renderStillOnSaleCard(item: DigestStillOnSale, currency: string): string {
+function renderStillOnSaleCard(item: DigestStillOnSale, currency: string): {
+  body: string;
+  accentColor?: string;
+  footer?: string;
+} {
   const daysLabel = item.daysOnSale === 1 ? '1 day on sale' : `${item.daysOnSale} days on sale`;
-  return card(
-    themeChip('Still On Sale', COLORS.still) +
+  return {
+    body:
+      themeChip('Still On Sale', COLORS.still) +
       `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
       `<div>${renderPriceRow(currency, item.originalPrice, item.currentPrice, COLORS.still)}</div>` +
       renderDealSummary(item.discountPercent) +
       `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">` +
       `First reported ${formatShortDate(item.firstReportedAt)} · ${daysLabel}</div>` +
       renderDealInsight(item.quality, item.priceContext, currency),
-    COLORS.still,
-    actionButton('View Deal', item.storeUrl, COLORS.still),
-    'compact',
-  );
+    accentColor: COLORS.still,
+    footer: actionButton('View Deal', item.storeUrl, COLORS.still),
+  };
 }
 
 export function renderStillOnSaleSection(items: DigestStillOnSale[], currency: string): string {
@@ -347,7 +407,7 @@ export function renderStillOnSaleSection(items: DigestStillOnSale[], currency: s
     return '';
   }
   const cards = items.map((item) => renderStillOnSaleCard(item, currency));
-  return sectionHeader('🕒', 'Still On Sale', COLORS.still) + renderCardGrid(cards);
+  return sectionHeader('🕒', 'Still On Sale', COLORS.still) + renderEqualHeightGrid(cards);
 }
 
 /**
@@ -432,7 +492,11 @@ export function wishlistStatusMeta(status: DigestWishlistWatch['status']): {
   }
 }
 
-function renderWishlistWatchCard(item: DigestWishlistWatch, currency: string): string {
+function renderWishlistWatchCard(item: DigestWishlistWatch, currency: string): {
+  body: string;
+  accentColor?: string;
+  footer?: string;
+} {
   const meta = wishlistStatusMeta(item.status);
   let details = `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">`;
   if (item.currentPrice !== undefined) {
@@ -451,14 +515,13 @@ function renderWishlistWatchCard(item: DigestWishlistWatch, currency: string): s
     details += `<div style="margin-top:6px; font-size:12px; color:${COLORS.muted};">Add this game to the monitored catalog to enable price tracking.</div>`;
   }
   details += '</div>';
-  return card(
-    themeChip(meta.label, meta.color) +
+  return {
+    body:
+      themeChip(meta.label, meta.color) +
       `<h3 style="margin:0 0 6px 0; font-size:15px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(item.title)}</h3>` +
       details,
-    COLORS.wishlist,
-    undefined,
-    'compact',
-  );
+    accentColor: COLORS.wishlist,
+  };
 }
 
 export function renderWishlistWatchSection(items: DigestWishlistWatch[], currency: string): string {
@@ -471,10 +534,14 @@ export function renderWishlistWatchSection(items: DigestWishlistWatch[], currenc
     );
   }
   const cards = items.map((item) => renderWishlistWatchCard(item, currency));
-  return header + renderCardGrid(cards);
+  return header + renderEqualHeightGrid(cards);
 }
 
-function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, digest: DailyDigest): string {
+function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, digest: DailyDigest): {
+  body: string;
+  accentColor?: string;
+  footer?: string;
+} {
   const reachedBadge = alert.targetReached
     ? badge('YES', COLORS.success)
     : badge('NO', COLORS.danger);
@@ -482,8 +549,9 @@ function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, d
     alert.targetPriceOrigin === 'configured'
       ? 'Configured target'
       : `Auto target (${digest.defaultWishlistDiscountPercent}% discount)`;
-  return card(
-    themeChip('Wishlist Alert', COLORS.wishlist) +
+  return {
+    body:
+      themeChip('Wishlist Alert', COLORS.wishlist) +
       `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(alert.title)}</h3>` +
       `<div>${renderPriceRow(currency, alert.originalPrice, alert.currentPrice, COLORS.wishlist)}</div>` +
       renderDealSummary(alert.discountPercent) +
@@ -491,33 +559,45 @@ function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, d
       `${targetLabel}: <strong>${formatMoney(currency, alert.targetPrice)}</strong> · Reached: ${reachedBadge}` +
       `</div>` +
       renderDealInsight(alert.quality, alert.priceContext, currency),
-    COLORS.wishlist,
-    actionButton('View Deal', alert.storeUrl, COLORS.wishlist) + `&nbsp;&nbsp;${ageRatingBadge(alert.ageRating)}`,
-  );
+    accentColor: COLORS.wishlist,
+    footer:
+      actionButton('View Deal', alert.storeUrl, COLORS.wishlist) + `&nbsp;&nbsp;${ageRatingBadge(alert.ageRating)}`,
+  };
 }
 
 export function renderWishlistAlertsSection(alerts: DigestWishlistAlert[], currency: string, digest: DailyDigest): string {
   if (alerts.length === 0) {
     return '';
   }
-  const cards = alerts.map((alert) => renderWishlistAlertCard(alert, currency, digest)).join('');
+  const cards = alerts
+    .map((alert) => {
+      const spec = renderWishlistAlertCard(alert, currency, digest);
+      return card(spec.body, estimateCardHeight(spec.body, spec.footer), spec.accentColor, spec.footer);
+    })
+    .join('');
   return sectionHeader('🎯', 'Wishlist Alerts', COLORS.wishlist) + cards;
 }
 
-function renderBestDealCard(deal: DigestBestDeal, currency: string): string {
-  return card(
-    themeChip('Best Deal', COLORS.bestDeal) +
+function renderBestDealCard(deal: DigestBestDeal, currency: string): {
+  body: string;
+  accentColor?: string;
+  footer?: string;
+} {
+  return {
+    body:
+      themeChip('Best Deal', COLORS.bestDeal) +
       `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
       `<div>${renderPriceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.bestDeal)}</div>` +
       renderDealSummary(deal.discountPercent, deal.score) +
       `${reasonsList(deal.reasons)}` +
       renderDealInsight(deal.quality, deal.priceContext, currency),
-    COLORS.bestDeal,
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
+    accentColor: COLORS.bestDeal,
+    footer:
+      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
       `<td valign="middle">${ageRatingBadge(deal.ageRating)}</td>` +
       `<td align="right" valign="middle" style="white-space:nowrap;">${actionButton('View Deal', deal.storeUrl, COLORS.link)}</td>` +
       `</tr></table>`,
-  );
+  };
 }
 
 export function renderBestDealsSection(deals: DigestBestDeal[], currency: string): string {
@@ -525,25 +605,30 @@ export function renderBestDealsSection(deals: DigestBestDeal[], currency: string
     return '';
   }
   const cards = deals.map((deal) => renderBestDealCard(deal, currency));
-  return sectionHeader('🔥', 'Best Deals', COLORS.accent) + renderCardGrid(cards);
+  return sectionHeader('🔥', 'Best Deals', COLORS.accent) + renderEqualHeightGrid(cards);
 }
 
-function renderFreeGameCard(game: DigestFreeGame): string {
+function renderFreeGameCard(game: DigestFreeGame): {
+  body: string;
+  accentColor?: string;
+  footer?: string;
+} {
   const reasons =
     game.reasons && game.reasons.length > 0
       ? `<div style="margin-top:4px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">` +
         `Matches: ${escapeHtml(game.reasons.join(', '))}</div>`
       : '';
-  return card(
-    themeChip('Free Game', COLORS.free) +
+  return {
+    body:
+      themeChip('Free Game', COLORS.free) +
       `<h3 style="margin:0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(game.title)}</h3>` +
       `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; font-weight:bold; color:${COLORS.free};">` +
       `🆓 Free to download</div>` +
       reasons +
       `<div style="margin-top:10px;">${ageRatingBadge(game.ageRating)}</div>`,
-    COLORS.free,
-    actionButton('Get It Free', game.storeUrl, COLORS.free),
-  );
+    accentColor: COLORS.free,
+    footer: actionButton('Get It Free', game.storeUrl, COLORS.free),
+  };
 }
 
 export function renderFreeGamesSection(freeGames: DigestFreeGame[]): string {
@@ -551,22 +636,26 @@ export function renderFreeGamesSection(freeGames: DigestFreeGame[]): string {
     return '';
   }
   const cards = freeGames.map(renderFreeGameCard);
-  return sectionHeader('🆓', 'Free Family Games', COLORS.free) + renderCardGrid(cards);
+  return sectionHeader('🆓', 'Free Family Games', COLORS.free) + renderEqualHeightGrid(cards);
 }
 
-function renderHistoricalLowCard(deal: DigestHistoricalLow, currency: string): string {
-  return card(
-    themeChip('Historical Low', COLORS.historical) +
+function renderHistoricalLowCard(deal: DigestHistoricalLow, currency: string): {
+  body: string;
+  accentColor?: string;
+  footer?: string;
+} {
+  return {
+    body:
+      themeChip('Historical Low', COLORS.historical) +
       `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(deal.title)}</h3>` +
       `<div>${renderPriceRow(currency, deal.originalPrice, deal.currentPrice, COLORS.historical)}</div>` +
       renderDealSummary(deal.discountPercent) +
       `<div style="margin-top:6px; font-family:${FONT}; font-size:12px; font-weight:bold;` +
       ` color:${COLORS.historical};">⭐ At its historical low (${formatMoney(currency, deal.lowPrice)})</div>` +
       `<div style="margin-top:10px;">${ageRatingBadge(deal.ageRating)}</div>`,
-    COLORS.historical,
-    actionButton('View Deal', deal.storeUrl, COLORS.historical),
-    'compact',
-  );
+    accentColor: COLORS.historical,
+    footer: actionButton('View Deal', deal.storeUrl, COLORS.historical),
+  };
 }
 
 export function renderHistoricalLowsSection(items: DigestHistoricalLow[], currency: string): string {
@@ -574,7 +663,7 @@ export function renderHistoricalLowsSection(items: DigestHistoricalLow[], curren
     return '';
   }
   const cards = items.map((item) => renderHistoricalLowCard(item, currency));
-  return sectionHeader('⭐', 'Historical Lows', COLORS.historical) + renderCardGrid(cards);
+  return sectionHeader('⭐', 'Historical Lows', COLORS.historical) + renderEqualHeightGrid(cards);
 }
 
 function recommendationPriceStatus(game: DigestFamilyRecommendation, currency: string): string {
@@ -596,7 +685,11 @@ function recommendationPriceStatus(game: DigestFamilyRecommendation, currency: s
   );
 }
 
-function renderRecommendationCard(recommendation: DigestFamilyRecommendation, currency: string): string {
+function renderRecommendationCard(recommendation: DigestFamilyRecommendation, currency: string): {
+  body: string;
+  accentColor?: string;
+  footer?: string;
+} {
   const who =
     recommendation.entireFamily
       ? `<div style="font-family:${FONT}; font-size:13px; font-weight:bold; color:${COLORS.success};">👨‍👩‍👧‍👦 Entire family</div>`
@@ -620,16 +713,16 @@ function renderRecommendationCard(recommendation: DigestFamilyRecommendation, cu
     ? `<span style="font-family:${FONT}; font-size:12px; font-weight:bold; color:${COLORS.wishlist};">🎯 On your wishlist</span>`
     : `<span style="font-family:${FONT}; font-size:12px; font-weight:bold; color:${COLORS.recommended};">` +
       `✓ ${recommendation.entireFamily ? 'Recommended for the entire family' : `Recommended for ${recommendation.members.length} ${recommendation.members.length === 1 ? 'member' : 'members'}`}</span>`;
-  return card(
-    themeChip('Recommended', COLORS.recommended) +
+  return {
+    body:
+      themeChip('Recommended', COLORS.recommended) +
       `<h3 style="margin:0 0 6px 0; font-size:16px; color:${COLORS.text}; font-family:${FONT};">${escapeHtml(recommendation.title)}${wishlistTag}</h3>` +
       recommendationPriceStatus(recommendation, currency) +
       `<div style="margin-top:8px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">Recommended for:</div>` +
       `<div style="margin-top:2px;">${who}</div>`,
-    COLORS.recommended,
+    accentColor: COLORS.recommended,
     footer,
-    'compact',
-  );
+  };
 }
 
 export function renderRecommendedSection(
@@ -640,7 +733,7 @@ export function renderRecommendedSection(
     return '';
   }
   const cards = recommendations.map((recommendation) => renderRecommendationCard(recommendation, currency));
-  return sectionHeader('⭐', 'Recommended For Your Family', COLORS.recommended) + renderCardGrid(cards);
+  return sectionHeader('⭐', 'Recommended For Your Family', COLORS.recommended) + renderEqualHeightGrid(cards);
 }
 
 function renderPriceWatchCard(item: DigestPriceWatchItem, currency: string): string {

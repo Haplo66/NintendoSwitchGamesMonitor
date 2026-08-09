@@ -9,6 +9,7 @@ import {
   renderRecommendedSection,
   renderStillOnSaleSection,
   renderWishlistAlertsSection,
+  renderWishlistWatchSection,
 } from './email-template';
 import { MockEmailProvider } from './mock-email-provider';
 
@@ -234,20 +235,37 @@ function hasMobileCollapseCss(sectionHtml: string): boolean {
   );
 }
 
-const STANDARD_CARD_HEIGHT = 300;
-const COMPACT_CARD_HEIGHT = 172;
-
-function cardCanvasCount(html: string, height: number): number {
-  const re = new RegExp(`class="digest-card"[^>]*height="${height}"`, 'g');
-  let count = 0;
+/**
+ * Extracts every `class="digest-card"` outer table height in order.
+ * Card heights are now computed PER SECTION from that section's own tallest
+ * card (never a shared global constant), so all cards within one section must
+ * share an identical height while different sections may differ.
+ */
+function cardHeights(html: string): number[] {
+  const heights: number[] = [];
+  const re = /class="digest-card"[^>]*height="(\d+)"/g;
   let match: RegExpExecArray | null;
   while ((match = re.exec(html)) !== null) {
-    count += 1;
+    heights.push(parseInt(match[1], 10));
   }
-  return count;
+  return heights;
 }
 
+/** Counts cards that carry exactly the given height. */
 function cardHeightCount(html: string, height: number): number {
+  return cardHeights(html).filter((h) => h === height).length;
+}
+
+function isUniform(heights: number[]): boolean {
+  return heights.length === 0 || heights.every((h) => h === heights[0]);
+}
+
+/**
+ * Counts cards that carry the height attribute with inline `height:100%;`.
+ * Together with `hasRowStretchStructure` this proves every card stretches its
+ * chrome to the shared section height so no card ends shorter than its mate.
+ */
+function cardStretchCount(html: string, height: number): number {
   const re = new RegExp(`height="${height}"[^>]*height:100%;`, 'g');
   let count = 0;
   let match: RegExpExecArray | null;
@@ -606,7 +624,7 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
-      name: 'Best Deals use the tall standard canvas while sparse sections use the compact canvas',
+      name: 'each section sizes itself to its own tallest card (per-section, not global)',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 4, stillOnSale: 4, recommendations: 'members' });
         digest.bestDeals[0].reasons = ['Reason one', 'Reason two'];
@@ -616,20 +634,43 @@ export async function validateEmailRendering(): Promise<void> {
         const bestHtml = renderBestDealsSection(digest.bestDeals, 'USD');
         const stillHtml = renderStillOnSaleSection(digest.stillOnSale, 'USD');
         const recommendedHtml = renderRecommendedSection(digest.recommendations, 'USD');
+
+        const bestHeights = cardHeights(bestHtml);
+        const stillHeights = cardHeights(stillHtml);
+        const recommendedHeights = cardHeights(recommendedHtml);
+
         assert.strictEqual(
-          cardCanvasCount(bestHtml, STANDARD_CARD_HEIGHT),
+          bestHeights.length,
           digest.bestDeals.length,
-          'Every Best Deal card must carry the standard (tall) canvas height',
+          'Every Best Deal card must be present with a height attribute',
         );
         assert.strictEqual(
-          cardCanvasCount(stillHtml, COMPACT_CARD_HEIGHT),
+          stillHeights.length,
           digest.stillOnSale.length,
-          'Every Still On Sale card must carry the compact canvas height',
+          'Every Still On Sale card must be present with a height attribute',
         );
         assert.strictEqual(
-          cardCanvasCount(recommendedHtml, COMPACT_CARD_HEIGHT),
+          recommendedHeights.length,
           digest.recommendations.length,
-          'Every Recommended card must carry the compact canvas height',
+          'Every Recommended card must be present with a height attribute',
+        );
+        assert.ok(
+          isUniform(bestHeights),
+          'All Best Deal cards must share one identical section height',
+        );
+        assert.ok(
+          isUniform(stillHeights),
+          'All Still On Sale cards must share one identical section height',
+        );
+        assert.ok(
+          isUniform(recommendedHeights),
+          'All Recommended cards must share one identical section height',
+        );
+        assert.ok(
+          cardHeightCount(bestHtml, bestHeights[0]) === bestHeights.length &&
+            cardHeightCount(stillHtml, stillHeights[0]) === stillHeights.length &&
+            cardHeightCount(recommendedHtml, recommendedHeights[0]) === recommendedHeights.length,
+          'Each section applies exactly one shared height to all of its cards',
         );
       },
     },
@@ -659,7 +700,7 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
-      name: 'a long-title Best Deal card (e.g. Call of Sniper) does not diverge from its row siblings',
+      name: 'a long-title Best Deal card (e.g. Call of Sniper) grows the whole Best Deals section uniformly',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 4 });
         digest.bestDeals[0].title = 'Call of Sniper Combat - WW2';
@@ -667,10 +708,15 @@ export async function validateEmailRendering(): Promise<void> {
         digest.bestDeals[0].priceContext = { isLowestRecorded: true, lowestPrice: 7.99 };
         digest.bestDeals[0].quality = { rating: 'good', reason: 'At its historical low' };
         const html = renderBestDealsSection(digest.bestDeals, 'USD');
-        assert.strictEqual(
-          cardCanvasCount(html, STANDARD_CARD_HEIGHT),
-          digest.bestDeals.length,
-          'All Best Deal cards must use the identical standard canvas',
+        const heights = cardHeights(html);
+        assert.strictEqual(heights.length, digest.bestDeals.length, 'All Best Deal cards must be present');
+        assert.ok(
+          isUniform(heights),
+          'All Best Deal cards must share the identical section height even when one has a long title',
+        );
+        assert.ok(
+          heights[0] > 0,
+          'The long-title section must compute a positive dynamic height (no clipping)',
         );
         assert.ok(
           hasRowStretchStructure(html),
@@ -690,17 +736,23 @@ export async function validateEmailRendering(): Promise<void> {
         digest.bestDeals[4].title = 'Call of Sniper Combat - WW2';
         digest.bestDeals[5].title = ghostX;
         const html = renderBestDealsSection(digest.bestDeals, 'USD');
+        const heights = cardHeights(html);
         assert.ok(
           hasRowStretchStructure(html),
           'Every reported pair must render as sibling digest-card cells in the shared row',
         );
-        assert.strictEqual(
-          cardCanvasCount(html, STANDARD_CARD_HEIGHT),
-          6,
-          'All six deal cards, including the long-title ghost, must carry the identical standard canvas',
+        assert.strictEqual(heights.length, 6, 'All six deal cards must be present');
+        assert.ok(
+          isUniform(heights),
+          'All six cards, including the long-title ghost, must carry the identical section height',
         );
         assert.strictEqual(
-          cardHeightCount(html, STANDARD_CARD_HEIGHT),
+          cardHeightCount(html, heights[0]),
+          6,
+          'The shared height must be applied to exactly every card in the section',
+        );
+        assert.strictEqual(
+          cardStretchCount(html, heights[0]),
           6,
           'Every card must stretch its chrome via height:100% so no card ends shorter than its row mate',
         );
@@ -725,23 +777,34 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
-      name: 'Wishlist Watch cards use the compact canvas and remain two-column',
+      name: 'Wishlist Watch sizes independently to its own cards and stays two-column',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 1 });
         digest.wishlistWatch = [
           { title: 'Stardew Valley', status: 'full-price', currentPrice: 14.99, targetPrice: 10.49 },
           { title: 'Super Smash Bros', status: 'full-price', currentPrice: 59.99, targetPrice: 41.99 },
         ];
-        const html = renderDigestEmail(digest);
+        const bestHtml = renderBestDealsSection(digest.bestDeals, 'USD');
+        const wishlistHtml = renderWishlistWatchSection(digest.wishlistWatch, 'USD');
+        const wishlistHeights = cardHeights(wishlistHtml);
         assert.ok(
-          cardCanvasCount(html, COMPACT_CARD_HEIGHT) >= 2,
-          'Wishlist Watch cards must use the compact canvas',
+          wishlistHeights.length === digest.wishlistWatch.length,
+          'Wishlist Watch cards must each carry a height',
         );
         assert.ok(
-          cardCanvasCount(html, STANDARD_CARD_HEIGHT) >= 1,
-          'Best Deal cards must still use the taller standard canvas',
+          isUniform(wishlistHeights),
+          'Wishlist Watch cards must share one section height computed from the Wishlist Watch cards themselves',
         );
-        assert.ok(hasTwoColumnLayout(html), 'Wishlist Watch must remain a two-column grid on desktop');
+        assert.ok(
+          wishlistHeights[0] < cardHeights(bestHtml)[0],
+          'Wishlist Watch must size independently and stay below the richer Best Deal section height',
+        );
+        assert.strictEqual(
+          cardHeightCount(bestHtml, cardHeights(bestHtml)[0]),
+          1,
+          'Best Deal cards must use their own independent section height',
+        );
+        assert.ok(hasTwoColumnLayout(wishlistHtml), 'Wishlist Watch must remain a two-column grid on desktop');
       },
     },
     {
