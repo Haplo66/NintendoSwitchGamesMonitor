@@ -30,9 +30,9 @@
   {
     "name": "Eyal",
     "maxAge": 50,
-    "preferredGenres": ["Action", "Adventure","RPG",
-      "Party", "Racing", "Simulation", "Strategy",
-      "Puzzle", "Platformer", "Shooter", "Horror"],
+    "preferredGenres": ["Adventure","RPG",
+      "Racing", "Simulation", "Strategy",
+      "Puzzle"],
     "excludedGenres": [],
     "notes": "Enjoys story-driven adventures."
   }
