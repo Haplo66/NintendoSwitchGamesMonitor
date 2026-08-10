@@ -236,76 +236,108 @@ function hasMobileCollapseCss(sectionHtml: string): boolean {
 }
 
 /**
- * Splits a section into its grid rows, returning, for each row, the array of
- * `digest-grid-cell` <td> heights inside that row.
- *
- * Height is established at the ROW level: the two direct-sibling card cells in
- * a shared <tr> each carry the same `height` (the taller card in that row), and
- * the card table inside fills the cell via `height:100%`. These helpers let the
- * tests assert that the two cells in a row agree while different rows are free
- * to differ.
+ * True when the HTML carries no explicit card-height machinery anywhere: no
+ * HTML `height` attribute, no `height:`/`min-height` inline style (including
+ * the `height:100%` stretch trick) and no card-cell `overflow:hidden` clipping.
+ * Under this model equal card heights come purely from native table rows:
+ * each <tr> holds the card <td>s directly and takes the natural height of
+ * its tallest cell, so nothing may be computed or pinned. (The document
+ * container's own rounded-corner `overflow:hidden` is unrelated and allowed.)
  */
-function gridRows(html: string): Array<{ rightHeight: number; leftHeight: number }> {
-  const cells: number[] = [];
-  const cellRe = /class="digest-grid-cell"[^>]*height="(\d+)"/g;
-  let cellMatch: RegExpExecArray | null;
-  while ((cellMatch = cellRe.exec(html)) !== null) {
-    cells.push(parseInt(cellMatch[1], 10));
-  }
-  const rows: Array<{ leftHeight: number; rightHeight: number }> = [];
-  for (let i = 0; i < cells.length; i += 2) {
-    rows.push({ leftHeight: cells[i], rightHeight: cells[i + 1] ?? cells[i] });
+function hasNoCardHeights(html: string): boolean {
+  return (
+    !/height="\d+"/.test(html) &&
+    !/(^|[^-a-zA-Z])height:/.test(html) &&
+    !html.includes('min-height') &&
+    !html.includes('height:100%') &&
+    !/<td class="digest-grid-cell"[^>]*overflow:hidden/.test(html)
+  );
+}
+
+interface GridRowInfo {
+  cells: number;
+  cards: number;
+  start: number;
+  end: number;
+}
+
+/**
+ * Parses raw section HTML and reports every row of every `class="digest-grid"`
+ * table: how many sibling `digest-grid-cell` cells it holds (including the
+ * bare slot of an odd pair), how many of those carry real card chrome, and the
+ * start/end offsets of the row markup. Nested tables inside card bodies are
+ * transparently skipped via a table-depth counter, so footer and body tables
+ * can never fake an extra row cell. The scanner only recognises the exact
+ * markers the template emits (`<tr`, `<td class="digest-grid-cell"`,
+ * `<table`/`</table>`), which card content never produces.
+ */
+function gridRows(sectionHtml: string): GridRowInfo[] {
+  const rows: GridRowInfo[] = [];
+  let tableDepth = 0;
+  let gridTableDepth = -1;
+  let rowCells = 0;
+  let rowCards = 0;
+  let rowStart = -1;
+  let i = 0;
+  while (i < sectionHtml.length) {
+    if (sectionHtml.startsWith('<table ', i)) {
+      if (gridTableDepth === -1 && sectionHtml.slice(i, i + 200).includes('class="digest-grid"')) {
+        gridTableDepth = tableDepth;
+        rowCells = 0;
+        rowCards = 0;
+        rowStart = -1;
+      }
+      tableDepth += 1;
+      i += 7;
+      continue;
+    }
+    if (sectionHtml.startsWith('</table>', i)) {
+      tableDepth -= 1;
+      if (tableDepth === gridTableDepth) {
+        if (rowStart !== -1) {
+          rows.push({ cells: rowCells, cards: rowCards, start: rowStart, end: i });
+        }
+        gridTableDepth = -1;
+        rowCells = 0;
+        rowCards = 0;
+        rowStart = -1;
+      }
+      i += 8;
+      continue;
+    }
+    if (
+      gridTableDepth !== -1 &&
+      sectionHtml.startsWith('<tr', i) &&
+      tableDepth === gridTableDepth + 1
+    ) {
+      if (rowStart !== -1) {
+        rows.push({ cells: rowCells, cards: rowCards, start: rowStart, end: i });
+      }
+      rowStart = i;
+      rowCells = 0;
+      rowCards = 0;
+      i += 3;
+      continue;
+    }
+    if (
+      gridTableDepth !== -1 &&
+      sectionHtml.startsWith('<td class="digest-grid-cell"', i) &&
+      tableDepth === gridTableDepth + 1
+    ) {
+      const tagEnd = sectionHtml.indexOf('>', i);
+      rowCells += 1;
+      if (tagEnd !== -1 && sectionHtml.slice(i, tagEnd).includes('background-color:')) {
+        rowCards += 1;
+      }
+    }
+    i += 1;
   }
   return rows;
 }
 
-/**
- * True when every grid row's two card cells share one identical height so the
- * two cards in that row always render at the same height. Rows may differ.
- */
-function everyRowEqualizes(html: string): boolean {
-  return gridRows(html).every((row) => row.leftHeight === row.rightHeight);
-}
-
-/** Counts how many grid rows exist (each <tr> holding digest-grid-cell cards). */
-function countGridRows(sectionHtml: string): number {
-  const re = /<tr[^>]*>\s*<td class="digest-grid-cell"/g;
-  let count = 0;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(sectionHtml)) !== null) {
-    count += 1;
-  }
-  return count;
-}
-
-/**
- * True when the section emits its cards as direct siblings of a single grid
- * <tr> -- each card table being the direct child of its own <td> (no <div>
- * between the cell and the card table). This is what lets the row equalize the
- * two cards: every card occupies one cell of the shared <tr> and fills it via
- * `height:100%`.
- */
-function hasRowSiblingStructure(sectionHtml: string): boolean {
-  return (
-    sectionHtml.includes('class="digest-grid"') &&
-    sectionHtml.includes('table-layout:fixed') &&
-    sectionHtml.includes('class="digest-grid-cell"') &&
-    sectionHtml.includes('class="digest-card"') &&
-    sectionHtml.includes('height:100%;') &&
-    // no <div> bookending the card (a <div> would give a cell its own box)
-    !/digest-grid-cell"[^>]*><div[^>]*><table/.test(sectionHtml)
-  );
-}
-
-/** Counts the sibling grid cells that wrap a digest-card table (the two-column cells). */
-function countCardCells(sectionHtml: string): number {
-  const re = /<td class="digest-grid-cell"[^>]*><table role="presentation"[^>]*class="digest-card"/g;
-  let count = 0;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(sectionHtml)) !== null) {
-    count += 1;
-  }
-  return count;
+/** Sums the real (chrome-carrying) card cells across all grid rows. */
+function cardCellCount(sectionHtml: string): number {
+  return gridRows(sectionHtml).reduce((total, row) => total + row.cards, 0);
 }
 
 function countOccurrences(haystack: string, needle: string): number {
@@ -590,8 +622,26 @@ export async function validateEmailRendering(): Promise<void> {
         ];
         const html = renderDigestEmail(digest);
         assert.ok(hasTwoColumnLayout(html), 'Compact sections must stay two-column on desktop');
-        assert.ok(hasRowSiblingStructure(html), 'Compact sections must use the shared row-sibling structure');
         assert.ok(hasMobileCollapseCss(html), 'Compact sections must collapse to a single column on mobile');
+        assert.ok(hasNoCardHeights(html), 'Compact sections must rely on native table rows, never on explicit heights');
+        const stillRows = gridRows(renderStillOnSaleSection(digest.stillOnSale, 'USD'));
+        const recommendedRows = gridRows(renderRecommendedSection(digest.recommendations, 'USD'));
+        const watchRows = gridRows(renderWishlistWatchSection(digest.wishlistWatch, 'USD'));
+        const checks: Array<{ rows: GridRowInfo[]; count: number }> = [
+          { rows: stillRows, count: digest.stillOnSale.length },
+          { rows: recommendedRows, count: digest.recommendations.length },
+          { rows: watchRows, count: digest.wishlistWatch.length },
+        ];
+        for (const { rows, count } of checks) {
+          assert.ok(
+            rows.length === Math.ceil(count / 2),
+            `Expected ${Math.ceil(count / 2)} row(s) of cards, got ${rows.length}`,
+          );
+          assert.ok(
+            rows.every((row) => row.cells === 2),
+            'Every grid row must pair exactly two sibling card cells',
+          );
+        }
       },
     },
     {
@@ -618,34 +668,46 @@ export async function validateEmailRendering(): Promise<void> {
       },
     },
     {
-      name: 'cards are equalized at the ROW level: the two cells in each row share one height, and rows are free to differ (not one section-wide height)',
+      name: 'every section renders all cards as sibling cells of its grid rows, with no calculated heights',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 4, stillOnSale: 4, recommendations: 'members' });
         digest.bestDeals[0].reasons = ['Reason one', 'Reason two'];
         digest.stillOnSale.forEach((s) => {
           s.firstReportedAt = '2026-07-20T00:00:00.000Z';
         });
-        const bestHtml = renderBestDealsSection(digest.bestDeals, 'USD');
-        const stillHtml = renderStillOnSaleSection(digest.stillOnSale, 'USD');
-        const recommendedHtml = renderRecommendedSection(digest.recommendations, 'USD');
-
-        const bestRows = gridRows(bestHtml);
-        const stillRows = gridRows(stillHtml);
-        const recommendedRows = gridRows(recommendedHtml);
-
-        assert.strictEqual(bestRows.length, 2, '4 Best Deal cards must form 2 rows');
-        assert.strictEqual(stillRows.length, 2, '4 Still On Sale cards must form 2 rows');
-        assert.strictEqual(recommendedRows.length, 1, '1 Recommended card must form 1 row');
-        assert.ok(
-          everyRowEqualizes(bestHtml) &&
-            everyRowEqualizes(stillHtml) &&
-            everyRowEqualizes(recommendedHtml),
-          'Within every row the two sibling cards must share the identical cell height',
-        );
+        const sections: Array<{ html: string; count: number }> = [
+          { html: renderBestDealsSection(digest.bestDeals, 'USD'), count: digest.bestDeals.length },
+          { html: renderStillOnSaleSection(digest.stillOnSale, 'USD'), count: digest.stillOnSale.length },
+          { html: renderRecommendedSection(digest.recommendations, 'USD'), count: digest.recommendations.length },
+        ];
+        for (const { html, count } of sections) {
+          const rows = gridRows(html);
+          assert.strictEqual(
+            cardCellCount(html),
+            count,
+            'Every reported card must render as one grid cell',
+          );
+          assert.ok(
+            rows.length === Math.ceil(count / 2),
+            'Cards must pair into one row per two reported items',
+          );
+          assert.ok(
+            rows.every((row) => row.cells === 2),
+            'Each row must hold exactly two sibling card cells',
+          );
+          assert.ok(
+            hasNoCardHeights(html),
+            'Equal card heights must come from native <tr> rows, not height attributes',
+          );
+          assert.ok(
+            /<tr[^>]*>\s*<td class="digest-grid-cell"/.test(html),
+            'The first card of each row must be a direct child of its <tr> (no wrapper element)',
+          );
+        }
       },
     },
     {
-      name: 'every section produces row-level equal cards (direct-sibling cells, no <div> box, height:100%)',
+      name: 'every section places cards as direct sibling cells of their row (native equal height, no wrappers)',
       run: () => {
         const digest = manyCardsDigest({ stillOnSale: 5, bestDeals: 5, recommendations: 'members' });
         const sections = [
@@ -654,82 +716,101 @@ export async function validateEmailRendering(): Promise<void> {
           renderRecommendedSection(digest.recommendations, 'USD'),
         ];
         for (const html of sections) {
+          const rows = gridRows(html);
           assert.ok(
-            hasRowSiblingStructure(html),
-            'Section must place each card as a direct child of its own grid <td> (no <div> wrapper) so cells stretch to the shared row height',
+            rows.length >= 1,
+            'Section must group cards into grid <tr> rows',
           );
           assert.ok(
-            countCardCells(html) >= 2,
-            'Section must render cards inside sibling grid cells',
+            rows.every((row) => row.cells === 2),
+            'Each row must hold exactly two sibling card cells',
           );
           assert.ok(
-            countGridRows(html) >= 1,
-            'Section must group cards into shared grid <tr> rows',
+            cardCellCount(html) >= 1,
+            'Section must render its cards inside sibling grid cells',
           );
           assert.ok(
-            everyRowEqualizes(html),
-            'Every grid row must equalize its two sibling card cells',
+            hasNoCardHeights(html),
+            'No height attribute, height:100%, min-height or overflow:hidden may size the cards',
+          );
+          assert.ok(
+            /<tr[^>]*>\s*<td class="digest-grid-cell"/.test(html),
+            'Card cells must be direct children of their row, never wrapped',
           );
         }
       },
     },
     {
-      name: 'a long-title Best Deal card grows only its own row, not the whole section',
+      name: 'a long-title Best Deal card (e.g. Call of Sniper) renders uncut inside its own row',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 4 });
-        const ghostX = 'The GhostX : Sniper Simulator (Tactical Shooting & Eliminator)';
-        digest.bestDeals[0].title = ghostX;
-        digest.bestDeals[1].title = 'Megabonk Smash';
-        digest.bestDeals[2].title = 'Call of Sniper Combat - WW2';
-        digest.bestDeals[3].title = 'DOOM';
+        digest.bestDeals[0].title = 'Call of Sniper Combat - WW2';
         digest.bestDeals[0].reasons = ['Reason one', 'Reason two', 'Reason three'];
         digest.bestDeals[0].priceContext = { isLowestRecorded: true, lowestPrice: 7.99 };
         digest.bestDeals[0].quality = { rating: 'good', reason: 'At its historical low' };
         const html = renderBestDealsSection(digest.bestDeals, 'USD');
         const rows = gridRows(html);
-        assert.strictEqual(rows.length, 2, 'Four cards must form two rows');
+        assert.strictEqual(cardCellCount(html), digest.bestDeals.length, 'All four deal cards must be present');
         assert.ok(
-          everyRowEqualizes(html),
-          'GhostX and its row sibling (Megabonk) must share one identical row height',
-        );
-        assert.strictEqual(
-          rows[0].leftHeight,
-          rows[0].rightHeight,
-          'GhostX must NOT be taller than its sibling in the same row',
+          rows.every((row) => row.cells === 2),
+          'Each row must pair exactly two sibling card cells even when one card has a long title',
         );
         assert.ok(
-          rows[0].leftHeight >= rows[1].leftHeight,
-          'The GhostX/Megabonk row must be at least as tall as the no-ghost second row, but the whole section must not inflate',
+          html.includes('Call of Sniper Combat - WW2'),
+          'The long title must render in full (no truncation)',
+        );
+        assert.ok(
+          hasNoCardHeights(html),
+          'The long card must simply drive its own row height naturally',
         );
       },
     },
     {
-      name: 'Megabonk + Monster Hunter Stories 2, DOOM + GhostX, Call of Sniper + GhostX: each row equalizes independently',
+      name: 'Megabonk / Monster Hunter Stories 2, DOOM / GhostX, Call of Sniper / GhostX share rows of two sibling cells',
       run: () => {
-        const ghostX = 'The GhostX : Sniper Simulator (Tactical Shooting & Eliminator)';
+        const ghostX = 'The GhostX : Sniper Simulator (Tactical Shooting &amp; Eliminator)';
         const digest = manyCardsDigest({ bestDeals: 6 });
         digest.bestDeals[0].title = 'Megabonk Smash';
         digest.bestDeals[1].title = 'Monster Hunter Stories 2: Wings of Ruin';
         digest.bestDeals[2].title = 'DOOM';
-        digest.bestDeals[3].title = ghostX;
+        digest.bestDeals[3].title = 'The GhostX : Sniper Simulator (Tactical Shooting & Eliminator)';
         digest.bestDeals[4].title = 'Call of Sniper Combat - WW2';
-        digest.bestDeals[5].title = ghostX;
+        digest.bestDeals[5].title = 'The GhostX : Sniper Simulator (Tactical Shooting & Eliminator)';
         const html = renderBestDealsSection(digest.bestDeals, 'USD');
         const rows = gridRows(html);
+        assert.strictEqual(rows.length, 3, 'Six cards must pair into three grid rows');
         assert.ok(
-          hasRowSiblingStructure(html),
-          'Every reported pair must render as sibling digest-card cells in the shared row',
+          rows.every((row) => row.cells === 2),
+          'Every reported pair must render as two sibling card cells in one shared row',
         );
-        assert.strictEqual(rows.length, 3, 'Six deal cards must form three rows');
+        assert.strictEqual(cardCellCount(html), 6, 'All six deal cards must be present');
         assert.ok(
-          everyRowEqualizes(html),
-          'Every row (Megabonk/MH2, DOOM/GhostX, Sniper/GhostX) must equalize its two sibling cards',
+          hasNoCardHeights(html),
+          'Equal height within each row must come from the native table row, not height attributes',
         );
-        const distinct = new Set(rows.map((r) => r.leftHeight)).size;
-        assert.ok(
-          distinct >= 2,
-          `Different rows must be able to have different heights (found ${distinct} distinct row heights)`,
+        const rowContent = (row: GridRowInfo): string => html.slice(row.start, row.end);
+        const pairs: Array<[string, string]> = [
+          ['Megabonk Smash', 'Monster Hunter Stories 2: Wings of Ruin'],
+          ['DOOM', ghostX],
+          ['Call of Sniper Combat - WW2', ghostX],
+        ];
+        for (const [first, second] of pairs) {
+          const rowIndex = rows.findIndex((row) => rowContent(row).includes(first));
+          assert.ok(rowIndex !== -1, `Row containing "${first}" must exist`);
+          assert.ok(
+            rowContent(rows[rowIndex]).includes(second),
+            `"${second}" must share one row with "${first}"`,
+          );
+          assert.ok(
+            countOccurrences(rowContent(rows[rowIndex]), ghostX) <= 1,
+            'GhostX must never occur twice within a single row',
+          );
+        }
+        assert.strictEqual(countOccurrences(html, ghostX), 2, 'GhostX appears once per row it legitimately shows in');
+        const distinct = new Set(
+          pairs.map(([first]) => rows.findIndex((row) => rowContent(row).includes(first))),
         );
+        assert.strictEqual(distinct.size, 3, 'The three reported pairs must sit in three distinct rows');
       },
     },
     {
@@ -746,12 +827,18 @@ export async function validateEmailRendering(): Promise<void> {
         );
         // A game may legitimately also appear in another section; only the
         // within-section duplication is a bug. Verified here as a structural
-        // sibling cell, which cannot double-render a single games array.
-        assert.ok(hasRowSiblingStructure(html), 'Best Deals row structure remains intact');
+        // sibling cell pair, which cannot double-render a single games array.
+        const rows = gridRows(html);
+        assert.ok(rows.length === 2, 'Three deals must pair into two grid rows');
+        assert.ok(
+          rows.every((row) => row.cells === 2),
+          'Each row must hold exactly two sibling card cells',
+        );
+        assert.ok(hasNoCardHeights(html), 'Best Deals row structure must stay free of height attributes');
       },
     },
     {
-      name: 'Wishlist Watch stays compact while Best Deals stays independent (row-level sizing across sections)',
+      name: 'Wishlist Watch renders its own independent two-column grid with no shared heights',
       run: () => {
         const digest = manyCardsDigest({ bestDeals: 1 });
         digest.wishlistWatch = [
@@ -760,28 +847,47 @@ export async function validateEmailRendering(): Promise<void> {
         ];
         const bestHtml = renderBestDealsSection(digest.bestDeals, 'USD');
         const wishlistHtml = renderWishlistWatchSection(digest.wishlistWatch, 'USD');
-        const wishlistRows = gridRows(wishlistHtml);
         const bestRows = gridRows(bestHtml);
-        assert.strictEqual(wishlistRows.length, 1, 'Two Wishlist Watch cards must occupy one row');
-        assert.ok(
-          everyRowEqualizes(wishlistHtml),
-          'Wishlist Watch cards must share one row height computed from the Wishlist Watch cards themselves',
+        const wishlistRows = gridRows(wishlistHtml);
+        assert.strictEqual(
+          cardCellCount(bestHtml),
+          digest.bestDeals.length,
+          'Best Deals must render all of its own cards',
+        );
+        assert.strictEqual(
+          cardCellCount(wishlistHtml),
+          digest.wishlistWatch.length,
+          'Wishlist Watch must render exactly its own cards',
         );
         assert.ok(
-          wishlistRows[0].leftHeight < bestRows[0].leftHeight,
-          'Wishlist Watch must stay compact and below the richer Best Deal row height',
+          wishlistRows.length === 1 && wishlistRows[0].cells === 2,
+          'Wishlist Watch must render its two cards as one sibling row pair',
+        );
+        assert.ok(
+          hasNoCardHeights(bestHtml) && hasNoCardHeights(wishlistHtml),
+          'Neither section may carry explicit heights, so no shared height can leak between sections',
+        );
+        assert.ok(
+          countOccurrences(wishlistHtml, 'class="digest-grid"') === 1,
+          'Wishlist Watch must be its own self-contained grid, independent of Best Deals',
         );
         assert.ok(hasTwoColumnLayout(wishlistHtml), 'Wishlist Watch must remain a two-column grid on desktop');
       },
     },
     {
-      name: 'digest uses a wide container and wider column gutter',
+      name: 'digest uses a wide container and a cellspacing gutter between cards',
       run: () => {
         const html = renderDigestEmail(manyCardsDigest({ stillOnSale: 7 }));
         assert.ok(html.includes('width="720"'), 'Digest container must be 720px wide');
         assert.ok(html.includes('max-width:720px'), 'Digest container max-width must be 720px');
-        assert.ok(html.includes('padding-right:10px;') && html.includes('padding-left:10px;'),
-          'Two-column grid must use a 10px gutter');
+        assert.ok(
+          /class="digest-grid" width="100%" cellpadding="0" cellspacing="5"/.test(html),
+          'Two-column grid must separate its cells with a cellspacing gutter',
+        );
+        assert.ok(
+          !html.includes('padding-right:10px;') && !html.includes('padding-left:10px;'),
+          'The gutter must come from cellspacing, not from cell padding',
+        );
       },
     },
     {

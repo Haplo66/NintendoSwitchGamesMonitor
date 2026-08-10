@@ -41,16 +41,23 @@ const COLORS = {
 const FONT = 'Arial, Helvetica, sans-serif';
 
 /**
- * Card height model. Heights are computed PER SECTION from the actual content
- * of that section's cards (tallest card wins) rather than from any shared,
- * guessed global constant. See `estimateCardHeight`.
- *
- * Each grid section decides its own height independently: Best Deals uses the
- * height of its tallest Best Deal card, Still On Sale its own, Recommended its
- * own, Historical Lows its own, Wishlist Watch its own. Because the height is
- * applied to a <table> `height` attribute (treated as a minimum by email table
- * layout), no card clips and shorter cards simply stretch to match the tallest.
+ * Card layout model. NO card height is calculated anywhere in this template:
+ * the grid <tr> holds the two card <td>s directly and the row naturally takes
+ * the height of its tallest cell, so the shorter card's background/border
+ * boundary automatically spans that same height. Different rows may therefore
+ * have different heights while the two cards in each row always match.
  */
+
+/**
+ * The content of one grid card. The section renderers produce the body and
+ * optional accent/footer; `renderCardCell` turns the spec into the <td> that
+ * is the card itself.
+ */
+interface CardSpec {
+  body: string;
+  accentColor?: string;
+  footer?: string;
+}
 
 export function escapeHtml(value: string): string {
   return value
@@ -59,141 +66,6 @@ export function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-/**
- * Approximate text width available inside a single two-column card, in px.
- * Cards are 50% of the ~600px digest body minus the column gutter and the
- * card's own 18px horizontal padding (2*18). Used only to estimate how many
- * lines a piece of content wraps into on a card; scaled up generously so the
- * returned height is always >= the real rendered height (never clip).
- */
-const CARD_TEXT_WIDTH = 280;
-
-/** Approximate on-screen width of one glyph of a given font size (px). */
-function glyphWidth(fontSize: number): number {
-  return Math.max(1, Math.round(fontSize * 0.55));
-}
-
-/**
- * Counts how many rendered lines a plain text run needs inside one card.
- * Falls back to a single line for very short text.
- */
-function linesForText(text: string, fontSize: number): number {
-  const charsPerLine = Math.max(1, Math.floor(CARD_TEXT_WIDTH / glyphWidth(fontSize)));
-  return Math.max(1, Math.ceil(text.length / charsPerLine));
-}
-
-/**
- * Estimates the rendered height (px) a card's body + footer content requires.
- *
- * This is CONTENT-DRIVEN: it walks the card's body/footer HTML, tracks the
- * fontSize of each text run from the inline styles the template emits, and
- * sums each wrapped line's height. It deliberately returns a value >= the
- * natural rendered height (generous per-line whitespace + body chrome) so a
- * section can pass one shared height to all its cards without ever clipping
- * the tallest one. Sections use this to size themselves to their own tallest
- * card rather than relying on a shared global constant.
- */
-function estimateCardHeight(body: string, footer?: string): number {
-  const parse = (html: string): number => {
-    let total = 0;
-    const tokenRe = /<([a-z0-9]+)([^>]*)>|([^<]*)/g;
-    let fontSize = 13;
-    let match: RegExpExecArray | null;
-    while ((match = tokenRe.exec(html)) !== null) {
-      if (match.index === tokenRe.lastIndex) {
-        tokenRe.lastIndex += 1;
-        continue;
-      }
-      if (match[1]) {
-        const attrs = match[2];
-        const sizeMatch = /font-size:(\d+(?:\.\d+)?)px/.exec(attrs);
-        if (sizeMatch) {
-          fontSize = parseFloat(sizeMatch[1]);
-        }
-        if (match[1] === 'br') {
-          total += Math.round(fontSize * 1.35);
-        }
-        continue;
-      }
-      const text = match[3];
-      if (!text || text.length === 0) {
-        continue;
-      }
-      const plain = text.replace(/\s+/g, ' ').trim();
-      if (plain.length === 0) {
-        continue;
-      }
-      total += Math.round(linesForText(plain, fontSize) * fontSize * 1.35);
-    }
-    return total;
-  };
-
-  const bodyBlockGap = (body.match(/margin-top:(\d+)px/g) || [])
-    .map((m) => parseInt((/margin-top:(\d+)px/.exec(m) || ['', '0'])[1], 10))
-    .reduce((a, b) => a + b, 0);
-  const footerHeight = footer ? 1 + 20 + 10 + parse(footer) : 0;
-  return Math.ceil(3 + 1 + 32 + bodyBlockGap + parse(body) + footerHeight);
-}
-
-/**
- * Renders a card grid where equal heights are achieved at the ROW level.
- *
- * Cards are grouped into rows of two as DIRECT sibling <td> cells inside a
- * single shared <tr>. Each row computes its own height from its own two cards
- * (the taller of the pair decides that row), so two cards sitting in the same
- * row always render at exactly the same height while a different row is free to
- * be a different height. This is the critical distinction from any
- * section-wide height: a card is only ever as tall as its row sibling, never as
- * tall as the whole section. See `estimateCardHeight` for how each card's
- * natural content height is measured.
- */
-type CardSpec = { body: string; accentColor?: string; footer?: string };
-
-/**
- * Renders one two-column row: the two direct-sibling card cells plus the
- * shared row height (the taller of the pair's estimated natural heights). An
- * odd trailing card fills the leading cell and the right cell stays empty but
- * is given the same height so a single-card row stays aligned to its own card.
- */
-function renderGridRow(left: CardSpec, right: CardSpec | undefined, gutter: number): string {
-  const rowHeight = right
-    ? Math.max(estimateCardHeight(left.body, left.footer), estimateCardHeight(right.body, right.footer))
-    : estimateCardHeight(left.body, left.footer);
-  const leftCell =
-    `<td class="digest-grid-cell" width="50%" valign="top" height="${rowHeight}"` +
-    ` style="padding-right:${gutter}px;">` +
-    card(left.body, left.accentColor, left.footer) +
-    `</td>`;
-  const rightCell = right
-    ? `<td class="digest-grid-cell" width="50%" valign="top" height="${rowHeight}"` +
-      ` style="padding-left:${gutter}px;">` +
-      card(right.body, right.accentColor, right.footer) +
-      `</td>`
-    : `<td class="digest-grid-cell" width="50%" valign="top" height="${rowHeight}"` +
-      ` style="padding-left:${gutter}px;"><table role="presentation" class="digest-card" width="100%" style="height:100%;"></table></td>`;
-  return (
-    `<table role="presentation" class="digest-grid" width="100%" cellpadding="0" cellspacing="0"` +
-    ` style="width:100%; table-layout:fixed; border-collapse:separate; margin:0 0 ${gutter}px 0;">` +
-    `<tr>${leftCell}${rightCell}</tr></table>`
-  );
-}
-
-/**
- * Builds the full section grid with ROW-level equal heights (see
- * `renderGridRow`). Cards are paired two-by-two into rows; the right cell of an
- * odd trailing pair is kept empty so a lone card still occupies a full row.
- */
-function renderCardGrid(specs: CardSpec[], gutter = 10): string {
-  if (specs.length === 0) {
-    return '';
-  }
-  const rows: string[] = [];
-  for (let i = 0; i < specs.length; i += 2) {
-    rows.push(renderGridRow(specs[i], specs[i + 1], gutter));
-  }
-  return rows.join('');
 }
 
 export function formatPrice(value: number): string {
@@ -265,29 +137,59 @@ function themeChip(label: string, color: string): string {
 }
 
 /**
- * Renders the card body with a bordered, padded chrome. The card's outer
- * <table> is the DIRECT, sole child of its grid <td> (the two cards in a row
- * are siblings) and fills that cell with `height:100%`, so the card never
- * decides its own height: the shared <tr>/<td> row height does. No
- * `overflow:hidden` and no `min-height`; `height:100%` lets a shorter card's
- * chrome stretch to match the taller sibling while nothing is ever clipped.
- * The row height itself is computed by `renderGridRow` from the row's own two
- * cards.
+ * Renders one card directly as a grid cell: the <td> itself carries the card
+ * chrome (background, border, accent top border, radius, padding), so the cell
+ * always spans the full height its row naturally takes from the tallest card.
+ * No height attribute, no `height:100%`, no `min-height`, no `overflow:hidden`
+ * and nothing to compute or keep in sync. `width` is 50% for the two-column
+ * grid cells; Wishlist Alerts pass a full 100% for full-width cards. The empty
+ * trailing cell of an odd pair renders bare so only the card shows.
  */
-function card(body: string, accentColor?: string, footer?: string): string {
-  const topBorder = accentColor ? ` border-top:3px solid ${accentColor};` : '';
-  const footerHtml = footer
-    ? `<tr><td valign="bottom" style="padding:10px 18px; border-top:1px solid ${COLORS.border};">${footer}</td></tr>`
+function renderCardCell(spec: CardSpec, width: string): string {
+  const topBorder = spec.accentColor ? ` border-top:3px solid ${spec.accentColor};` : '';
+  const footerHtml = spec.footer
+    ? `<div style="margin-top:12px; padding-top:10px; border-top:1px solid ${COLORS.border};">${spec.footer}</div>`
     : '';
+  const hasChrome = spec.body !== '' || footerHtml !== '';
+  const inner = `${spec.body}${footerHtml}`;
   return (
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"` +
-    ` class="digest-card" width="100%"` +
-    ` style="background-color:${COLORS.panel};` +
-    ` border:1px solid ${COLORS.border};${topBorder} border-radius:8px;` +
-    ` width:100%; height:100%;"><tr><td valign="top" style="padding:16px 18px;">` +
-    `${body}</td></tr>${footerHtml}</table>`
+    `<td class="digest-grid-cell" ${width} valign="top"` +
+    (hasChrome
+      ? ` style="background-color:${COLORS.panel}; border:1px solid ${COLORS.border};${topBorder}` +
+        ` border-radius:8px; padding:16px 18px; font-family:${FONT};">${inner}</td>`
+      : `>${inner}</td>`)
   );
 }
+
+/**
+ * Renders card specs as a single two-column grid. ONE <table> holds every
+ * `<tr>`, and each `<tr>` holds the two card `<td>`s directly, so the row
+ * takes the natural height of its taller card and the shorter card's chrome
+ * spans that same height (rows may differ from each other). An odd trailing
+ * card leaves an empty bare cell in its row. `cellspacing` provides the
+ * gutter without touching the cells. The `.digest-grid-cell` media rules in
+ * the document head collapse the table to a single column on narrow
+ * viewports.
+ */
+function renderCardGrid(specs: CardSpec[]): string {
+  if (specs.length === 0) {
+    return '';
+  }
+  const rows: string[] = [];
+  for (let i = 0; i < specs.length; i += 2) {
+    const left = renderCardCell(specs[i], 'width="50%"');
+    const right =
+      i + 1 < specs.length ? renderCardCell(specs[i + 1], 'width="50%"') : renderCardCell(EMPTY_CARD, 'width="50%"');
+    rows.push(`<tr>${left}${right}</tr>`);
+  }
+  return (
+    `<table role="presentation" class="digest-grid" width="100%" cellpadding="0"` +
+    ` cellspacing="5" style="table-layout:fixed; border-collapse:separate;">` +
+    `${rows.join('')}</table>`
+  );
+}
+
+const EMPTY_CARD: CardSpec = { body: '' };
 
 function renderPriceRow(currency: string, original: number | undefined, current: number, accentColor: string): string {
   const hasDiscount = original !== undefined && original > current;
@@ -375,11 +277,7 @@ function formatShortDate(iso: string): string {
   });
 }
 
-function renderStillOnSaleCard(item: DigestStillOnSale, currency: string): {
-  body: string;
-  accentColor?: string;
-  footer?: string;
-} {
+function renderStillOnSaleCard(item: DigestStillOnSale, currency: string): CardSpec {
   const daysLabel = item.daysOnSale === 1 ? '1 day on sale' : `${item.daysOnSale} days on sale`;
   return {
     body:
@@ -485,11 +383,7 @@ export function wishlistStatusMeta(status: DigestWishlistWatch['status']): {
   }
 }
 
-function renderWishlistWatchCard(item: DigestWishlistWatch, currency: string): {
-  body: string;
-  accentColor?: string;
-  footer?: string;
-} {
+function renderWishlistWatchCard(item: DigestWishlistWatch, currency: string): CardSpec {
   const meta = wishlistStatusMeta(item.status);
   let details = `<div style="margin-top:6px; font-family:${FONT}; font-size:13px; color:${COLORS.text};">`;
   if (item.currentPrice !== undefined) {
@@ -530,11 +424,7 @@ export function renderWishlistWatchSection(items: DigestWishlistWatch[], currenc
   return header + renderCardGrid(cards);
 }
 
-function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, digest: DailyDigest): {
-  body: string;
-  accentColor?: string;
-  footer?: string;
-} {
+function renderWishlistAlertCard(alert: DigestWishlistAlert, currency: string, digest: DailyDigest): CardSpec {
   const reachedBadge = alert.targetReached
     ? badge('YES', COLORS.success)
     : badge('NO', COLORS.danger);
@@ -562,20 +452,20 @@ export function renderWishlistAlertsSection(alerts: DigestWishlistAlert[], curre
   if (alerts.length === 0) {
     return '';
   }
-  const cards = alerts
+  const rows = alerts
     .map((alert) => {
       const spec = renderWishlistAlertCard(alert, currency, digest);
-      return card(spec.body, spec.accentColor, spec.footer);
+      return `<tr>${renderCardCell(spec, 'width="100%"')}</tr>`;
     })
     .join('');
-  return sectionHeader('🎯', 'Wishlist Alerts', COLORS.wishlist) + cards;
+  const table =
+    `<table role="presentation" class="digest-grid" width="100%" cellpadding="0"` +
+    ` cellspacing="5" style="table-layout:fixed; border-collapse:separate;">` +
+    `${rows}</table>`;
+  return sectionHeader('🎯', 'Wishlist Alerts', COLORS.wishlist) + table;
 }
 
-function renderBestDealCard(deal: DigestBestDeal, currency: string): {
-  body: string;
-  accentColor?: string;
-  footer?: string;
-} {
+function renderBestDealCard(deal: DigestBestDeal, currency: string): CardSpec {
   return {
     body:
       themeChip('Best Deal', COLORS.bestDeal) +
@@ -601,11 +491,7 @@ export function renderBestDealsSection(deals: DigestBestDeal[], currency: string
   return sectionHeader('🔥', 'Best Deals', COLORS.accent) + renderCardGrid(cards);
 }
 
-function renderFreeGameCard(game: DigestFreeGame): {
-  body: string;
-  accentColor?: string;
-  footer?: string;
-} {
+function renderFreeGameCard(game: DigestFreeGame): CardSpec {
   const reasons =
     game.reasons && game.reasons.length > 0
       ? `<div style="margin-top:4px; font-family:${FONT}; font-size:12px; color:${COLORS.muted};">` +
@@ -632,11 +518,7 @@ export function renderFreeGamesSection(freeGames: DigestFreeGame[]): string {
   return sectionHeader('🆓', 'Free Family Games', COLORS.free) + renderCardGrid(cards);
 }
 
-function renderHistoricalLowCard(deal: DigestHistoricalLow, currency: string): {
-  body: string;
-  accentColor?: string;
-  footer?: string;
-} {
+function renderHistoricalLowCard(deal: DigestHistoricalLow, currency: string): CardSpec {
   return {
     body:
       themeChip('Historical Low', COLORS.historical) +
@@ -678,11 +560,7 @@ function recommendationPriceStatus(game: DigestFamilyRecommendation, currency: s
   );
 }
 
-function renderRecommendationCard(recommendation: DigestFamilyRecommendation, currency: string): {
-  body: string;
-  accentColor?: string;
-  footer?: string;
-} {
+function renderRecommendationCard(recommendation: DigestFamilyRecommendation, currency: string): CardSpec {
   const who =
     recommendation.entireFamily
       ? `<div style="font-family:${FONT}; font-size:13px; font-weight:bold; color:${COLORS.success};">👨‍👩‍👧‍👦 Entire family</div>`
