@@ -9,6 +9,26 @@
       "gameTitle": "Super Smash Bros",
       "notifyOnAnyDiscount": true,
       "notes": "Ideally below $40."
+    },
+    {
+      "gameTitle": "Kirby and the Forgotten Land",
+      "notifyOnAnyDiscount": true,
+      "notes": "Ideally below $40."
+    },
+    {
+      "gameTitle": "Super Mario Bros Wonder",
+      "notifyOnAnyDiscount": true,
+      "notes": "Ideally below $40."
+    },
+    {
+      "gameTitle": "Animal Crossing New Horizon",
+      "notifyOnAnyDiscount": true,
+      "notes": "Ideally below $40."
+    },
+    {
+      "gameTitle": "cuphead",
+      "notifyOnAnyDiscount": true,
+      "notes": "Ideally below $10."
     }
   ]
 }
