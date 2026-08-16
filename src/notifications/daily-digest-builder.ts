@@ -435,6 +435,7 @@ export function buildDailyDigest(
     entireFamily: boolean;
     members: DigestFamilyRecommendationMember[];
     score: number;
+    storeUrl: string;
   }
 
   const pending: PendingRecommendation[] = [];
@@ -458,6 +459,7 @@ export function buildDailyDigest(
       entireFamily,
       members: matched.map((match) => ({ name: match.profileName, reasons: match.reasons })),
       score: analysis.dealScore.score,
+      storeUrl: resolveStoreUrl(analysis.game),
     });
   }
 
@@ -473,7 +475,7 @@ export function buildDailyDigest(
   const recommendations: DigestFamilyRecommendation[] = pending
     .slice(0, recommendedFamilyGamesLimit)
     .map(
-      ({ title, currentPrice, originalPrice, discountPercent, isFree, onWishlist, entireFamily, members }) => ({
+      ({ title, currentPrice, originalPrice, discountPercent, isFree, onWishlist, entireFamily, members, storeUrl }) => ({
         title,
         currentPrice,
         originalPrice,
@@ -482,6 +484,7 @@ export function buildDailyDigest(
         onWishlist,
         entireFamily,
         members,
+        storeUrl,
       }),
     );
 

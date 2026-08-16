@@ -123,6 +123,7 @@ function buildSampleDigest(): DailyDigest {
           { name: 'Alex (Kid)', reasons: ['Racing', 'Platformer', 'Age appropriate'] },
           { name: 'Maya (Teen)', reasons: ['Racing'] },
         ],
+        storeUrl: 'https://www.nintendo.com/store/products/mario-kart-8-deluxe/',
       },
       {
         title: 'Super Mario Odyssey',
@@ -136,6 +137,7 @@ function buildSampleDigest(): DailyDigest {
           { name: 'Alex (Kid)', reasons: ['Adventure', 'Platformer', 'Age appropriate'] },
           { name: 'Maya (Teen)', reasons: ['Adventure'] },
         ],
+        storeUrl: 'https://www.nintendo.com/store/products/super-mario-odyssey/',
       },
       {
         title: 'The Legend of Zelda: Breath of the Wild',
@@ -146,6 +148,8 @@ function buildSampleDigest(): DailyDigest {
         onWishlist: false,
         entireFamily: false,
         members: [{ name: 'Maya (Teen)', reasons: ['Action', 'Adventure', 'Age appropriate'] }],
+        storeUrl:
+          'https://www.nintendo.com/store/products/the-legend-of-zelda-breath-of-the-wild/',
       },
     ],
     priceWatch: [

@@ -580,10 +580,15 @@ function renderRecommendationCard(recommendation: DigestFamilyRecommendation, cu
   const wishlistTag = recommendation.onWishlist
     ? ` <span style="color:${COLORS.muted}; font-size:12px;">(on wishlist)</span>`
     : '';
-  const footer = recommendation.onWishlist
+  const recommendationStatus = recommendation.onWishlist
     ? `<span style="font-family:${FONT}; font-size:12px; font-weight:bold; color:${COLORS.wishlist};">🎯 On your wishlist</span>`
     : `<span style="font-family:${FONT}; font-size:12px; font-weight:bold; color:${COLORS.recommended};">` +
       `✓ ${recommendation.entireFamily ? 'Recommended for the entire family' : `Recommended for ${recommendation.members.length} ${recommendation.members.length === 1 ? 'member' : 'members'}`}</span>`;
+  const footer =
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
+    `<td valign="middle">${recommendationStatus}</td>` +
+    `<td align="right" valign="middle" style="white-space:nowrap;">${actionButton('View Deal', recommendation.storeUrl, COLORS.recommended)}</td>` +
+    `</tr></table>`;
   return {
     body:
       themeChip('Recommended', COLORS.recommended) +

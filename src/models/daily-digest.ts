@@ -126,6 +126,7 @@ export interface DigestFamilyRecommendation {
   onWishlist: boolean;
   entireFamily: boolean;
   members: DigestFamilyRecommendationMember[];
+  storeUrl: string;
 }
 
 export interface DigestPriceWatchItem {

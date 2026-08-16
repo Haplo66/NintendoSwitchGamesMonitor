@@ -210,6 +210,47 @@ export async function validateRecommendations(): Promise<void> {
       },
     },
     {
+      name: 'recommended games expose their store URL and render a View Deal button',
+      run: () => {
+        const lego = makeGame({
+          storeUrl: 'https://www.nintendo.com/store/products/lego-jurassic-world/',
+        });
+        const result = resultWith({
+          analyses: [makeAnalysis(lego)],
+          reportedAnalyses: [makeAnalysis(lego)],
+        });
+        const digest = buildDigest(result);
+        assert.strictEqual(
+          digest.recommendations[0]?.storeUrl,
+          'https://www.nintendo.com/store/products/lego-jurassic-world/',
+          'Recommended game must carry the correct store URL',
+        );
+        const html = renderDigestEmail(digest);
+        assert.ok(html.includes('View Deal'), 'Recommended game View Deal button missing');
+        assert.ok(
+          html.includes('href="https://www.nintendo.com/store/products/lego-jurassic-world/"'),
+          'View Deal button must point at the correct store URL',
+        );
+      },
+    },
+    {
+      name: 'recommended games fall back to a search URL when no store URL exists',
+      run: () => {
+        const odyssey = makeGame({ title: 'Super Mario Odyssey' });
+        const result = resultWith({
+          analyses: [makeAnalysis(odyssey)],
+          reportedAnalyses: [makeAnalysis(odyssey)],
+        });
+        const digest = buildDigest(result);
+        assert.ok(
+          digest.recommendations[0]?.storeUrl.includes('term=Super%20Mario%20Odyssey'),
+          'Recommended game must fall back to a search URL with the encoded title',
+        );
+        const html = renderDigestEmail(digest);
+        assert.ok(html.includes('View Deal'), 'Recommended game View Deal button missing');
+      },
+    },
+    {
       name: 'blacklisted-style full-price catalog game is not recommended',
       run: () => {
         const odyssey = makeAnalysis(

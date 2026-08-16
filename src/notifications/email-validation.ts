@@ -112,6 +112,7 @@ function buildSampleDigest(): DailyDigest {
           { name: 'Alex (Kid)', reasons: ['Racing', 'Age appropriate'] },
           { name: 'Sam (Teen)', reasons: ['Racing'] },
         ],
+        storeUrl: 'https://www.nintendo.com/store/products/mario-kart-8-deluxe/',
       },
     ],
     priceWatch: [
@@ -201,6 +202,7 @@ function manyCardsDigest(overrides: {
           { name: 'Barak', reasons: ['Action'] },
           { name: 'Alon', reasons: ['Action'] },
         ],
+        storeUrl: 'https://www.nintendo.com/store/products/mario-wonder/',
       },
     ];
   } else if (overrides.recommendations === 'entire-family') {
@@ -218,6 +220,7 @@ function manyCardsDigest(overrides: {
           { name: 'Barak', reasons: ['Action'] },
           { name: 'Alon', reasons: ['Action'] },
         ],
+        storeUrl: 'https://www.nintendo.com/store/products/mario-wonder/',
       },
     ];
   }
@@ -554,6 +557,11 @@ export async function validateEmailRendering(): Promise<void> {
         assert.ok(html.includes('Racing'), 'Recommendation reason missing');
         assert.ok(html.includes('Age appropriate'), 'Recommendation reason missing');
         assert.ok(html.includes('Recommended for:'), 'Recommended for label missing');
+        assert.ok(html.includes('View Deal'), 'Recommended game View Deal button missing');
+        assert.ok(
+          html.includes('href="https://www.nintendo.com/store/products/mario-kart-8-deluxe/"'),
+          'Recommended game View Deal button must point at the correct store URL',
+        );
       },
     },
     {
