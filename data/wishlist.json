@@ -26,11 +26,6 @@
       "notes": "Ideally below $40."
     },
     {
-      "gameTitle": "cuphead",
-      "notifyOnAnyDiscount": false,
-      "notes": "Ideally below $10."
-    },
-    {
       "gameTitle": "Legend of Zelda",
       "notifyOnAnyDiscount": true,
       "notes": "Ideally below $20."
