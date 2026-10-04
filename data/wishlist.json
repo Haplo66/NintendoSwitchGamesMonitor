@@ -29,6 +29,11 @@
       "gameTitle": "cuphead",
       "notifyOnAnyDiscount": true,
       "notes": "Ideally below $10."
+    },
+    {
+      "gameTitle": "Zelda",
+      "notifyOnAnyDiscount": true,
+      "notes": "Ideally below $20."
     }
   ]
 }
