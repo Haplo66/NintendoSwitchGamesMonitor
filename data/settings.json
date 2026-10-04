@@ -10,7 +10,7 @@
   "forceDigestEmail": true,
   "dailyDigest": {
     "maxBestDeals": 10,
-    "maxWishlistAlerts": 6,
+    "maxWishlistAlerts": 8,
     "showStatistics": true,
     "showPriceWatch": true,
     "recommendedFamilyGamesLimit": 10
