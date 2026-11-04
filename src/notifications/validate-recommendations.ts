@@ -100,6 +100,16 @@ export async function validateRecommendations(): Promise<void> {
       },
     },
     {
+      name: 'recommendations discover qualifying analyzed games outside reported deals',
+      run: () => {
+        const deal = makeAnalysis(makeGame({ title: 'Top Deal' }));
+        const familyCandidate = makeAnalysis(makeGame({ title: 'Family Discovery', currentPrice: 0, originalPrice: undefined }));
+        const result = resultWith({ analyses: [deal, familyCandidate], reportedAnalyses: [deal] });
+        const digest = buildDailyDigest(result);
+        assert.deepStrictEqual(digest.recommendations.map((item) => item.title), ['Family Discovery']);
+      },
+    },
+    {
       name: 'discounted family match appears',
       run: () => {
         const analysis = makeAnalysis(makeGame({ currentPrice: 3.99, originalPrice: 39.99 }));

@@ -42,6 +42,31 @@ export interface BuildDailyDigestOptions {
   blacklist?: BlacklistSource;
 }
 
+export interface RecommendationSelectionDiagnostics {
+  qualified: number;
+  removedBySection: number;
+  removedByCooldown: number;
+  eligible: number;
+}
+
+export function recommendationSelectionDiagnostics(
+  result: MonitorResult,
+  sectionTitles: Set<string>,
+): RecommendationSelectionDiagnostics {
+  const candidates = result.analyses.filter((analysis) =>
+    isRecommendationEligible(analysis, result) &&
+    (analysis.game.currentPrice === 0 || analysis.dealScore.score >= result.minDealScore || analysis.wishlistMatch?.matched === true) &&
+    analysis.familyMatches.some((match) => match.matched),
+  );
+  let removedBySection = 0;
+  let removedByCooldown = 0;
+  for (const analysis of candidates) {
+    if (sectionTitles.has(titleKey(analysis.game.title))) removedBySection += 1;
+    else if (isRecentlyRecommended(analysis, result) && !(analysis.wishlistMatch?.matched ?? false)) removedByCooldown += 1;
+  }
+  return { qualified: candidates.length, removedBySection, removedByCooldown, eligible: candidates.length - removedBySection - removedByCooldown };
+}
+
 function formatDigestDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
@@ -474,7 +499,17 @@ export function buildDailyDigest(
     ...bestDeals.map((item) => titleKey(item.title)),
     ...stillOnSale.map((item) => titleKey(item.title)),
   ] : []);
-  for (const analysis of reportedAnalyses) {
+  const recommendationCandidates = analyses.filter(
+    (analysis) =>
+      analysis.game.currentPrice === 0 ||
+      analysis.dealScore.score >= result.minDealScore ||
+      analysis.wishlistMatch?.matched === true,
+  );
+  const selectionDiagnostics = recommendationSelectionDiagnostics(result, reservedTitles);
+  if (process.env.DEBUG_DIGEST_ROTATION === 'true') {
+    console.log(`Recommendation selection: qualified=${selectionDiagnostics.qualified}, removedBySection=${selectionDiagnostics.removedBySection}, removedByCooldown=${selectionDiagnostics.removedByCooldown}, eligible=${selectionDiagnostics.eligible}`);
+  }
+  for (const analysis of recommendationCandidates) {
     if (!isRecommendationEligible(analysis, result)) {
       continue;
     }
