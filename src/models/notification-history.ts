@@ -19,6 +19,8 @@ export interface DealHistoryEntry {
    * prices are never appended. `date` is the ISO day (YYYY-MM-DD).
    */
   priceHistory?: PriceObservation[];
+  /** Dates/sections in which this game was present in a delivered digest. */
+  exposureHistory?: Array<{ date: string; sections: string[] }>;
 }
 
 export interface DealHistory {

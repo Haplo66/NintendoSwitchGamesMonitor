@@ -6,6 +6,9 @@ import { ConfigError } from './json-loader';
 import { validateDealHistory } from './validators';
 
 export const DEFAULT_NOTIFICATION_COOLDOWN_DAYS = 14;
+export const BEST_DEAL_EXPOSURE_DAYS = 14;
+export const STILL_ON_SALE_EXPOSURE_DAYS = 21;
+export const DEAL_REAPPEARANCE_COOLDOWN_DAYS = 30;
 
 export const EMPTY_DEAL_HISTORY: DealHistory = { entries: [] };
 
@@ -286,6 +289,52 @@ function dateWithinCooldown(dateIso: string | undefined, now: Date, cooldownDays
 
 export function isWithinCooldown(dateIso: string, now: Date, cooldownDays: number): boolean {
   return dateWithinCooldown(dateIso, now, cooldownDays);
+}
+
+export function daysSince(dateIso: string | undefined, now: Date): number | undefined {
+  if (!dateIso) return undefined;
+  const timestamp = Date.parse(dateIso);
+  if (Number.isNaN(timestamp)) return undefined;
+  return Math.max(0, Math.floor((now.getTime() - timestamp) / 86400000));
+}
+
+/** True when a continuously active sale has exceeded its digest section limit. */
+export function isDealExposureExpired(
+  entry: DealHistoryEntry,
+  now: Date,
+  maximumDays: number,
+): boolean {
+  // Legacy notification history predates exposure tracking. Do not reinterpret
+  // an old notification as continuous digest exposure during migration.
+  const firstExposure = entry.exposureHistory?.[0]?.date;
+  if (!firstExposure) return false;
+  const days = daysSince(firstExposure, now);
+  return days !== undefined && days >= maximumDays;
+}
+
+/** Record only delivered digest exposure; collection/analysis never calls this. */
+export function recordDigestExposure(
+  history: DealHistory,
+  titlesBySection: Record<string, string[]>,
+  now: Date,
+): DealHistory {
+  const date = obsDate(now);
+  const sectionsByTitle = new Map<string, string[]>();
+  for (const [section, titles] of Object.entries(titlesBySection)) {
+    for (const title of titles) {
+      const key = entryKey(title);
+      sectionsByTitle.set(key, [...(sectionsByTitle.get(key) ?? []), section]);
+    }
+  }
+  return {
+    entries: history.entries.map((entry) => {
+      const sections = sectionsByTitle.get(entryKey(entry.gameTitle));
+      if (!sections || sections.length === 0) return entry;
+      const prior = entry.exposureHistory ?? [];
+      if (prior.some((record) => record.date === date)) return entry;
+      return { ...entry, exposureHistory: [...prior, { date, sections }] };
+    }),
+  };
 }
 
 export function hasRecentNotification(

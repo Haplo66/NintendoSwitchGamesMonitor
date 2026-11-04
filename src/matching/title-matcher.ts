@@ -54,7 +54,12 @@ export function normalizeTitle(title: string): string {
     .replace(/[\u2013\u2014\u2015]/g, '-')
     .replace(/\u2026/g, ' ... ');
   normalized = normalized.replace(/[^a-z0-9]+/g, ' ');
-  return normalized.replace(/\s+/g, ' ').trim();
+  normalized = normalized.replace(/\s+/g, ' ').trim();
+  // Safe, title-specific aliases. Do not generalize franchise names: a bare
+  // "Legend of Zelda" must remain ambiguous when several Zelda games exist.
+  return normalized
+    .replace(/^animal crossing new horizon$/, 'animal crossing new horizons')
+    .replace(/^animal crossing new horizons$/, 'animal crossing new horizons');
 }
 
 export function titleTokens(title: string): string[] {

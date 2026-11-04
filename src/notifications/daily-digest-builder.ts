@@ -4,6 +4,7 @@ import { BlacklistSource, isGameBlacklisted } from '../config/blacklist';
 import { DEFAULT_DAILY_DIGEST_SETTINGS } from '../config/settings-loader';
 import { evaluateDealQuality } from '../history/deal-quality';
 import { getPriceContext } from '../history/price-intelligence';
+import { isDealExposureExpired, BEST_DEAL_EXPOSURE_DAYS, STILL_ON_SALE_EXPOSURE_DAYS } from '../config/notification-history-store';
 import { matchTitleToCandidates, matchTitlesToCandidates } from '../matching/title-matcher';
 import {
   DailyDigest,
@@ -140,6 +141,9 @@ function buildStillOnSale(
   const items: DigestStillOnSale[] = [];
   for (const entry of result.dealHistory.entries) {
     if (!entry.currentlyOnSale || !entry.firstNotified) {
+      continue;
+    }
+    if (isDealExposureExpired(entry, new Date(result.generatedAt), STILL_ON_SALE_EXPOSURE_DAYS)) {
       continue;
     }
     if (isBlacklisted(entry.gameTitle)) {
@@ -388,6 +392,12 @@ export function buildDailyDigest(
     .filter(
       (analysis) =>
         analysis.game.currentPrice > 0 &&
+        !isDealExposureExpired(
+          result.dealHistory.entries.find((entry) => titleKey(entry.gameTitle) === titleKey(analysis.game.title)) ?? {
+            gameTitle: analysis.game.title, firstSeenOnSale: result.generatedAt, lastSeenOnSale: result.generatedAt, notificationCount: 0, currentlyOnSale: true,
+          },
+          new Date(result.generatedAt), BEST_DEAL_EXPOSURE_DAYS,
+        ) &&
         !alertTitles.has(analysis.game.title) &&
         !historicalLowTitles.has(titleKey(analysis.game.title)),
     )

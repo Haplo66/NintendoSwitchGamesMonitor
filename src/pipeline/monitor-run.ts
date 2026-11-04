@@ -12,6 +12,7 @@ import {
   loadDealHistory,
   reconcileDealHistory,
   saveDealHistory,
+  recordDigestExposure,
 } from '../config/notification-history-store';
 import { getPriceContext } from '../history/price-intelligence';
 import { DealHistory, Game, GameAnalysis, MonitorResult } from '../models';
@@ -332,9 +333,21 @@ export async function runMonitor(options: MonitorOptions = {}): Promise<MonitorR
     console.log(`Digest skipped: ${decision.reason}.`);
   }
 
+  // Exposure is deliberately recorded after successful delivery, and from
+  // rendered digest sections rather than from collected/analyzed games.
+  const deliveredHistory = emailSent
+    ? recordDigestExposure(updatedHistory, {
+        'Best Deals': digest.bestDeals.map((item) => item.title),
+        'Historical Lows': digest.historicalLows.map((item) => item.title),
+        'Still On Sale': digest.stillOnSale.map((item) => item.title),
+        'Wishlist Watch': digest.wishlistWatch.map((item) => item.title),
+        Recommendations: digest.recommendations.map((item) => item.title),
+      }, new Date(result.generatedAt))
+    : updatedHistory;
+
   if (!ignoreNotificationHistory && !forceDigestEmail && !dryRun) {
-    saveDealHistory(updatedHistory);
-    console.log(`Recorded deal history (${updatedHistory.entries.length} game(s) tracked).`);
+    saveDealHistory(deliveredHistory);
+    console.log(`Recorded deal history (${deliveredHistory.entries.length} game(s) tracked).`);
   }
 
   console.log('');
