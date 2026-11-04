@@ -79,16 +79,26 @@ function resultWith(overrides: Partial<MonitorResult> = {}): MonitorResult {
 }
 
 function recommendationTitles(result: MonitorResult): string[] {
-  const digest = buildDailyDigest(result);
+  const digest = buildDailyDigest(result, { deduplicateSections: false });
   return digest.recommendations.map((recommendation) => recommendation.title);
 }
 
 function buildDigest(result: MonitorResult): ReturnType<typeof buildDailyDigest> {
-  return buildDailyDigest(result);
+  return buildDailyDigest(result, { deduplicateSections: false });
 }
 
 export async function validateRecommendations(): Promise<void> {
   const checks: Check[] = [
+    {
+      name: 'production digest does not duplicate deal games in recommendations',
+      run: () => {
+        const analysis = makeAnalysis(makeGame());
+        const result = resultWith({ analyses: [analysis], reportedAnalyses: [analysis] });
+        const digest = buildDailyDigest(result);
+        assert.deepStrictEqual(digest.bestDeals.map((item) => item.title), ['LEGO Jurassic World']);
+        assert.deepStrictEqual(digest.recommendations, []);
+      },
+    },
     {
       name: 'discounted family match appears',
       run: () => {
@@ -759,8 +769,8 @@ export async function validateRecommendations(): Promise<void> {
           assert.ok(lowTitles.has('Game C'), 'second historical low included');
           assert.ok(!lowTitles.has('Game B'), 'Game B must be cut by the limit');
           assert.ok(
-            digest.bestDeals.some((item) => item.title === 'Game B'),
-            'a historical-low deal cut by the limit falls back to Best Deals',
+            !digest.bestDeals.some((item) => lowTitles.has(item.title)),
+            'historical-low games must not be duplicated in Best Deals',
           );
         },
       },

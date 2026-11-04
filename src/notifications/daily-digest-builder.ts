@@ -4,7 +4,7 @@ import { BlacklistSource, isGameBlacklisted } from '../config/blacklist';
 import { DEFAULT_DAILY_DIGEST_SETTINGS } from '../config/settings-loader';
 import { evaluateDealQuality } from '../history/deal-quality';
 import { getPriceContext } from '../history/price-intelligence';
-import { isDealExposureExpired, BEST_DEAL_EXPOSURE_DAYS, STILL_ON_SALE_EXPOSURE_DAYS } from '../config/notification-history-store';
+import { isDealExposureExpired, BEST_DEAL_EXPOSURE_DAYS, STILL_ON_SALE_EXPOSURE_DAYS, daysSince } from '../config/notification-history-store';
 import { matchTitleToCandidates, matchTitlesToCandidates } from '../matching/title-matcher';
 import {
   DailyDigest,
@@ -27,6 +27,9 @@ import {
 } from '../models';
 
 export interface BuildDailyDigestOptions {
+  /** Production defaults to cross-section deduplication. Tests may disable it
+   * when exercising a section's ranking in isolation. */
+  deduplicateSections?: boolean;
   maxBestDeals?: number;
   maxWishlistAlerts?: number;
   maxHistoricalLows?: number;
@@ -276,11 +279,28 @@ function isRecommendationEligible(analysis: GameAnalysis, result: MonitorResult)
   );
 }
 
+function isRecentlyRecommended(analysis: GameAnalysis, result: MonitorResult): boolean {
+  const entry = result.dealHistory.entries.find((candidate) => titleKey(candidate.gameTitle) === titleKey(analysis.game.title));
+  if (!entry) return false;
+  const records = entry.exposureHistory ?? [];
+  const recommendationDates = records.filter((record) => record.sections.includes('Recommendations'));
+  const last = recommendationDates[recommendationDates.length - 1];
+  if (!last) return false;
+  const days = daysSince(last.date, new Date(result.generatedAt)) ?? 0;
+  const cooldown = recommendationDates.length >= 2 ? 30 : 7;
+  if (days >= cooldown) return false;
+  // A materially improved price is allowed through once; unchanged deals are
+  // not repeatedly exempted merely because they score highly.
+  const previousPrice = entry.lastNotifiedPrice;
+  return previousPrice === undefined || analysis.game.currentPrice >= previousPrice * 0.9;
+}
+
 export function buildDailyDigest(
   result: MonitorResult,
   options: BuildDailyDigestOptions = {},
 ): DailyDigest {
   const maxBestDeals = options.maxBestDeals ?? DEFAULT_DAILY_DIGEST_SETTINGS.maxBestDeals;
+  const deduplicateSections = options.deduplicateSections ?? true;
   const maxWishlistAlerts = options.maxWishlistAlerts ?? DEFAULT_DAILY_DIGEST_SETTINGS.maxWishlistAlerts;
   const maxHistoricalLows =
     options.maxHistoricalLows ?? DEFAULT_DAILY_DIGEST_SETTINGS.maxHistoricalLows;
@@ -449,12 +469,23 @@ export function buildDailyDigest(
   }
 
   const pending: PendingRecommendation[] = [];
+  const reservedTitles = new Set<string>(deduplicateSections ? [
+    ...historicalLows.map((item) => titleKey(item.title)),
+    ...bestDeals.map((item) => titleKey(item.title)),
+    ...stillOnSale.map((item) => titleKey(item.title)),
+  ] : []);
   for (const analysis of reportedAnalyses) {
     if (!isRecommendationEligible(analysis, result)) {
       continue;
     }
     const matched = analysis.familyMatches.filter((match) => match.matched);
     if (matched.length === 0) {
+      continue;
+    }
+    if (reservedTitles.has(titleKey(analysis.game.title))) {
+      continue;
+    }
+    if (isRecentlyRecommended(analysis, result) && !(analysis.wishlistMatch?.matched ?? false)) {
       continue;
     }
     const entireFamily =

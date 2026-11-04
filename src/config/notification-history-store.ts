@@ -237,6 +237,16 @@ export function reconcileDealHistory(
     const present = presentByKey.has(key);
     const updated: DealHistoryEntry = { ...entry, currentlyOnSale: present };
     if (present) {
+      if (!entry.currentlyOnSale) {
+        // A sale that was absent on the previous collection is a new deal
+        // cycle. Keep historical prices/counts, but restart sale/exposure
+        // timing and notification cooldown for the new cycle.
+        updated.firstSeenOnSale = nowIso;
+        updated.firstNotified = undefined;
+        updated.lastNotified = undefined;
+        updated.lastNotifiedPrice = undefined;
+        updated.exposureHistory = undefined;
+      }
       updated.lastSeenOnSale = nowIso;
       const presentValue = presentByKey.get(key) as { game: Game };
       updated.priceHistory = recordPriceObservation(updated.priceHistory, presentValue.game.currentPrice, now);
@@ -304,9 +314,9 @@ export function isDealExposureExpired(
   now: Date,
   maximumDays: number,
 ): boolean {
-  // Legacy notification history predates exposure tracking. Do not reinterpret
-  // an old notification as continuous digest exposure during migration.
-  const firstExposure = entry.exposureHistory?.[0]?.date;
+  // Legacy records have no section log; their first notification is the only
+  // durable evidence of digest visibility and is used for one-time migration.
+  const firstExposure = entry.exposureHistory?.[0]?.date ?? entry.firstNotified;
   if (!firstExposure) return false;
   const days = daysSince(firstExposure, now);
   return days !== undefined && days >= maximumDays;
